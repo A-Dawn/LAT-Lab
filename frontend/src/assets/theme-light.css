@@ -1,0 +1,313 @@
+/* 浅色主题 */
+:root[data-theme="light"] {
+  /* 主色调 - 更改为更柔和的蓝色和紫色调 */
+  --primary-color: #4361ee;
+  --secondary-color: #7e57c2;
+  --accent-color: #f77f7f;
+  
+  /* 背景色 - 更加柔和的灰蓝色背景 */
+  --bg-primary: #f8f9fc;
+  --bg-secondary: #ffffff;
+  --bg-elevated: #fcfcff;
+  
+  /* 文本色 - 保持高对比度但更柔和 */
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-tertiary: #718096;
+  
+  /* 边框和分隔线 - 轻微调整 */
+  --border-color: #e2e8f0;
+  --divider-color: #edf2f7;
+  
+  /* 控件颜色 */
+  --button-bg: #f5f7fa;
+  --button-bg-hover: #e6effd;
+  --button-text: #4361ee;
+  
+  /* 卡片和容器 - 优化阴影 */
+  --card-bg: #ffffff;
+  --card-shadow: 0 2px 10px rgba(67, 97, 238, 0.07);
+  --card-shadow-hover: 0 10px 20px rgba(67, 97, 238, 0.1);
+  
+  /* 状态颜色 - 更柔和 */
+  --success-color: #48bb78;
+  --warning-color: #ed8936;
+  --error-color: #e53e3e;
+  --info-color: #4299e1;
+  
+  /* 悬浮颜色 */
+  --hover-color: rgba(67, 97, 238, 0.06);
+  
+  /* 英雄区域背景 - 更渐变更平滑 */
+  --hero-gradient: linear-gradient(135deg, #4361ee 0%, #3f51b5 100%);
+  --hero-text: #ffffff; /* 确保英雄区文字为白色 */
+}
+
+/* 浅色主题全局选择器 - 直接应用到html元素 */
+html[data-theme="light"] {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 应用浅色主题的全局样式 */
+html[data-theme="light"] body,
+.theme-light {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+/* 浅色主题下的所有卡片容器 */
+html[data-theme="light"] div,
+html[data-theme="light"] table,
+html[data-theme="light"] section,
+html[data-theme="light"] article,
+html[data-theme="light"] aside {
+  color: var(--text-primary);
+}
+
+/* 浅色主题的卡片背景 */
+html[data-theme="light"] .card,
+html[data-theme="light"] .plugin-widget,
+html[data-theme="light"] .article-card,
+html[data-theme="light"] .sidebar-widget,
+html[data-theme="light"] div[class*="container"],
+html[data-theme="light"] div[class*="layout"],
+html[data-theme="light"] div[class*="panel"],
+html[data-theme="light"] div[class*="box"],
+html[data-theme="light"] div[class*="widget"],
+html[data-theme="light"] div[class*="-list"],
+html[data-theme="light"] tr,
+html[data-theme="light"] td,
+html[data-theme="light"] th {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* 浅色主题的管理区域 */
+html[data-theme="light"] .admin-dashboard,
+html[data-theme="light"] .admin-sidebar,
+html[data-theme="light"] .admin-main,
+html[data-theme="light"] .admin-content {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html[data-theme="light"] .admin-table,
+html[data-theme="light"] .plugins-table,
+html[data-theme="light"] .dialog {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* 浅色主题的导航栏 */
+html[data-theme="light"] .app-header,
+.theme-light .app-header {
+  background-color: var(--bg-secondary);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 浅色主题的导航链接 */
+html[data-theme="light"] .nav-link,
+.theme-light .nav-link {
+  color: var(--text-secondary);
+}
+
+html[data-theme="light"] .nav-link:hover,
+html[data-theme="light"] .nav-link.router-link-active,
+.theme-light .nav-link:hover,
+.theme-light .nav-link.router-link-active {
+  color: var(--primary-color);
+}
+
+/* 浅色主题的按钮 */
+html[data-theme="light"] button,
+html[data-theme="light"] .button,
+html[data-theme="light"] .btn,
+.theme-light button,
+.theme-light .button,
+.theme-light .btn {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--border-color);
+}
+
+html[data-theme="light"] button:hover,
+html[data-theme="light"] .button:hover,
+html[data-theme="light"] .btn:hover,
+.theme-light button:hover,
+.theme-light .button:hover,
+.theme-light .btn:hover {
+  background-color: var(--button-bg-hover);
+}
+
+/* 浅色主题的卡片 */
+html[data-theme="light"] .card,
+html[data-theme="light"] .plugin-widget,
+html[data-theme="light"] .article-card,
+html[data-theme="light"] .sidebar-widget,
+html[data-theme="light"] div[class*="-container"],
+html[data-theme="light"] table,
+.theme-light .card,
+.theme-light .plugin-widget,
+.theme-light .article-card,
+.theme-light .sidebar-widget {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+/* 浅色主题的文本元素 */
+html[data-theme="light"] p,
+html[data-theme="light"] span,
+html[data-theme="light"] div,
+html[data-theme="light"] td,
+.theme-light p,
+.theme-light span,
+.theme-light div,
+.theme-light td {
+  color: var(--text-primary);
+}
+
+html[data-theme="light"] .text-secondary,
+html[data-theme="light"] .article-excerpt,
+.theme-light .text-secondary,
+.theme-light .article-excerpt {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] .text-tertiary,
+html[data-theme="light"] .meta-item,
+.theme-light .text-tertiary,
+.theme-light .meta-item {
+  color: var(--text-tertiary) !important;
+}
+
+html[data-theme="light"] .article-title,
+.theme-light .article-title {
+  color: var(--text-primary);
+}
+
+/* 浅色主题的英雄区域 */
+html[data-theme="light"] .hero-section,
+.theme-light .hero-section {
+  background: var(--hero-gradient);
+  color: var(--hero-text);
+}
+
+/* 浅色主题的英雄区域文字 */
+html[data-theme="light"] .hero-title,
+html[data-theme="light"] .hero-subtitle,
+.theme-light .hero-title,
+.theme-light .hero-subtitle {
+  color: var(--hero-text);
+}
+
+/* 特别处理浅色主题下的搜索框文字 */
+html[data-theme="light"] .hero-section .search-input,
+.theme-light .hero-section .search-input {
+  color: var(--hero-text);
+}
+
+html[data-theme="light"] .hero-section .search-input::placeholder,
+.theme-light .hero-section .search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+html[data-theme="light"] .hero-section .search-button,
+.theme-light .hero-section .search-button {
+  color: var(--hero-text);
+}
+
+/* 浅色主题的输入框 */
+html[data-theme="light"] input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] select,
+.theme-light input,
+.theme-light textarea,
+.theme-light select {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme="light"] input:focus,
+html[data-theme="light"] textarea:focus,
+html[data-theme="light"] select:focus,
+.theme-light input:focus,
+.theme-light textarea:focus,
+.theme-light select:focus {
+  border-color: var(--primary-color);
+}
+
+/* 浅色主题的页脚 */
+html[data-theme="light"] .app-footer,
+.theme-light .app-footer {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+/* 浅色主题的链接 */
+html[data-theme="light"] a,
+.theme-light a {
+  color: var(--primary-color);
+}
+
+html[data-theme="light"] a:hover,
+.theme-light a:hover {
+  color: var(--secondary-color);
+}
+
+/* 浅色主题的标题 */
+html[data-theme="light"] h1, 
+html[data-theme="light"] h2, 
+html[data-theme="light"] h3,
+html[data-theme="light"] h4,
+html[data-theme="light"] h5,
+html[data-theme="light"] h6,
+.theme-light h1, 
+.theme-light h2, 
+.theme-light h3,
+.theme-light h4,
+.theme-light h5,
+.theme-light h6 {
+  color: var(--text-primary);
+}
+
+/* 浅色主题的表格 */
+html[data-theme="light"] table,
+html[data-theme="light"] th,
+html[data-theme="light"] td,
+.theme-light table,
+.theme-light th,
+.theme-light td {
+  border-color: var(--border-color);
+}
+
+html[data-theme="light"] th,
+.theme-light th {
+  background-color: var(--bg-elevated);
+}
+
+/* 浅色主题的标签 */
+html[data-theme="light"] .tag,
+.theme-light .tag {
+  background-color: var(--hover-color);
+  color: var(--primary-color);
+}
+
+/* 浅色主题的小部件标题 */
+html[data-theme="light"] .widget-title,
+.theme-light .widget-title {
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* 浅色主题的文章卡片悬停效果 */
+html[data-theme="light"] .article-card:hover,
+.theme-light .article-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+} 

@@ -1,0 +1,169 @@
+{
+  "marketplace_info": {
+    "version": "1.0.0",
+    "last_updated": "2025-06-27",
+    "description": "LAT-LAB插件市场配置文件"
+  },
+  "categories": [
+    {
+      "id": 1,
+      "name": "工具",
+      "description": "实用工具类插件"
+    },
+    {
+      "id": 2,
+      "name": "增强",
+      "description": "增强博客功能的插件"
+    },
+    {
+      "id": 3,
+      "name": "数据分析",
+      "description": "数据处理和分析类插件"
+    },
+    {
+      "id": 4,
+      "name": "AI 与机器学习",
+      "description": "人工智能和机器学习相关插件"
+    },
+    {
+      "id": 5,
+      "name": "外部集成",
+      "description": "与外部服务集成的插件"
+    },
+    {
+      "id": 6,
+      "name": "SEO",
+      "description": "搜索引擎优化相关插件"
+    }
+  ],
+  "tags": [
+    "ai", "seo", "数据可视化", "文件管理", "社交媒体",
+    "安全", "性能优化", "内容处理", "UI增强", "工具",
+    "编辑器", "图像处理", "音频", "视频", "统计",
+    "备份", "导入导出", "通知", "评论增强", "搜索"
+  ],
+  "plugins": [
+    {
+      "id": "ai-assistant",
+      "name": "AI写作助手",
+      "version": "1.0.0",
+      "description": "集成OpenAI、Anthropic等AI模型，提供写作辅助、内容润色、翻译等功能",
+      "category": "内容创作",
+      "tags": ["ai", "内容处理", "编辑器"],
+      "author": "DawnARC",
+      "author_url": "https://github.com/latlab",
+      "repository_url": "https://github.com/latlab/plugin-ai-assistant",
+      "download_url": "https://github.com/latlab/plugin-ai-assistant/releases/download/v1.0.0/ai-assistant.zip",
+      "icon": "https://example.com/icons/ai-assistant.png",
+      "featured": true,
+      "created_at": "2023-07-15",
+      "updated_at": "2023-09-22",
+      "screenshots": [
+        {
+          "url": "https://example.com/screenshots/ai-assistant-1.png",
+          "caption": "写作辅助界面"
+        },
+        {
+          "url": "https://example.com/screenshots/ai-assistant-2.png",
+          "caption": "内容润色功能"
+        }
+      ],
+      "readme": "# AI写作助手\n\n集成主流AI大语言模型，提供强大的写作辅助功能。\n\n## 功能\n\n- 内容生成\n- 文章润色\n- 语法检查\n- 翻译功能\n- AI辅助写作\n\n## 安装\n\n1. 下载插件\n2. 上传到你的LAT-Lab\n3. 在插件管理页面启用\n\n## 配置\n\n需要设置OpenAI API密钥。"
+    },
+    {
+      "id": "seo-assistant",
+      "name": "SEO优化助手",
+      "version": "1.0.0",
+      "description": "提供文章SEO分析和优化建议，帮助提升博客文章在搜索引擎中的排名",
+      "category": "SEO工具",
+      "tags": ["seo", "分析", "优化"],
+      "author": "SEO Master",
+      "author_url": "https://example.com/seomaster",
+      "repository_url": "https://github.com/seomaster/seo-assistant",
+      "download_url": "https://example.com/plugins/seo-assistant.zip",
+      "icon": "https://example.com/icons/seo-assistant.png",
+      "featured": false,
+      "created_at": "2023-06-20",
+      "updated_at": "2023-08-15",
+      "screenshots": [
+        {
+          "url": "https://example.com/screenshots/seo-assistant-1.png",
+          "caption": "SEO分析界面"
+        }
+      ],
+      "readme": "# SEO 优化助手\n\n自动分析文章内容，提供SEO优化建议。\n\n## 功能\n\n- 关键词密度分析\n- 标题优化建议\n- 元描述生成\n- 内部链接建议\n\n## 安装\n\n1. 下载插件\n2. 上传到你的LAT-Lab\n3. 在插件管理页面启用"
+    },
+    {
+      "id": "code-highlight",
+      "name": "代码高亮增强",
+      "version": "1.1.0",
+      "description": "为博客中的代码块提供更高级的语法高亮和格式化功能",
+      "category": "内容展示",
+      "tags": ["代码", "高亮", "格式化"],
+      "author": "CodeCrafter",
+      "author_url": "https://example.com/codecrafter",
+      "repository_url": "https://github.com/codecrafter/code-highlight",
+      "download_url": "https://example.com/plugins/code-highlight.zip",
+      "icon": "https://example.com/icons/code-highlight.png",
+      "featured": true,
+      "created_at": "2023-05-10",
+      "updated_at": "2023-09-01",
+      "screenshots": [],
+      "readme": "# 代码高亮增强\n\n为博客文章中的代码块提供语法高亮和格式化功能。\n\n## 功能\n\n- 支持多种编程语言\n- 多种高亮主题\n- 代码复制按钮\n- 行号显示\n\n## 安装\n\n1. 下载插件\n2. 上传到你的LAT-Lab\n3. 在插件管理页面启用"
+    },
+    {
+      "id": "backup-system",
+      "name": "自动备份系统",
+      "version": "2.0.0",
+      "description": "定期自动备份博客内容和设置，支持本地备份和云存储备份",
+      "category": "系统工具",
+      "tags": ["备份", "安全", "数据", "恢复"],
+      "author": "CloudGuard",
+      "author_url": "https://example.com/cloudguard",
+      "repository_url": "https://github.com/cloudguard/backup-system",
+      "download_url": "https://example.com/plugins/backup-system.zip",
+      "icon": "https://example.com/icons/backup-system.png",
+      "featured": false,
+      "created_at": "2023-03-05",
+      "updated_at": "2023-07-20",
+      "screenshots": [],
+      "readme": "# 自动备份系统\n\n为你的博客提供可靠的自动备份解决方案。\n\n## 功能\n\n- 定时自动备份\n- 支持本地和云存储\n- 增量备份选项\n- 一键恢复功能\n\n## 安装\n\n1. 下载插件\n2. 上传到你的LAT-Lab\n3. 在插件管理页面启用\n\n## 配置\n\n需要设置备份频率和存储位置。"
+    },
+    {
+      "id": "social-share",
+      "name": "社交分享工具",
+      "version": "1.2.0",
+      "description": "为文章添加各大社交媒体分享按钮，支持自定义样式和分享内容",
+      "category": "社交工具",
+      "tags": ["社交", "分享", "推广"],
+      "author": "SocialBoost",
+      "author_url": "https://example.com/socialboost",
+      "repository_url": "https://github.com/socialboost/social-share",
+      "download_url": "https://example.com/plugins/social-share.zip",
+      "icon": "https://example.com/icons/social-share.png",
+      "featured": false,
+      "created_at": "2023-04-12",
+      "updated_at": "2023-06-30",
+      "screenshots": [],
+      "readme": "# 社交分享工具\n\n为你的博客文章添加社交媒体分享按钮。\n\n## 功能\n\n- 支持主流社交平台\n- 自定义按钮样式\n- 可配置分享内容\n- 分享统计功能\n\n## 安装\n\n1. 下载插件\n2. 上传到你的LAT-Lab\n3. 在插件管理页面启用"
+    },
+    {
+      "id": "email-subscription",
+      "name": "邮件订阅系统",
+      "version": "1.0.0",
+      "description": "为博客添加邮件订阅功能，可以自动向订阅者发送新文章通知",
+      "category": "营销工具",
+      "tags": ["邮件", "订阅", "通知", "营销"],
+      "author": "MailMaster",
+      "author_url": "https://example.com/mailmaster",
+      "repository_url": "https://github.com/mailmaster/email-subscription",
+      "download_url": "https://example.com/plugins/email-subscription.zip",
+      "icon": "https://example.com/icons/email-subscription.png",
+      "featured": false,
+      "created_at": "2023-06-05",
+      "updated_at": "2023-06-05",
+      "screenshots": [],
+      "readme": "# 邮件订阅系统\n\n为博客添加邮件订阅功能。\n\n## 功能\n\n- 订阅表单小部件\n- 订阅者管理\n- 自动发送新文章通知\n- 邮件模板编辑器\n\n## 安装\n\n1. 下载插件\n2. 上传到你的LAT-Lab\n3. 在插件管理页面启用\n\n## 配置\n\n需要设置SMTP服务器信息。"
+    }
+  ]
+} 

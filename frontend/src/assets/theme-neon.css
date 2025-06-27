@@ -1,0 +1,590 @@
+/* 霓虹主题 - 科幻风格 */
+:root[data-theme="neon"] {
+  /* 主色调 - 更鲜艳的霓虹色调 */
+  --primary-color: #00dfff;
+  --secondary-color: #fc28fb;
+  --accent-color: #ffec44;
+  --primary-rgb: 0, 223, 255;
+  --secondary-rgb: 252, 40, 251;
+  --accent-rgb: 255, 236, 68;
+  
+  /* 背景色 - 更深邃的暗色背景 */
+  --bg-primary: #08091b;
+  --bg-secondary: #0d102c;
+  --bg-elevated: #141a3c;
+  
+  /* 文本色 - 增强对比度 */
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-tertiary: rgba(255, 255, 255, 0.7);
+  
+  /* 边框和分隔线 - 更均衡的霓虹感 */
+  --border-color: rgba(0, 223, 255, 0.2);
+  --divider-color: rgba(252, 40, 251, 0.15);
+  
+  /* 控件颜色 */
+  --button-bg: rgba(13, 16, 44, 0.8);
+  --button-bg-hover: rgba(20, 26, 60, 0.9);
+  --button-text: #00dfff;
+  
+  /* 卡片和容器 - 带发光效果，但更微妙 */
+  --card-bg: rgba(13, 16, 44, 0.9);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  
+  /* 霓虹输入和代码背景 */
+  --input-bg: rgba(8, 9, 27, 0.9);
+  --code-bg: rgba(8, 9, 27, 0.8);
+  
+  /* 状态颜色 - 更鲜艳 */
+  --success-color: #00ffa3;
+  --warning-color: #ffb800;
+  --error-color: #ff2e6a;
+  --info-color: #00b3ff;
+  
+  /* 悬浮颜色 */
+  --hover-color: rgba(0, 223, 255, 0.08);
+  
+  /* 霓虹发光效果 - 更加微妙 */
+  --glow-primary: 0 0 10px rgba(0, 223, 255, 0.3), 0 0 15px rgba(0, 223, 255, 0.1);
+  --glow-secondary: 0 0 10px rgba(252, 40, 251, 0.3), 0 0 15px rgba(252, 40, 251, 0.1);
+  --glow-text: 0 0 2px rgba(255, 255, 255, 0.2);
+  
+  /* 英雄区域背景 - 动态渐变 */
+  --hero-gradient: linear-gradient(135deg, #08091b 0%, #0d102c 100%);
+  --hero-text: #ffffff;
+}
+
+/* 霓虹主题全局选择器 - 直接应用到html元素 */
+html[data-theme="neon"] {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 应用霓虹主题的全局样式 */
+html[data-theme="neon"] body,
+.theme-neon {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+/* 霓虹主题下的所有卡片容器 */
+html[data-theme="neon"] div,
+html[data-theme="neon"] table,
+html[data-theme="neon"] section,
+html[data-theme="neon"] article,
+html[data-theme="neon"] aside {
+  color: var(--text-primary);
+}
+
+/* 霓虹主题的卡片背景 */
+html[data-theme="neon"] .card,
+html[data-theme="neon"] .plugin-widget,
+html[data-theme="neon"] .article-card,
+html[data-theme="neon"] .sidebar-widget,
+html[data-theme="neon"] div[class*="container"],
+html[data-theme="neon"] div[class*="layout"],
+html[data-theme="neon"] div[class*="panel"],
+html[data-theme="neon"] div[class*="box"],
+html[data-theme="neon"] div[class*="widget"],
+html[data-theme="neon"] div[class*="-list"],
+html[data-theme="neon"] tr,
+html[data-theme="neon"] td,
+html[data-theme="neon"] th {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* 霓虹主题的管理页面 */
+html[data-theme="neon"] .admin-dashboard,
+html[data-theme="neon"] .admin-header,
+html[data-theme="neon"] .admin-content {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html[data-theme="neon"] .admin-sidebar,
+html[data-theme="neon"] .admin-main,
+html[data-theme="neon"] .sidebar-header,
+html[data-theme="neon"] .plugins-table,
+html[data-theme="neon"] .plugins-list,
+html[data-theme="neon"] .admin-table,
+html[data-theme="neon"] .dialog,
+html[data-theme="neon"] .dialog-body {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+html[data-theme="neon"] .admin-table th,
+html[data-theme="neon"] .plugins-table th {
+  background-color: var(--bg-elevated);
+  color: var(--primary-color);
+}
+
+html[data-theme="neon"] .dialog-overlay {
+  background-color: rgba(5, 6, 20, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+/* 霓虹主题的导航栏 */
+html[data-theme="neon"] .app-header,
+.theme-neon .app-header {
+  background-color: var(--bg-secondary);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(5px);
+}
+
+/* 霓虹主题的Logo */
+html[data-theme="neon"] .logo-text,
+.theme-neon .logo-text {
+  color: var(--primary-color);
+  text-shadow: var(--glow-primary);
+  font-weight: 700;
+}
+
+/* 霓虹主题的导航链接 */
+html[data-theme="neon"] .nav-link,
+.theme-neon .nav-link {
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+html[data-theme="neon"] .nav-link:hover,
+html[data-theme="neon"] .nav-link.router-link-active,
+.theme-neon .nav-link:hover,
+.theme-neon .nav-link.router-link-active {
+  color: var(--primary-color);
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.3);
+}
+
+html[data-theme="neon"] .nav-link.router-link-active::after,
+.theme-neon .nav-link.router-link-active::after {
+  background-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(var(--primary-rgb), 0.5);
+}
+
+/* 霓虹主题的按钮 - 更微妙的发光效果 */
+html[data-theme="neon"] button,
+html[data-theme="neon"] .button,
+html[data-theme="neon"] .btn,
+.theme-neon button,
+.theme-neon .button,
+.theme-neon .btn {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0 5px rgba(var(--primary-rgb), 0.25);
+}
+
+html[data-theme="neon"] button:hover,
+html[data-theme="neon"] .button:hover,
+html[data-theme="neon"] .btn:hover,
+.theme-neon button:hover,
+.theme-neon .button:hover,
+.theme-neon .btn:hover {
+  background-color: var(--button-bg-hover);
+  box-shadow: var(--glow-primary);
+}
+
+/* 霓虹主题的主要按钮 */
+html[data-theme="neon"] .btn-primary,
+html[data-theme="neon"] .button-primary,
+.theme-neon .btn-primary,
+.theme-neon .button-primary {
+  background-color: var(--primary-color);
+  color: var(--bg-primary);
+  font-weight: 600;
+  border: none;
+  box-shadow: var(--glow-primary);
+}
+
+html[data-theme="neon"] .btn-primary:hover,
+html[data-theme="neon"] .button-primary:hover,
+.theme-neon .btn-primary:hover,
+.theme-neon .button-primary:hover {
+  background-color: var(--secondary-color);
+  box-shadow: var(--glow-secondary);
+}
+
+/* 霓虹主题的卡片 - 半透明效果 */
+html[data-theme="neon"] .card,
+html[data-theme="neon"] .plugin-widget,
+html[data-theme="neon"] .article-card,
+html[data-theme="neon"] .sidebar-widget,
+html[data-theme="neon"] div[class*="-container"],
+html[data-theme="neon"] table,
+.theme-neon .card,
+.theme-neon .plugin-widget,
+.theme-neon .article-card,
+.theme-neon .sidebar-widget {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 霓虹主题的卡片悬停效果 - 更微妙的发光 */
+html[data-theme="neon"] .card:hover,
+html[data-theme="neon"] .plugin-widget:hover,
+html[data-theme="neon"] .article-card:hover,
+html[data-theme="neon"] .sidebar-widget:hover,
+.theme-neon .card:hover,
+.theme-neon .plugin-widget:hover,
+.theme-neon .article-card:hover,
+.theme-neon .sidebar-widget:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 10px rgba(var(--primary-rgb), 0.2);
+  transform: translateY(-5px);
+}
+
+/* 霓虹主题的文本元素 */
+html[data-theme="neon"] p,
+html[data-theme="neon"] span,
+html[data-theme="neon"] div,
+html[data-theme="neon"] td,
+.theme-neon p,
+.theme-neon span,
+.theme-neon div,
+.theme-neon td {
+  color: var(--text-primary);
+}
+
+/* 霓虹主题的次要文本 - 增强对比度 */
+html[data-theme="neon"] .text-secondary,
+html[data-theme="neon"] .article-excerpt,
+.theme-neon .text-secondary,
+.theme-neon .article-excerpt {
+  color: var(--text-secondary) !important;
+}
+
+/* 霓虹主题的三级文本 - 增强对比度 */
+html[data-theme="neon"] .text-tertiary,
+html[data-theme="neon"] .meta-item,
+.theme-neon .text-tertiary,
+.theme-neon .meta-item {
+  color: var(--text-tertiary) !important;
+}
+
+/* 霓虹主题的文章标题 - 优化发光效果 */
+html[data-theme="neon"] .article-title,
+.theme-neon .article-title {
+  color: var(--text-primary);
+  text-shadow: var(--glow-text);
+}
+
+html[data-theme="neon"] .article-title:hover,
+.theme-neon .article-title:hover {
+  color: var(--primary-color);
+  text-shadow: var(--glow-primary);
+}
+
+/* 霓虹主题的表格 */
+html[data-theme="neon"] table,
+.theme-neon table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+html[data-theme="neon"] th,
+.theme-neon th {
+  background-color: var(--bg-elevated);
+  color: var(--primary-color);
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.3);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* 霓虹主题的标签 - 平衡发光效果 */
+html[data-theme="neon"] .tag,
+.theme-neon .tag {
+  background-color: var(--hover-color);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-rgb), 0.3);
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.2);
+}
+
+html[data-theme="neon"] .tag:hover,
+html[data-theme="neon"] .tag.active,
+.theme-neon .tag:hover,
+.theme-neon .tag.active {
+  background-color: var(--primary-color);
+  color: var(--bg-primary);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.4);
+  text-shadow: none;
+  transform: translateY(-2px);
+}
+
+/* 霓虹主题的小部件标题 */
+html[data-theme="neon"] .widget-title,
+.theme-neon .widget-title {
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
+  padding: 15px 20px;
+  text-shadow: var(--glow-text);
+}
+
+/* 霓虹心跳动画 - 减轻强度 */
+@keyframes neonPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(var(--primary-rgb), 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.7);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(var(--primary-rgb), 0.5);
+  }
+}
+
+/* 霓虹主题的英雄区域 */
+html[data-theme="neon"] .hero-section,
+.theme-neon .hero-section {
+  background: var(--hero-gradient);
+  border-bottom: 1px solid var(--primary-color);
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-theme="neon"] .hero-title,
+.theme-neon .hero-title {
+  color: var(--text-primary);
+  text-shadow: 0 0 10px rgba(var(--primary-rgb), 0.5);
+}
+
+html[data-theme="neon"] .hero-title span,
+.theme-neon .hero-title span {
+  color: var(--primary-color);
+  text-shadow: var(--glow-primary);
+}
+
+html[data-theme="neon"] .hero-subtitle,
+.theme-neon .hero-subtitle {
+  color: var(--text-secondary);
+  text-shadow: var(--glow-text);
+  background-color: rgba(13, 16, 44, 0.6);
+}
+
+/* 优化霓虹主题的搜索框 */
+html[data-theme="neon"] .search-box,
+.theme-neon .search-box {
+  background-color: rgba(13, 16, 44, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+
+html[data-theme="neon"] .search-input,
+.theme-neon .search-input {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+}
+
+html[data-theme="neon"] .search-input::placeholder,
+.theme-neon .search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+html[data-theme="neon"] .search-button,
+.theme-neon .search-button {
+  background-color: var(--primary-color);
+  color: var(--bg-primary);
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.4);
+}
+
+/* 霓虹主题的输入框 */
+html[data-theme="neon"] input,
+html[data-theme="neon"] textarea,
+html[data-theme="neon"] select,
+.theme-neon input,
+.theme-neon textarea,
+.theme-neon select {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme="neon"] input:focus,
+html[data-theme="neon"] textarea:focus,
+html[data-theme="neon"] select:focus,
+.theme-neon input:focus,
+.theme-neon textarea:focus,
+.theme-neon select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+}
+
+/* 霓虹主题的代码块 */
+html[data-theme="neon"] code,
+html[data-theme="neon"] pre,
+.theme-neon code,
+.theme-neon pre {
+  background-color: var(--code-bg);
+  color: var(--text-primary);
+  border-radius: 4px;
+  border: 1px solid rgba(var(--primary-rgb), 0.1);
+}
+
+/* 修复登录/注册页面 */
+html[data-theme="neon"] .login-page,
+html[data-theme="neon"] .register-page,
+.theme-neon .login-page,
+.theme-neon .register-page {
+  background: var(--hero-gradient);
+  position: relative;
+}
+
+html[data-theme="neon"] .login-box,
+html[data-theme="neon"] .register-box,
+.theme-neon .login-box,
+.theme-neon .register-box {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 霓虹主题下的文章内容样式 */
+html[data-theme="neon"] .markdown-body {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+html[data-theme="neon"] .markdown-body h1,
+html[data-theme="neon"] .markdown-body h2,
+html[data-theme="neon"] .markdown-body h3,
+html[data-theme="neon"] .markdown-body h4,
+html[data-theme="neon"] .markdown-body h5,
+html[data-theme="neon"] .markdown-body h6 {
+  color: var(--primary-color);
+  border-color: rgba(var(--primary-rgb), 0.2);
+  text-shadow: var(--glow-text);
+}
+
+html[data-theme="neon"] .markdown-body h1 {
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.4);
+}
+
+html[data-theme="neon"] .markdown-body p,
+html[data-theme="neon"] .markdown-body ul,
+html[data-theme="neon"] .markdown-body ol,
+html[data-theme="neon"] .markdown-body dl {
+  color: var(--text-primary);
+}
+
+html[data-theme="neon"] .markdown-body strong {
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+html[data-theme="neon"] .markdown-body blockquote {
+  color: var(--text-secondary);
+  border-left-color: var(--secondary-color);
+  background-color: rgba(var(--secondary-rgb), 0.05);
+}
+
+html[data-theme="neon"] .markdown-body code {
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+  border-radius: 4px;
+  text-shadow: 0 0 2px rgba(var(--primary-rgb), 0.2);
+}
+
+html[data-theme="neon"] .markdown-body pre {
+  background-color: rgba(8, 9, 27, 0.6);
+  border: 1px solid rgba(var(--primary-rgb), 0.1);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme="neon"] .markdown-body pre code {
+  color: var(--primary-color);
+  text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.3);
+  background-color: transparent;
+}
+
+html[data-theme="neon"] .markdown-body a {
+  color: var(--secondary-color);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(var(--secondary-rgb), 0.4);
+  transition: all 0.2s ease;
+}
+
+html[data-theme="neon"] .markdown-body a:hover {
+  color: var(--primary-color);
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.5);
+  border-bottom-color: var(--primary-color);
+}
+
+html[data-theme="neon"] .markdown-body table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="neon"] .markdown-body table th {
+  background-color: var(--bg-elevated);
+  color: var(--primary-color);
+  border-color: rgba(var(--primary-rgb), 0.2);
+  text-shadow: var(--glow-text);
+}
+
+html[data-theme="neon"] .markdown-body table td {
+  border-color: rgba(var(--primary-rgb), 0.1);
+}
+
+html[data-theme="neon"] .markdown-body table tr {
+  background-color: var(--card-bg);
+}
+
+html[data-theme="neon"] .markdown-body table tr:nth-child(2n) {
+  background-color: rgba(var(--primary-rgb), 0.03);
+}
+
+html[data-theme="neon"] .markdown-body img {
+  background-color: transparent;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+}
+
+/* 改进霓虹主题下的文章容器样式 */
+html[data-theme="neon"] .article-container {
+  background-color: var(--card-bg);
+  box-shadow: var(--card-shadow), 0 0 20px rgba(var(--primary-rgb), 0.05);
+  border: 1px solid rgba(var(--primary-rgb), 0.1);
+  border-radius: 12px;
+}
+
+html[data-theme="neon"] .article-header {
+  border-bottom-color: rgba(var(--primary-rgb), 0.1);
+}
+
+html[data-theme="neon"] .article-header h1 {
+  color: var(--primary-color);
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.3);
+}
+
+html[data-theme="neon"] .article-content {
+  color: var(--text-primary);
+}
+
+html[data-theme="neon"] .comment-form {
+  background-color: rgba(var(--secondary-rgb), 0.05);
+  border: 1px solid rgba(var(--secondary-rgb), 0.1);
+  border-radius: 8px;
+} 

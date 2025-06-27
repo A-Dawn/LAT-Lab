@@ -1,0 +1,481 @@
+/* 深色主题 */
+:root[data-theme="dark"] {
+  /* 主色调 - 更鲜明但柔和 */
+  --primary-color: #60a5fa;
+  --secondary-color: #a78bfa;
+  --accent-color: #fc8181;
+  --primary-rgb: 96, 165, 250;
+  --secondary-rgb: 167, 139, 250;
+  --accent-rgb: 252, 129, 129;
+  
+  /* 背景色 - 更深沉的黑蓝色调 */
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-elevated: #374151;
+  
+  /* 文本色 - 提高可读性 */
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-tertiary: rgba(255, 255, 255, 0.6);
+  
+  /* 边框和分隔线 - 微妙的蓝灰色调 */
+  --border-color: rgba(156, 163, 175, 0.3);
+  --divider-color: rgba(156, 163, 175, 0.15);
+  
+  /* 控件颜色 - 更深沉 */
+  --button-bg: #2d3748;
+  --button-bg-hover: #4a5568;
+  --button-text: #60a5fa;
+  
+  /* 卡片和容器 - 更精致的阴影和背景 */
+  --card-bg: #1f2937;
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --card-shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.5);
+  
+  /* 输入和代码块背景 */
+  --input-bg: rgba(17, 24, 39, 0.8);
+  --code-bg: rgba(15, 23, 42, 0.7);
+  
+  /* 状态颜色 - 更和谐 */
+  --success-color: #4ade80;
+  --warning-color: #fbbf24;
+  --error-color: #f87171;
+  --info-color: #38bdf8;
+  
+  /* 悬浮颜色 */
+  --hover-color: rgba(96, 165, 250, 0.15);
+  
+  /* 英雄区域背景 */
+  --hero-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --hero-text: #ffffff;
+}
+
+/* 深色主题全局选择器 - 直接应用到html元素 */
+html[data-theme="dark"] {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 应用深色主题的全局样式 */
+html[data-theme="dark"] body,
+.theme-dark {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+/* 深色主题下的所有卡片容器 */
+html[data-theme="dark"] div,
+html[data-theme="dark"] table,
+html[data-theme="dark"] section,
+html[data-theme="dark"] article,
+html[data-theme="dark"] aside {
+  color: var(--text-primary);
+}
+
+/* 深色主题的卡片背景 */
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .plugin-widget,
+html[data-theme="dark"] .article-card,
+html[data-theme="dark"] .sidebar-widget,
+html[data-theme="dark"] div[class*="container"],
+html[data-theme="dark"] div[class*="layout"],
+html[data-theme="dark"] div[class*="panel"],
+html[data-theme="dark"] div[class*="box"],
+html[data-theme="dark"] div[class*="widget"],
+html[data-theme="dark"] div[class*="-list"],
+html[data-theme="dark"] tr,
+html[data-theme="dark"] td,
+html[data-theme="dark"] th {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* 深色主题的管理页面 */
+html[data-theme="dark"] .admin-dashboard,
+html[data-theme="dark"] .admin-header,
+html[data-theme="dark"] .admin-content {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .admin-sidebar,
+html[data-theme="dark"] .admin-main,
+html[data-theme="dark"] .sidebar-header,
+html[data-theme="dark"] .plugins-table,
+html[data-theme="dark"] .plugins-list,
+html[data-theme="dark"] .admin-table,
+html[data-theme="dark"] .dialog,
+html[data-theme="dark"] .dialog-body {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .admin-table th,
+html[data-theme="dark"] .plugins-table th {
+  background-color: var(--bg-elevated);
+}
+
+html[data-theme="dark"] .dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* 深色主题的导航栏 */
+html[data-theme="dark"] .app-header,
+.theme-dark .app-header {
+  background-color: var(--bg-secondary);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* 深色主题的导航链接 */
+html[data-theme="dark"] .nav-link,
+.theme-dark .nav-link {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .nav-link:hover,
+html[data-theme="dark"] .nav-link.router-link-active,
+.theme-dark .nav-link:hover,
+.theme-dark .nav-link.router-link-active {
+  color: var(--primary-color);
+}
+
+/* 深色主题的按钮 */
+html[data-theme="dark"] button,
+html[data-theme="dark"] .button,
+html[data-theme="dark"] .btn,
+.theme-dark button,
+.theme-dark .button,
+.theme-dark .btn {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] button:hover,
+html[data-theme="dark"] .button:hover,
+html[data-theme="dark"] .btn:hover,
+.theme-dark button:hover,
+.theme-dark .button:hover,
+.theme-dark .btn:hover {
+  background-color: var(--button-bg-hover);
+}
+
+/* 优化深色主题的主要按钮 */
+html[data-theme="dark"] .btn-primary,
+html[data-theme="dark"] .button-primary,
+.theme-dark .btn-primary,
+.theme-dark .button-primary {
+  background-color: var(--primary-color);
+  color: #111827;
+  font-weight: 600;
+  border: none;
+}
+
+html[data-theme="dark"] .btn-primary:hover,
+html[data-theme="dark"] .button-primary:hover,
+.theme-dark .btn-primary:hover,
+.theme-dark .button-primary:hover {
+  background-color: var(--secondary-color);
+  color: #111827;
+}
+
+/* 深色主题的卡片 */
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .plugin-widget,
+html[data-theme="dark"] .article-card,
+html[data-theme="dark"] .sidebar-widget,
+.theme-dark .card,
+.theme-dark .plugin-widget,
+.theme-dark .article-card,
+.theme-dark .sidebar-widget {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+/* 深色主题的文本元素 */
+html[data-theme="dark"] p,
+html[data-theme="dark"] span,
+html[data-theme="dark"] div,
+html[data-theme="dark"] td,
+.theme-dark p,
+.theme-dark span,
+.theme-dark div,
+.theme-dark td {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .text-secondary,
+html[data-theme="dark"] .article-excerpt,
+.theme-dark .text-secondary,
+.theme-dark .article-excerpt {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .text-tertiary,
+html[data-theme="dark"] .meta-item,
+.theme-dark .text-tertiary,
+.theme-dark .meta-item {
+  color: var(--text-tertiary) !important;
+}
+
+/* 深色主题的英雄区域 */
+html[data-theme="dark"] .hero-section,
+.theme-dark .hero-section {
+  background: var(--hero-gradient);
+  border-bottom: 1px solid var(--bg-elevated);
+}
+
+html[data-theme="dark"] .hero-title,
+html[data-theme="dark"] .hero-subtitle,
+.theme-dark .hero-title,
+.theme-dark .hero-subtitle {
+  color: var(--text-primary);
+}
+
+/* 深色主题的输入框 */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select,
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] input:focus,
+html[data-theme="dark"] textarea:focus,
+html[data-theme="dark"] select:focus,
+.theme-dark input:focus,
+.theme-dark textarea:focus,
+.theme-dark select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.3);
+}
+
+/* 深色主题的页脚 */
+html[data-theme="dark"] .app-footer,
+.theme-dark .app-footer {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+/* 深色主题的链接 */
+html[data-theme="dark"] a,
+.theme-dark a {
+  color: var(--primary-color);
+}
+
+html[data-theme="dark"] a:hover,
+.theme-dark a:hover {
+  color: var(--secondary-color);
+  text-decoration: none;
+}
+
+/* 深色主题的标题 */
+html[data-theme="dark"] h1, 
+html[data-theme="dark"] h2, 
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6,
+.theme-dark h1,
+.theme-dark h2,
+.theme-dark h3,
+.theme-dark h4,
+.theme-dark h5,
+.theme-dark h6 {
+  color: var(--text-primary);
+}
+
+/* 深色主题的widget标题 */
+html[data-theme="dark"] .widget-title,
+.theme-dark .widget-title {
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  background-color: var(--bg-elevated);
+}
+
+/* 深色主题的表格 */
+html[data-theme="dark"] table,
+.theme-dark table {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html[data-theme="dark"] th,
+.theme-dark th {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* 深色主题的卡片悬浮效果 */
+html[data-theme="dark"] .article-card:hover,
+html[data-theme="dark"] .card:hover,
+.theme-dark .article-card:hover,
+.theme-dark .card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: rgba(var(--primary-rgb), 0.3);
+}
+
+/* 代码块和预格式化文本 */
+html[data-theme="dark"] pre,
+html[data-theme="dark"] code,
+.theme-dark pre,
+.theme-dark code {
+  background-color: var(--code-bg);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 0.2em 0.4em;
+}
+
+html[data-theme="dark"] pre,
+.theme-dark pre {
+  padding: 1em;
+  overflow-x: auto;
+}
+
+/* 优化标签显示 */
+html[data-theme="dark"] .tag,
+.theme-dark .tag {
+  background-color: var(--hover-color);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-rgb), 0.3);
+}
+
+html[data-theme="dark"] .tag:hover,
+html[data-theme="dark"] .tag.active,
+.theme-dark .tag:hover,
+.theme-dark .tag.active {
+  background-color: var(--primary-color);
+  color: var(--bg-primary);
+  border-color: var(--primary-color);
+}
+
+/* 卡片元素分隔线 */
+html[data-theme="dark"] .article-meta,
+.theme-dark .article-meta {
+  border-top-color: var(--divider-color);
+}
+
+/* 修复搜索框暗色主题问题 */
+html[data-theme="dark"] .hero-section .search-input,
+.theme-dark .hero-section .search-input {
+  background-color: rgba(31, 41, 55, 0.5);
+  border-color: rgba(var(--primary-rgb), 0.2);
+}
+
+html[data-theme="dark"] .hero-section .search-input::placeholder,
+.theme-dark .hero-section .search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 登录注册页面适配 */
+html[data-theme="dark"] .login-page,
+html[data-theme="dark"] .register-page,
+.theme-dark .login-page,
+.theme-dark .register-page {
+  background: var(--hero-gradient);
+}
+
+html[data-theme="dark"] .login-box,
+html[data-theme="dark"] .register-box,
+.theme-dark .login-box,
+.theme-dark .register-box {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+/* 深色主题下的文章内容样式 */
+html[data-theme="dark"] .markdown-body {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .markdown-body h1,
+html[data-theme="dark"] .markdown-body h2,
+html[data-theme="dark"] .markdown-body h3,
+html[data-theme="dark"] .markdown-body h4,
+html[data-theme="dark"] .markdown-body h5,
+html[data-theme="dark"] .markdown-body h6 {
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .markdown-body p,
+html[data-theme="dark"] .markdown-body ul,
+html[data-theme="dark"] .markdown-body ol,
+html[data-theme="dark"] .markdown-body dl {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .markdown-body blockquote {
+  color: var(--text-secondary);
+  border-left-color: var(--border-color);
+}
+
+html[data-theme="dark"] .markdown-body code {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--primary-color);
+}
+
+html[data-theme="dark"] .markdown-body pre {
+  background-color: var(--bg-elevated);
+}
+
+html[data-theme="dark"] .markdown-body pre code {
+  color: var(--text-primary);
+  background-color: transparent;
+}
+
+html[data-theme="dark"] .markdown-body table th,
+html[data-theme="dark"] .markdown-body table td {
+  border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .markdown-body table tr {
+  background-color: var(--card-bg);
+  border-top-color: var(--border-color);
+}
+
+html[data-theme="dark"] .markdown-body table tr:nth-child(2n) {
+  background-color: var(--bg-elevated);
+}
+
+html[data-theme="dark"] .markdown-body img {
+  background-color: var(--card-bg);
+}
+
+/* 改进深色主题下的文章容器样式 */
+html[data-theme="dark"] .article-container {
+  background-color: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+html[data-theme="dark"] .article-header {
+  border-bottom-color: var(--border-color);
+}
+
+html[data-theme="dark"] .article-header h1 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .article-content {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .comment-form {
+  background-color: var(--bg-secondary);
+} 

@@ -1,0 +1,475 @@
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from sqlalchemy.orm import Session
+from typing import List, Dict, Any
+import subprocess
+import tempfile
+import os
+from app.schemas.plugin import Plugin, PluginCreate, PluginUpdate
+from app.crud.plugin import (
+    get_plugin, get_plugin_by_name, get_plugins,
+    create_plugin, update_plugin, delete_plugin, activate_plugin
+)
+from app.core.deps import get_db, get_current_admin_user
+from app.models.user import User
+from app.core.config import settings
+
+router = APIRouter(prefix="/plugins", tags=["plugins"])
+
+# 示例插件相关路由应该放在具体ID路由之前
+@router.get("/examples", response_model=List[Dict[str, str]])
+def list_example_plugins(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """列出所有示例插件（仅管理员）"""
+    # 检查插件示例目录是否存在
+    if not os.path.exists(settings.PLUGIN_EXAMPLES_DIR):
+        # 尝试创建目录
+        try:
+            os.makedirs(settings.PLUGIN_EXAMPLES_DIR, exist_ok=True)
+            # 尝试初始化示例
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location(
+                    "init_examples", 
+                    os.path.join(os.path.dirname(settings.PLUGIN_EXAMPLES_DIR), "init_examples.py")
+                )
+                if spec and spec.loader:
+                    init_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(init_module)
+                    if hasattr(init_module, "init_examples"):
+                        init_module.init_examples()
+            except Exception as e:
+                print(f"初始化插件示例失败: {e}")
+        except Exception:
+            return []
+        
+        # 如果目录仍然不存在，返回空列表
+        if not os.path.exists(settings.PLUGIN_EXAMPLES_DIR):
+            return []
+    
+    examples = []
+    
+    # 遍历目录获取所有.py文件
+    for filename in os.listdir(settings.PLUGIN_EXAMPLES_DIR):
+        if filename.endswith('.py'):
+            example_name = filename[:-3]  # 去掉.py后缀
+            example_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, filename)
+            
+            # 读取文件前几行获取描述
+            description = ""
+            try:
+                with open(example_path, 'r', encoding='utf-8') as f:
+                    for i, line in enumerate(f):
+                        if i >= 10:  # 只读取前10行
+                            break
+                        if line.startswith('#'):
+                            if description:
+                                description += " "
+                            description += line[1:].strip()
+                        elif line.strip() and not line.startswith('#'):
+                            break
+            except UnicodeDecodeError:
+                # 尝试使用不同编码
+                try:
+                    with open(example_path, 'r', encoding='latin1') as f:
+                        content = f.read()
+                        # 将内容重新写入文件，确保UTF-8编码
+                        with open(example_path, 'w', encoding='utf-8') as fw:
+                            fw.write(content)
+                        
+                        # 重新提取描述
+                        for i, line in enumerate(content.split('\n')):
+                            if i >= 10:  # 只读取前10行
+                                break
+                            if line.startswith('#'):
+                                if description:
+                                    description += " "
+                                description += line[1:].strip()
+                            elif line.strip() and not line.startswith('#'):
+                                break
+                except Exception:
+                    description = "无法读取描述"
+            except Exception:
+                description = "无法读取描述"
+            
+            examples.append({
+                "name": example_name,
+                "description": description
+            })
+    
+    # 添加README
+    readme_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, "README.md")
+    if os.path.exists(readme_path):
+        examples.append({
+            "name": "README",
+            "description": "插件系统使用和开发说明"
+        })
+    
+    return examples
+
+@router.get("/examples/{example_name}", response_model=Dict[str, Any])
+def get_example_plugin(
+    example_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取示例插件（仅管理员）"""
+    # 检查插件示例目录是否存在
+    if not os.path.exists(settings.PLUGIN_EXAMPLES_DIR):
+        # 尝试创建目录
+        try:
+            os.makedirs(settings.PLUGIN_EXAMPLES_DIR, exist_ok=True)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"无法创建插件示例目录: {str(e)}")
+        raise HTTPException(status_code=404, detail="插件示例目录不存在")
+    
+    # 构建示例文件路径
+    example_name = example_name.replace('.py', '')  # 移除可能存在的.py后缀
+    example_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, f"{example_name}.py")
+    
+    # 检查示例文件是否存在
+    if not os.path.exists(example_path):
+        # 如果找不到指定的示例，返回README
+        if example_name.lower() == "readme":
+            readme_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, "README.md")
+            if os.path.exists(readme_path):
+            try:
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    return {
+                        "name": "插件开发指南",
+                        "description": "插件系统使用和开发说明",
+                        "code": content
+                    }
+                except UnicodeDecodeError:
+                    # 尝试使用不同编码
+                try:
+                        with open(readme_path, 'r', encoding='latin1') as f:
+                            content = f.read()
+                            # 将内容重新写入文件，确保UTF-8编码
+                            with open(readme_path, 'w', encoding='utf-8') as fw:
+                                fw.write(content)
+                        return {
+                            "name": "插件开发指南",
+                            "description": "插件系统使用和开发说明",
+                            "code": content
+                        }
+                    except Exception as e:
+                        raise HTTPException(status_code=500, detail=f"读取README文件失败: {str(e)}")
+        
+        # 显示可用的示例插件列表
+        available_examples = []
+        try:
+            for filename in os.listdir(settings.PLUGIN_EXAMPLES_DIR):
+                if filename.endswith('.py'):
+                    available_examples.append(filename[:-3])  # 去掉.py后缀
+        except Exception:
+            available_examples = []
+        
+        examples_str = ", ".join(available_examples) if available_examples else "无"
+        raise HTTPException(
+            status_code=404, 
+            detail=f"插件示例 '{example_name}' 不存在。可用示例: {examples_str}"
+        )
+    
+    # 读取示例文件内容
+    try:
+        with open(example_path, 'r', encoding='utf-8') as f:
+            code = f.read()
+    except UnicodeDecodeError:
+        # 尝试使用不同编码
+        try:
+            with open(example_path, 'r', encoding='latin1') as f:
+                code = f.read()
+                # 将内容重新写入文件，确保UTF-8编码
+                with open(example_path, 'w', encoding='utf-8') as fw:
+                    fw.write(code)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"读取插件文件失败: {str(e)}")
+    
+    # 解析插件描述（从注释中提取）
+    description = ""
+    lines = code.split('\n')
+    for line in lines[:10]:  # 只查看前10行
+        if line.startswith('#'):
+            if description:
+                description += " "
+            description += line[1:].strip()
+        elif line.strip() and not line.startswith('#'):
+            break
+    
+    return {
+        "name": f"示例插件 - {example_name}",
+        "description": description,
+        "code": code
+    }
+
+@router.get("/", response_model=List[Plugin])
+def read_plugins(
+    skip: int = 0,
+    limit: int = 100,
+    active_only: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取所有插件（仅管理员）"""
+    return get_plugins(db, skip=skip, limit=limit, active_only=active_only)
+
+@router.get("/{plugin_id}", response_model=Plugin)
+def read_plugin(
+    plugin_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取插件详情（仅管理员）"""
+    db_plugin = get_plugin(db, plugin_id)
+    if not db_plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    return db_plugin
+
+@router.post("/", response_model=Plugin)
+def create_new_plugin(
+    plugin: PluginCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """创建插件（仅管理员）"""
+    # 检查插件名是否已存在
+    if get_plugin_by_name(db, plugin.name):
+        raise HTTPException(status_code=400, detail="插件名已存在")
+    
+    return create_plugin(db, plugin, current_user.id)
+
+@router.put("/{plugin_id}", response_model=Plugin)
+def update_plugin_by_id(
+    plugin_id: int,
+    plugin_update: PluginUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """更新插件（仅管理员）"""
+    db_plugin = get_plugin(db, plugin_id)
+    if not db_plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    
+    # 检查插件名是否与其他插件冲突
+    if plugin_update.name:
+        existing_plugin = get_plugin_by_name(db, plugin_update.name)
+        if existing_plugin and existing_plugin.id != plugin_id:
+            raise HTTPException(status_code=400, detail="插件名已存在")
+    
+    return update_plugin(db, plugin_id, plugin_update)
+
+@router.delete("/{plugin_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_plugin_by_id(
+    plugin_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """删除插件（仅管理员）"""
+    db_plugin = get_plugin(db, plugin_id)
+    if not db_plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    
+    delete_plugin(db, plugin_id)
+    return None
+
+@router.post("/{plugin_id}/activate", response_model=Plugin)
+def activate_plugin_by_id(
+    plugin_id: int,
+    activate: bool = True,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """激活/停用插件（仅管理员）"""
+    db_plugin = get_plugin(db, plugin_id)
+    if not db_plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    
+    return activate_plugin(db, plugin_id, activate)
+
+@router.post("/{plugin_id}/run", response_model=Dict[str, Any])
+async def run_plugin(
+    plugin_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+    params: Dict[str, Any] = {}
+):
+    """运行插件（仅管理员）"""
+    db_plugin = get_plugin(db, plugin_id)
+    if not db_plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    
+    if not db_plugin.is_active:
+        raise HTTPException(status_code=400, detail="插件未激活，无法运行")
+    
+    # 创建临时文件
+    with tempfile.NamedTemporaryFile(suffix='.py', delete=False, encoding='utf-8', mode='w+') as temp:
+        temp_path = temp.name
+        
+        # 如果有参数，将参数添加到代码中
+        plugin_code = db_plugin.code
+        if params:
+            param_lines = []
+            for key, value in params.items():
+                if isinstance(value, str):
+                    param_lines.append(f"{key} = '''{value}'''")
+                else:
+                    param_lines.append(f"{key} = {repr(value)}")
+            
+            param_code = "\n".join(param_lines)
+            plugin_code = param_code + "\n\n" + plugin_code
+        
+        # 直接写入文件，不使用二进制模式
+        temp.write(plugin_code)
+        temp.flush()
+    
+    try:
+        # 在沙箱中运行插件
+        if settings.PLUGIN_SANDBOX_ENABLED:
+            # 创建一个包装脚本，安全地执行插件并捕获结果
+            wrapper_code = f"""# -*- coding: utf-8 -*-
+import os
+import sys
+import json
+import traceback
+
+# 确保使用UTF-8编码
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# 添加当前目录到路径以便导入
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# 定义安全的标准库白名单
+SAFE_MODULES = [
+    'datetime', 'json', 'base64', 'hashlib', 'math', 
+    'random', 're', 'time', 'os.path', 'uuid',
+    'collections', 'io', 'string'
+]
+
+# 创建安全的执行环境
+safe_globals = dict()
+
+# 添加安全的内置函数
+for name in ['abs', 'all', 'any', 'ascii', 'bin', 'bool', 'bytes', 'chr', 
+            'complex', 'dict', 'dir', 'divmod', 'enumerate', 'filter', 
+            'float', 'format', 'frozenset', 'hash', 'hex', 'int', 'isinstance',
+            'issubclass', 'iter', 'len', 'list', 'map', 'max', 'min', 'next',
+            'object', 'oct', 'ord', 'pow', 'print', 'range', 'repr', 'reversed',
+            'round', 'set', 'slice', 'sorted', 'str', 'sum', 'tuple', 'type', 'zip']:
+    try:
+        safe_globals[name] = getattr(__builtins__, name)
+    except (AttributeError, KeyError):
+        # 如果__builtins__是字典而不是模块
+        if isinstance(__builtins__, dict):
+            safe_globals[name] = __builtins__.get(name)
+
+# 加载安全模块
+for module_name in SAFE_MODULES:
+    try:
+        if '.' in module_name:
+            package, submodule = module_name.split('.', 1)
+            module = __import__(package, fromlist=[submodule])
+            safe_module = getattr(module, submodule)
+        else:
+            safe_module = __import__(module_name)
+        safe_globals[module_name.split('.')[-1]] = safe_module
+    except ImportError:
+        pass
+
+# 创建有限的请求功能
+class SafeRequests:
+    def __init__(self):
+        try:
+            import requests
+            self._requests = requests
+        except ImportError:
+            self._requests = None
+
+    def get(self, url, **kwargs):
+        if not self._requests:
+            return {{"error": "requests模块不可用"}}
+        try:
+            # 只允许GET请求访问特定的API
+            allowed_domains = ['api.openweathermap.org', 'api.openrouter.ai', 'picsum.photos']
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc
+            if not any(allowed_domain in domain for allowed_domain in allowed_domains):
+                return {{"error": f"不允许访问域名: {{domain}}"}}
+            
+            # 设置超时，防止长时间阻塞
+            if 'timeout' not in kwargs:
+                kwargs['timeout'] = 3
+                
+            response = self._requests.get(url, **kwargs)
+            return response
+        except Exception as e:
+            return {{"error": str(e)}}
+            
+    def post(self, url, **kwargs):
+        if not self._requests:
+            return {{"error": "requests模块不可用"}}
+        try:
+            # 只允许POST请求访问特定的API
+            allowed_domains = ['api.openrouter.ai']
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc
+            if not any(allowed_domain in domain for allowed_domain in allowed_domains):
+                return {{"error": f"不允许访问域名: {{domain}}"}}
+            
+            # 设置超时，防止长时间阻塞
+            if 'timeout' not in kwargs:
+                kwargs['timeout'] = 3
+                
+            response = self._requests.post(url, **kwargs)
+            return response
+        except Exception as e:
+            return {{"error": str(e)}}
+
+# 添加安全的请求模块
+safe_globals['requests'] = SafeRequests()
+
+# 执行插件代码
+try:
+    local_vars = {{}}
+    
+    # 读取原始代码文件而不是嵌入
+    with open(r"{temp_path}", "r", encoding="utf-8") as code_file:
+        plugin_code = code_file.read()
+    
+    # 执行插件代码
+    exec(plugin_code, safe_globals, local_vars)
+    
+    # 获取结果
+    if 'result' in local_vars:
+        print(local_vars['result'])
+    else:
+        print("错误: 插件未定义'result'变量")
+except Exception as e:
+    # 增加更详细的错误信息
+    import traceback
+    error_detail = f"""
+插件执行错误: {str(e)}
+
+堆栈跟踪:
+{traceback.format_exc()}
+
+插件ID: {plugin_id}
+参数: {params}
+    """
+    
+    raise HTTPException(
+        status_code=500,
+        detail=error_detail
+    )
+finally:
+    # 清理临时文件
+    if os.path.exists(temp_path):
+        try:
+            os.unlink(temp_path)
+        except:
+            pass  
