@@ -100,3 +100,12 @@ const initApp = async () => {
 
 // 启动应用
 initApp();
+
+// 安全性注释
+/**
+ * 安全使用注意事项：
+ * 1. v-html指令存在XSS风险，必须配合sanitizeHtml等净化函数使用
+ * 2. 导入utils/sanitize.js中的净化函数来处理不可信HTML
+ * 3. 对于用户输入内容，应使用strictSanitizeHtml函数进行更严格的过滤
+ * 4. 对于Markdown渲染内容，应使用sanitizeMarkdown函数
+ */

@@ -12,7 +12,6 @@ import { articleApi, categoryApi, tagApi, pluginApi } from '../services/api'
 import HeroSection from '../components/HeroSection.vue'
 import ArticleList from '../components/ArticleList.vue'
 import SidebarSection from '../components/SidebarSection.vue'
-import LlmSection from '../components/LlmSection.vue'
 import MainLayout from '../components/MainLayout.vue'
 
 // Vuex存储
@@ -47,87 +46,44 @@ const selectedCategory = ref('')
 const selectedTag = ref('')
 const searchQuery = ref('')
 
-// LLM
-const llmModel = ref('google/gemini-2.5-flash-lite-preview-06-17')
-const isLlmLoading = ref(false)
-const llmResponse = ref('')
-const modelList = ref([
-  { value: 'google/gemini-2.5-flash-lite-preview-06-17', name: 'Gemini 2.5 Flash Lite (推荐)' },
-  { value: 'google/gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash' },
-  { value: 'google/gemini-pro', name: 'Gemini Pro' },
-  { value: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku' },
-  { value: 'anthropic/claude-3-sonnet', name: 'Claude 3 Sonnet' },
-  { value: 'anthropic/claude-3-opus', name: 'Claude 3 Opus' },
-  { value: 'mistralai/mistral-small', name: 'Mistral Small' },
-  { value: 'mistralai/mistral-medium', name: 'Mistral Medium' }
-])
-
-/**
- * 获取最新的模型列表
- * 从OpenRouter插件获取可用的AI模型列表
- */
-const fetchModelList = async () => {
-  try {
-    // 尝试从激活的OpenRouter插件获取模型列表
-    const plugins = await pluginApi.getPlugins({ active_only: true })
-    
-    // 过滤出OpenRouter插件
-    const openRouterPlugin = plugins.find(p => 
-      p.name.toLowerCase().includes('openrouter') || 
-      p.description.toLowerCase().includes('openrouter')
-    )
-    
-    if (openRouterPlugin) {
-      console.log('找到OpenRouter插件，尝试获取模型列表', openRouterPlugin)
-      // 运行插件获取模型列表信息
-      const response = await pluginApi.runPlugin(openRouterPlugin.id, { action: 'get_models' })
-      console.log('获取模型列表响应:', response)
-      
-      // 如果插件响应中包含模型列表，则更新本地列表
-      if (response && response.output) {
-        try {
-          // 尝试解析JSON输出
-          const outputData = JSON.parse(response.output)
-          if (outputData.models && Array.isArray(outputData.models) && outputData.models.length > 0) {
-            console.log('成功获取模型列表:', outputData.models)
-            modelList.value = outputData.models
-            // 确保默认模型在列表中
-            if (outputData.default_model) {
-              llmModel.value = outputData.default_model
-            }
-          } else {
-            console.warn('模型列表为空或格式不正确:', outputData)
-          }
-        } catch (e) {
-          console.error('解析模型列表失败:', e, response.output)
-        }
-      } else {
-        console.warn('未获取到有效的模型列表响应')
-      }
-    } else {
-      console.warn('未找到OpenRouter插件')
-    }
-  } catch (err) {
-    console.error('获取模型列表失败:', err)
-    // 保留默认模型列表
-  }
-}
-
 /**
  * 从URL参数更新筛选条件
  */
 const updateFiltersFromRoute = () => {
-  // 从URL参数获取筛选条件
-  const categoryParam = route.query.category
-  const tagParam = route.query.tag
-  const searchParam = route.query.search
-  const pageParam = route.query.page ? parseInt(route.query.page) : 1
+  // 从URL参数获取筛选条件并验证
+  const categoryParam = validateNumericParam(route.query.category);
+  const tagParam = validateStringParam(route.query.tag);
+  const searchParam = validateStringParam(route.query.search, 100); // 限制搜索参数长度
+  const pageParam = validatePageParam(route.query.page);
   
   // 更新本地状态
-  selectedCategory.value = categoryParam || ''
-  selectedTag.value = tagParam || ''
-  searchQuery.value = searchParam || ''
-  currentPage.value = pageParam
+  selectedCategory.value = categoryParam;
+  selectedTag.value = tagParam;
+  searchQuery.value = searchParam;
+  currentPage.value = pageParam;
+}
+
+// 验证数字参数
+const validateNumericParam = (param) => {
+  if (!param) return '';
+  // 确保是数字并且是合理的正整数
+  return /^\d+$/.test(param) && parseInt(param) > 0 ? param : '';
+}
+
+// 验证字符串参数
+const validateStringParam = (param, maxLength = 50) => {
+  if (!param) return '';
+  if (typeof param !== 'string') return '';
+  // 防止过长参数和恶意输入
+  return param.substring(0, maxLength).replace(/[<>]/g, '');
+}
+
+// 验证页码参数
+const validatePageParam = (param) => {
+  if (!param) return 1;
+  const page = parseInt(param);
+  // 确保页码是正整数且在合理范围内
+  return !isNaN(page) && page > 0 && page <= 1000 ? page : 1;
   
   console.log('从URL更新筛选条件:', {
     category: selectedCategory.value,
@@ -302,44 +258,6 @@ const changePage = (page) => {
 }
 
 /**
- * 发送LLM查询
- * @param {Object} query - 查询参数，包含prompt和model
- */
-const sendLlmQuery = async (query) => {
-  try {
-    isLlmLoading.value = true
-    llmResponse.value = ''
-    
-    console.log('正在发送LLM查询，参数:', query)
-    
-    // 构建查询参数
-    const params = {
-      prompt: query.prompt,
-      model: query.model,
-      action: ''  // 指定空action表示执行普通查询
-    }
-    
-    // 从API获取数据
-    const response = await articleApi.sendLlmQuery(params)
-    console.log('API返回的LLM响应:', response)
-    
-    if (typeof response === 'string') {
-      llmResponse.value = response
-    } else if (response && response.response) {
-      llmResponse.value = response.response
-    } else {
-      llmResponse.value = JSON.stringify(response)
-    }
-  } catch (err) {
-    error.value = '发送LLM查询失败'
-    console.error('发送LLM查询失败:', err)
-    llmResponse.value = '发送查询失败: ' + (err.message || '未知错误')
-  } finally {
-    isLlmLoading.value = false
-  }
-}
-
-/**
  * 刷新插件小部件
  * @param {String} widgetId - 小部件ID
  */
@@ -363,10 +281,7 @@ watch(
 
 // 初始化页面
 onMounted(async () => {
-  await Promise.all([
-    fetchCategoriesAndTags(),
-    fetchModelList()
-  ])
+  await fetchCategoriesAndTags()
   
   // 加载插件扩展
   try {
@@ -411,14 +326,6 @@ onMounted(async () => {
             @category-select="filterByCategory"
             @tag-select="filterByTag"
             @widget-refresh="refreshWidget"
-          />
-          
-          <!-- AI助手 -->
-          <LlmSection 
-            :modelList="modelList"
-            :isLoading="isLlmLoading"
-            :response="llmResponse"
-            @query="sendLlmQuery"
           />
         </template>
       </MainLayout>

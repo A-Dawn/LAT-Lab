@@ -13,7 +13,7 @@
     </div>
     
     <div class="plugin-widget-content">
-      <!-- 使用v-html显示HTML内容 -->
+      <!-- 使用v-html显示HTML内容，通过sanitizeHtml函数处理防止XSS攻击 -->
       <div v-if="html" v-html="sanitizeHtml(html)" class="widget-html-content"></div>
       
       <!-- 显示纯文本内容 -->
@@ -31,6 +31,7 @@
 <script>
 import { computed } from 'vue'
 import { useStore } from 'vuex'
+import { sanitizeHtml } from '../utils/sanitize'
 
 export default {
   name: 'PluginWidget',
@@ -73,16 +74,9 @@ export default {
       return user && user.role === 'admin'
     })
     
-    // 简单的HTML净化，防止XSS攻击
-    const sanitizeHtml = (html) => {
-      // 真实情况应该使用专业的HTML净化库，如DOMPurify
-      // 这里仅作示例，允许基本的标签和img标签
-      return html
-    }
-    
     return {
       isAdmin,
-      sanitizeHtml
+      sanitizeHtml // 直接使用导入的sanitizeHtml函数
     }
   }
 }

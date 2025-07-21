@@ -1,0 +1,95 @@
+{
+  "marketplace_info": {
+    "version": "1.1.0",
+    "last_updated": "2023-07-15",
+    "description": "LAT-Lab 插件市场"
+  },
+  "categories": [
+    {"id": 1, "name": "工具", "description": "实用工具类插件"},
+    {"id": 2, "name": "增强", "description": "增强博客功能的插件"},
+    {"id": 3, "name": "数据分析", "description": "数据处理和分析类插件"},
+    {"id": 4, "name": "AI 与机器学习", "description": "人工智能和机器学习相关插件"},
+    {"id": 5, "name": "外部集成", "description": "与外部服务集成的插件"},
+    {"id": 6, "name": "SEO", "description": "搜索引擎优化相关插件"}
+  ],
+  "tags": [
+    "ai", "seo", "数据可视化", "文件管理", "社交媒体",
+    "安全", "性能优化", "内容处理", "UI增强", "工具",
+    "编辑器", "图像处理", "音频", "视频", "统计",
+    "备份", "导入导出", "通知", "评论增强", "搜索"
+  ],
+  "plugins": [
+    {
+      "id": "hello_world",
+      "name": "Hello World",
+      "description": "一个简单的示例插件，展示了基本的插件功能",
+      "version": "1.0.0",
+      "author": "LAT-Lab Team",
+      "category_id": 1,
+      "tags": ["工具", "示例"],
+      "download_url": "plugin_examples/hello_world.py",
+      "thumbnail": "https://via.placeholder.com/150",
+      "featured": true
+    },
+    {
+      "id": "article_stats",
+      "name": "文章统计",
+      "description": "统计文章字数、阅读时间等信息，并生成统计报告",
+      "version": "1.0.0",
+      "author": "LAT-Lab Team",
+      "category_id": 3,
+      "tags": ["统计", "数据可视化", "数据分析"],
+      "download_url": "plugin_examples/article_stats.py",
+      "thumbnail": "https://via.placeholder.com/150",
+      "featured": true
+    },
+    {
+      "id": "simple_counter",
+      "name": "简单计数器",
+      "description": "演示如何创建和维护状态的计数器插件",
+      "version": "1.0.0",
+      "author": "LAT-Lab Team",
+      "category_id": 1,
+      "tags": ["工具", "状态管理"],
+      "download_url": "plugin_examples/simple_counter.py",
+      "thumbnail": "https://via.placeholder.com/150",
+      "featured": false
+    },
+    {
+      "id": "openrouter_llm",
+      "name": "OpenRouter LLM 集成",
+      "description": "展示如何调用外部API访问大语言模型",
+      "version": "1.0.0",
+      "author": "LAT-Lab Team",
+      "category_id": 4,
+      "tags": ["ai", "外部集成", "API"],
+      "download_url": "plugin_examples/openrouter_llm.py",
+      "thumbnail": "https://via.placeholder.com/150",
+      "featured": true
+    },
+    {
+      "id": "image_widget",
+      "name": "图像小部件",
+      "description": "展示如何创建带图片的前端小部件",
+      "version": "1.0.0",
+      "author": "LAT-Lab Team",
+      "category_id": 2,
+      "tags": ["UI增强", "图像处理", "小部件"],
+      "download_url": "plugin_examples/image_widget.py",
+      "thumbnail": "https://via.placeholder.com/150",
+      "featured": true
+    },
+    {
+      "id": "dsblog_utils",
+      "name": "博客工具集",
+      "description": "提供一系列实用工具函数，帮助博客系统更好地运行",
+      "version": "1.0.0",
+      "author": "LAT-Lab Team",
+      "category_id": 1,
+      "tags": ["工具", "实用工具"],
+      "download_url": "plugin_examples/dsblog_utils.py",
+      "thumbnail": "https://via.placeholder.com/150",
+      "featured": false
+    }
+  ]
+} 

@@ -1,12 +1,16 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { articleApi, commentApi } from '../services/api'
 import CommentItem from '../components/CommentItem.vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
+// 使用主题变量控制代码高亮样式
 import 'highlight.js/styles/github.css'
+// 以后可以根据主题切换添加暗色样式
+// import 'highlight.js/styles/github-dark.css'
+import { sanitizeMarkdown } from '../utils/sanitize'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +22,7 @@ const error = ref(null)
 const commentContent = ref('')
 const isSubmittingComment = ref(false)
 const commentError = ref('')
-const likedArticles = ref(JSON.parse(localStorage.getItem('likedArticles') || '[]'))
+const likedArticles = ref(JSON.parse(sessionStorage.getItem('likedArticles') || '[]'))
 const likeCount = ref(0)
 const hasLiked = computed(() => likedArticles.value.includes(article.value?.id))
 
@@ -38,6 +42,9 @@ marked.setOptions({
   gfm: true
 })
 
+// 监听主题变化
+const currentTheme = computed(() => store.state.theme)
+
 // 获取认证状态
 const isAuthenticated = computed(() => store.getters.isAuthenticated)
 const currentUser = computed(() => store.getters.currentUser)
@@ -46,13 +53,9 @@ const isAuthor = computed(() => currentUser.value?.id === article.value?.author_
 
 // 渲染Markdown内容
 const renderedContent = computed(() => {
-  if (!article.value || !article.value.content) return '';
-  try {
-    return marked(article.value.content);
-  } catch (e) {
-    console.error('Markdown渲染失败:', e);
-    return article.value.content;
-  }
+  if (!article.value) return ''
+  // 使用marked渲染Markdown，然后通过sanitizeMarkdown净化防止XSS攻击
+  return sanitizeMarkdown(marked.parse(article.value.content || ''))
 })
 
 // 获取文章详情
@@ -196,8 +199,9 @@ const likeArticle = async () => {
       likeCount.value += 1
     }
     
-    // 保存到本地存储
-    localStorage.setItem('likedArticles', JSON.stringify(likedArticles.value))
+    // 不在本地存储中保存敏感信息，改为使用会话存储
+    // 使用会话存储而不是本地存储，避免长期保存用户行为
+    sessionStorage.setItem('likedArticles', JSON.stringify(likedArticles.value))
     
     // 尝试调用后端API（如果有的话）
     try {
@@ -433,6 +437,8 @@ onMounted(fetchArticle)
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   line-height: 1.6;
   word-wrap: break-word;
+  color: var(--text-primary, #24292e);
+  background-color: var(--card-bg, #fff);
 }
 
 .markdown-body h1,
@@ -445,10 +451,21 @@ onMounted(fetchArticle)
   margin-bottom: 0.75em;
   font-weight: 600;
   line-height: 1.25;
+  color: var(--text-primary, #24292e);
 }
 
-.markdown-body h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-.markdown-body h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+.markdown-body h1 { 
+  font-size: 2em; 
+  border-bottom: 1px solid var(--border-color, #eaecef); 
+  padding-bottom: 0.3em; 
+}
+
+.markdown-body h2 { 
+  font-size: 1.5em; 
+  border-bottom: 1px solid var(--border-color, #eaecef); 
+  padding-bottom: 0.3em; 
+}
+
 .markdown-body h3 { font-size: 1.25em; }
 .markdown-body h4 { font-size: 1em; }
 .markdown-body h5 { font-size: 0.875em; }
@@ -457,12 +474,14 @@ onMounted(fetchArticle)
 .markdown-body p {
   margin-top: 0;
   margin-bottom: 1em;
+  color: var(--text-primary, #24292e);
 }
 
 .markdown-body blockquote {
   margin: 0;
   padding: 0 1em;
-  border-left: 0.25em solid #dfe2e5;
+  color: var(--text-secondary, #6a737d);
+  border-left: 0.25em solid var(--border-color, #dfe2e5);
 }
 
 .markdown-body ul,
@@ -476,7 +495,8 @@ onMounted(fetchArticle)
   padding: 0.2em 0.4em;
   margin: 0;
   font-size: 85%;
-  background-color: rgba(27,31,35,0.05);
+  background-color: var(--code-bg, rgba(27,31,35,0.05));
+  color: var(--text-primary, #24292e);
   border-radius: 3px;
   font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
 }
@@ -486,7 +506,7 @@ onMounted(fetchArticle)
   overflow: auto;
   font-size: 85%;
   line-height: 1.45;
-  background-color: #f6f8fa;
+  background-color: var(--code-bg, #f6f8fa);
   border-radius: 3px;
   margin-top: 0;
   margin-bottom: 16px;
@@ -502,6 +522,7 @@ onMounted(fetchArticle)
   word-wrap: normal;
   background-color: transparent;
   border: 0;
+  color: var(--text-primary, #24292e);
 }
 
 .markdown-body img {
@@ -521,23 +542,331 @@ onMounted(fetchArticle)
 .markdown-body table th,
 .markdown-body table td {
   padding: 6px 13px;
-  border: 1px solid #dfe2e5;
+  border: 1px solid var(--border-color, #dfe2e5);
 }
 
 .markdown-body table tr {
-  border-top: 1px solid #c6cbd1;
+  border-top: 1px solid var(--border-color, #c6cbd1);
+  background-color: var(--card-bg, #fff);
 }
 
 .markdown-body table tr:nth-child(2n) {
-  background-color: #f6f8fa;
+  background-color: var(--bg-elevated, #f6f8fa);
+}
+
+/* 暗色主题下的Markdown样式调整 */
+:root[data-theme="dark"] .markdown-body,
+html[data-theme="dark"] .markdown-body {
+  color: var(--text-primary);
+  background-color: var(--card-bg);
+}
+
+:root[data-theme="dark"] .markdown-body h1,
+:root[data-theme="dark"] .markdown-body h2,
+:root[data-theme="dark"] .markdown-body h3,
+:root[data-theme="dark"] .markdown-body h4,
+:root[data-theme="dark"] .markdown-body h5,
+:root[data-theme="dark"] .markdown-body h6,
+:root[data-theme="dark"] .markdown-body p,
+html[data-theme="dark"] .markdown-body h1,
+html[data-theme="dark"] .markdown-body h2,
+html[data-theme="dark"] .markdown-body h3,
+html[data-theme="dark"] .markdown-body h4,
+html[data-theme="dark"] .markdown-body h5,
+html[data-theme="dark"] .markdown-body h6,
+html[data-theme="dark"] .markdown-body p {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .markdown-body code,
+:root[data-theme="dark"] .markdown-body pre code,
+html[data-theme="dark"] .markdown-body code,
+html[data-theme="dark"] .markdown-body pre code {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .markdown-body blockquote,
+html[data-theme="dark"] .markdown-body blockquote {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .markdown-body pre,
+html[data-theme="dark"] .markdown-body pre {
+  background-color: var(--code-bg);
+}
+
+:root[data-theme="dark"] .markdown-body table tr,
+html[data-theme="dark"] .markdown-body table tr {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .markdown-body table tr:nth-child(2n),
+html[data-theme="dark"] .markdown-body table tr:nth-child(2n) {
+  background-color: var(--bg-elevated);
+}
+
+:root[data-theme="dark"] .markdown-body table th,
+:root[data-theme="dark"] .markdown-body table td,
+html[data-theme="dark"] .markdown-body table th,
+html[data-theme="dark"] .markdown-body table td {
+  border-color: var(--border-color);
+}
+
+/* 覆盖highlight.js样式，使其适应深色主题 */
+:root[data-theme="dark"] .hljs,
+html[data-theme="dark"] .hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #abb2bf;
+  background: #282c34;
+}
+
+:root[data-theme="dark"] .hljs-comment,
+:root[data-theme="dark"] .hljs-quote,
+html[data-theme="dark"] .hljs-comment,
+html[data-theme="dark"] .hljs-quote {
+  color: #5c6370;
+  font-style: italic;
+}
+
+:root[data-theme="dark"] .hljs-doctag,
+:root[data-theme="dark"] .hljs-keyword,
+:root[data-theme="dark"] .hljs-formula,
+html[data-theme="dark"] .hljs-doctag,
+html[data-theme="dark"] .hljs-keyword,
+html[data-theme="dark"] .hljs-formula {
+  color: #c678dd;
+}
+
+:root[data-theme="dark"] .hljs-section,
+:root[data-theme="dark"] .hljs-name,
+:root[data-theme="dark"] .hljs-selector-tag,
+:root[data-theme="dark"] .hljs-deletion,
+:root[data-theme="dark"] .hljs-subst,
+html[data-theme="dark"] .hljs-section,
+html[data-theme="dark"] .hljs-name,
+html[data-theme="dark"] .hljs-selector-tag,
+html[data-theme="dark"] .hljs-deletion,
+html[data-theme="dark"] .hljs-subst {
+  color: #e06c75;
+}
+
+:root[data-theme="dark"] .hljs-literal,
+html[data-theme="dark"] .hljs-literal {
+  color: #56b6c2;
+}
+
+:root[data-theme="dark"] .hljs-string,
+:root[data-theme="dark"] .hljs-regexp,
+:root[data-theme="dark"] .hljs-addition,
+:root[data-theme="dark"] .hljs-attribute,
+:root[data-theme="dark"] .hljs-meta,
+html[data-theme="dark"] .hljs-string,
+html[data-theme="dark"] .hljs-regexp,
+html[data-theme="dark"] .hljs-addition,
+html[data-theme="dark"] .hljs-attribute,
+html[data-theme="dark"] .hljs-meta {
+  color: #98c379;
+}
+
+:root[data-theme="dark"] .hljs-built_in,
+:root[data-theme="dark"] .hljs-class .hljs-title,
+html[data-theme="dark"] .hljs-built_in,
+html[data-theme="dark"] .hljs-class .hljs-title {
+  color: #e6c07b;
+}
+
+:root[data-theme="dark"] .hljs-attr,
+:root[data-theme="dark"] .hljs-variable,
+:root[data-theme="dark"] .hljs-template-variable,
+:root[data-theme="dark"] .hljs-type,
+:root[data-theme="dark"] .hljs-selector-class,
+:root[data-theme="dark"] .hljs-selector-attr,
+:root[data-theme="dark"] .hljs-selector-pseudo,
+:root[data-theme="dark"] .hljs-number,
+html[data-theme="dark"] .hljs-attr,
+html[data-theme="dark"] .hljs-variable,
+html[data-theme="dark"] .hljs-template-variable,
+html[data-theme="dark"] .hljs-type,
+html[data-theme="dark"] .hljs-selector-class,
+html[data-theme="dark"] .hljs-selector-attr,
+html[data-theme="dark"] .hljs-selector-pseudo,
+html[data-theme="dark"] .hljs-number {
+  color: #d19a66;
+}
+
+:root[data-theme="dark"] .hljs-symbol,
+:root[data-theme="dark"] .hljs-bullet,
+:root[data-theme="dark"] .hljs-link,
+:root[data-theme="dark"] .hljs-meta,
+:root[data-theme="dark"] .hljs-selector-id,
+:root[data-theme="dark"] .hljs-title,
+html[data-theme="dark"] .hljs-symbol,
+html[data-theme="dark"] .hljs-bullet,
+html[data-theme="dark"] .hljs-link,
+html[data-theme="dark"] .hljs-meta,
+html[data-theme="dark"] .hljs-selector-id,
+html[data-theme="dark"] .hljs-title {
+  color: #61aeee;
+}
+
+:root[data-theme="dark"] .hljs-built_in,
+:root[data-theme="dark"] .hljs-title.class_,
+:root[data-theme="dark"] .hljs-class .hljs-title,
+html[data-theme="dark"] .hljs-built_in,
+html[data-theme="dark"] .hljs-title.class_,
+html[data-theme="dark"] .hljs-class .hljs-title {
+  color: #e6c07b;
+}
+
+:root[data-theme="dark"] .hljs-emphasis,
+html[data-theme="dark"] .hljs-emphasis {
+  font-style: italic;
+}
+
+:root[data-theme="dark"] .hljs-strong,
+html[data-theme="dark"] .hljs-strong {
+  font-weight: bold;
+}
+
+:root[data-theme="dark"] .hljs-link,
+html[data-theme="dark"] .hljs-link {
+  text-decoration: underline;
+}
+
+/* 霓虹色主题适配 */
+:root[data-theme="neon"] .article-container,
+:root[data-theme="neon"] .password-box,
+:root[data-theme="neon"] .not-found-container,
+:root[data-theme="neon"] .error-container,
+html[data-theme="neon"] .article-container,
+html[data-theme="neon"] .password-box,
+html[data-theme="neon"] .not-found-container,
+html[data-theme="neon"] .error-container {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+}
+
+:root[data-theme="neon"] .article-detail-page,
+html[data-theme="neon"] .article-detail-page {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+:root[data-theme="neon"] .comment-form,
+html[data-theme="neon"] .comment-form {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+:root[data-theme="neon"] .markdown-body,
+html[data-theme="neon"] .markdown-body {
+  color: var(--text-primary);
+  background-color: var(--card-bg);
+}
+
+:root[data-theme="neon"] .markdown-body h1,
+:root[data-theme="neon"] .markdown-body h2,
+:root[data-theme="neon"] .markdown-body h3,
+:root[data-theme="neon"] .markdown-body h4,
+:root[data-theme="neon"] .markdown-body h5,
+:root[data-theme="neon"] .markdown-body h6,
+:root[data-theme="neon"] .markdown-body p,
+html[data-theme="neon"] .markdown-body h1,
+html[data-theme="neon"] .markdown-body h2,
+html[data-theme="neon"] .markdown-body h3,
+html[data-theme="neon"] .markdown-body h4,
+html[data-theme="neon"] .markdown-body h5,
+html[data-theme="neon"] .markdown-body h6,
+html[data-theme="neon"] .markdown-body p {
+  color: var(--text-primary);
+}
+
+:root[data-theme="neon"] .markdown-body pre,
+html[data-theme="neon"] .markdown-body pre {
+  background-color: var(--code-bg);
+}
+
+:root[data-theme="neon"] .markdown-body code,
+:root[data-theme="neon"] .markdown-body pre code,
+html[data-theme="neon"] .markdown-body code,
+html[data-theme="neon"] .markdown-body pre code {
+  color: var(--text-primary);
+}
+
+:root[data-theme="neon"] .hljs,
+html[data-theme="neon"] .hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #f8f8f2;
+  background: #2b213a;
+}
+
+:root[data-theme="neon"] .hljs-comment,
+:root[data-theme="neon"] .hljs-quote,
+html[data-theme="neon"] .hljs-comment,
+html[data-theme="neon"] .hljs-quote {
+  color: #969896;
+  font-style: italic;
+}
+
+:root[data-theme="neon"] .hljs-keyword,
+:root[data-theme="neon"] .hljs-selector-tag,
+html[data-theme="neon"] .hljs-keyword,
+html[data-theme="neon"] .hljs-selector-tag {
+  color: #ff79c6;
+}
+
+:root[data-theme="neon"] .hljs-literal,
+:root[data-theme="neon"] .hljs-number,
+html[data-theme="neon"] .hljs-literal,
+html[data-theme="neon"] .hljs-number {
+  color: #ae81ff;
+}
+
+:root[data-theme="neon"] .hljs-string,
+:root[data-theme="neon"] .hljs-regexp,
+html[data-theme="neon"] .hljs-string,
+html[data-theme="neon"] .hljs-regexp {
+  color: #39ff14;
+}
+
+:root[data-theme="neon"] .hljs-title,
+:root[data-theme="neon"] .hljs-section,
+:root[data-theme="neon"] .hljs-selector-id,
+html[data-theme="neon"] .hljs-title,
+html[data-theme="neon"] .hljs-section,
+html[data-theme="neon"] .hljs-selector-id {
+  color: #ff9d00;
+}
+
+:root[data-theme="neon"] .hljs-tag,
+html[data-theme="neon"] .hljs-tag {
+  color: #00e1ff;
+}
+
+:root[data-theme="neon"] .hljs-name,
+html[data-theme="neon"] .hljs-name {
+  color: #ff467e;
+}
+
+:root[data-theme="neon"] .hljs-attr,
+html[data-theme="neon"] .hljs-attr {
+  color: #39ff14;
 }
 </style>
 
 <style scoped>
 .article-detail-page {
   padding: 40px 0;
-  background-color: #f5f7fa;
+  background-color: var(--bg-primary, #f5f7fa);
   min-height: 100vh;
+  color: var(--text-primary);
 }
 
 .container {
@@ -559,7 +888,7 @@ onMounted(fetchArticle)
   width: 50px;
   height: 50px;
   border: 4px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #4c84ff;
+  border-left-color: var(--primary-color, #4c84ff);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -575,6 +904,9 @@ onMounted(fetchArticle)
 .error-container {
   text-align: center;
   padding: 60px 0;
+  background-color: var(--card-bg, #fff);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.1));
 }
 
 .error-icon {
@@ -594,17 +926,17 @@ onMounted(fetchArticle)
 .error-container h3 {
   font-size: 1.5rem;
   margin-bottom: 10px;
-  color: #303133;
+  color: var(--text-primary, #303133);
 }
 
 .error-container p {
-  color: #606266;
+  color: var(--text-secondary, #606266);
   margin-bottom: 20px;
 }
 
 .back-button {
   padding: 10px 20px;
-  background-color: #4c84ff;
+  background-color: var(--primary-color, #4c84ff);
   color: white;
   border: none;
   border-radius: 4px;
@@ -614,27 +946,27 @@ onMounted(fetchArticle)
 }
 
 .back-button:hover {
-  background-color: #3a70e3;
+  background-color: var(--secondary-color, #3a70e3);
 }
 
 /* 文章容器 */
 .article-container {
-  background-color: #fff;
+  background-color: var(--card-bg, #fff);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.1));
   padding: 30px;
   margin-bottom: 30px;
 }
 
 .article-header {
   margin-bottom: 30px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color, #ebeef5);
   padding-bottom: 20px;
 }
 
 .article-header h1 {
   font-size: 2rem;
-  color: #303133;
+  color: var(--text-primary, #303133);
   margin-bottom: 15px;
   line-height: 1.4;
 }
@@ -644,7 +976,7 @@ onMounted(fetchArticle)
   flex-wrap: wrap;
   gap: 20px;
   margin-bottom: 15px;
-  color: #909399;
+  color: var(--text-tertiary, #909399);
   font-size: 0.9rem;
 }
 
@@ -661,8 +993,8 @@ onMounted(fetchArticle)
 }
 
 .tag {
-  background-color: #ecf5ff;
-  color: #4c84ff;
+  background-color: var(--hover-color, #ecf5ff);
+  color: var(--primary-color, #4c84ff);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 0.85rem;
@@ -673,10 +1005,10 @@ onMounted(fetchArticle)
   gap: 20px;
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-color, #ebeef5);
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color, #ebeef5);
 }
 
 .action-button {
@@ -692,7 +1024,7 @@ onMounted(fetchArticle)
 }
 
 .like-button {
-  background-color: #fef0f0;
+  background-color: var(--hover-color, #fef0f0);
   color: #f56c6c;
 }
 
@@ -702,12 +1034,12 @@ onMounted(fetchArticle)
 }
 
 .share-button {
-  background-color: #ecf5ff;
-  color: #4c84ff;
+  background-color: var(--hover-color, #ecf5ff);
+  color: var(--primary-color, #4c84ff);
 }
 
 .share-button:hover {
-  background-color: #4c84ff;
+  background-color: var(--primary-color, #4c84ff);
   color: white;
 }
 
@@ -718,42 +1050,42 @@ onMounted(fetchArticle)
 
 .article-comments h3 {
   font-size: 1.3rem;
-  color: #303133;
+  color: var(--text-primary, #303133);
   margin-bottom: 20px;
 }
 
 .empty-comments {
   text-align: center;
   padding: 30px 0;
-  color: #909399;
+  color: var(--text-tertiary, #909399);
 }
 
 .comment-form {
   margin-top: 30px;
-  background-color: #f5f7fa;
+  background-color: var(--bg-elevated, #f5f7fa);
   border-radius: 8px;
   padding: 20px;
 }
 
 .comment-form h4 {
   font-size: 1.1rem;
-  color: #303133;
+  color: var(--text-primary, #303133);
   margin-bottom: 15px;
 }
 
 .login-notice {
   text-align: center;
   padding: 20px 0;
-  color: #606266;
+  color: var(--text-secondary, #606266);
 }
 
 .login-notice a {
-  color: #4c84ff;
+  color: var(--primary-color, #4c84ff);
   font-weight: bold;
 }
 
 .comment-error {
-  background-color: #fef0f0;
+  background-color: var(--hover-color, #fef0f0);
   color: #f56c6c;
   padding: 10px;
   border-radius: 4px;
@@ -764,11 +1096,13 @@ onMounted(fetchArticle)
 .comment-form textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border-color, #dcdfe6);
   border-radius: 4px;
   resize: vertical;
   font-size: 1rem;
   margin-bottom: 15px;
+  background-color: var(--input-bg, white);
+  color: var(--text-primary);
 }
 
 .comment-form-footer {
@@ -779,12 +1113,12 @@ onMounted(fetchArticle)
 
 .comment-tips {
   font-size: 0.9rem;
-  color: #909399;
+  color: var(--text-tertiary, #909399);
 }
 
 .submit-button {
   padding: 10px 20px;
-  background-color: #4c84ff;
+  background-color: var(--primary-color, #4c84ff);
   color: white;
   border: none;
   border-radius: 4px;
@@ -794,7 +1128,7 @@ onMounted(fetchArticle)
 }
 
 .submit-button:hover {
-  background-color: #3a70e3;
+  background-color: var(--secondary-color, #3a70e3);
 }
 
 .submit-button:disabled {
@@ -806,23 +1140,23 @@ onMounted(fetchArticle)
 .not-found-container {
   text-align: center;
   padding: 60px 0;
-  background-color: #fff;
+  background-color: var(--card-bg, #fff);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.1));
 }
 
 .not-found-container h2 {
   font-size: 1.8rem;
-  color: #303133;
+  color: var(--text-primary, #303133);
   margin-bottom: 15px;
 }
 
 .not-found-container p {
-  color: #606266;
+  color: var(--text-secondary, #606266);
   margin-bottom: 20px;
 }
 
-/* 新增样式 */
+/* 密码保护 */
 .password-container {
   display: flex;
   justify-content: center;
@@ -832,9 +1166,9 @@ onMounted(fetchArticle)
 }
 
 .password-box {
-  background-color: var(--card-bg);
+  background-color: var(--card-bg, #fff);
   border-radius: 12px;
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.1));
   padding: 30px;
   width: 100%;
   max-width: 500px;
@@ -854,16 +1188,16 @@ onMounted(fetchArticle)
 .password-form input {
   flex: 1;
   padding: 12px 15px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #dcdfe6);
   border-radius: 4px 0 0 4px;
   font-size: 1rem;
-  background-color: var(--input-bg);
+  background-color: var(--input-bg, white);
   color: var(--text-primary);
 }
 
 .password-submit {
   padding: 12px 20px;
-  background-color: var(--primary-color);
+  background-color: var(--primary-color, #4c84ff);
   color: white;
   border: none;
   border-radius: 0 4px 4px 0;
@@ -873,11 +1207,11 @@ onMounted(fetchArticle)
 }
 
 .password-submit:hover {
-  background-color: var(--primary-color-hover);
+  background-color: var(--secondary-color, #3a70e3);
 }
 
 .password-submit:disabled {
-  background-color: var(--disabled-color);
+  background-color: var(--disabled-color, #a0a0a0);
   cursor: not-allowed;
 }
 
@@ -896,9 +1230,9 @@ onMounted(fetchArticle)
 }
 
 .article-status-banner.draft {
-  background-color: rgba(144, 147, 153, 0.1);
+  background-color: var(--hover-color, rgba(144, 147, 153, 0.1));
   border-left: 4px solid #909399;
-  color: #606266;
+  color: var(--text-secondary, #606266);
 }
 
 .article-status-banner.private {

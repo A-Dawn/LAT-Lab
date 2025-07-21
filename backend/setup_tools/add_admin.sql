@@ -1,5 +1,5 @@
 -- LAT-Lab博客系统 - 添加管理员用户SQL脚本
--- 使用方法: 在后端目录下执行: sqlite3 blog.db < setup_tools/add_admin.sql
+-- 使用方法: 在后端目录下执行: sqlite3 data/blog.db < setup_tools/add_admin.sql
 -- ⚠️ 警告：此脚本会创建具有默认密码的管理员账户，请在生产环境中立即修改密码
 
 -- 添加管理员用户

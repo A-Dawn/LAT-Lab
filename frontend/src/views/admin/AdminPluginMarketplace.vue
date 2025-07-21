@@ -2,78 +2,109 @@
   <div class="admin-container admin-plugin-marketplace">
     <div class="header-section">
       <h1>插件市场</h1>
-      <button class="btn btn-secondary" @click="$emit('close')">返回插件管理</button>
-    </div>
-    
-    <div class="marketplace-info" v-if="marketplaceInfo">
-      <p>版本: {{ marketplaceInfo.version }} | 最近更新: {{ marketplaceInfo.last_updated }}</p>
-      <p>{{ marketplaceInfo.description }}</p>
-    </div>
-    
-    <div class="filter-section">
-      <div class="search-box">
-        <input 
-          type="text" 
-          v-model="filters.search" 
-          placeholder="搜索插件..." 
-          @input="handleSearch"
-          class="form-control"
-        />
-      </div>
-      
-      <div class="category-filter">
-        <select v-model="filters.category_id" @change="handleSearch" class="form-select">
-          <option :value="null">所有分类</option>
-          <option v-for="category in categories" :key="category.id" :value="category.id">
-            {{ category.name }}
-          </option>
-        </select>
-      </div>
-      
-      <div class="tag-filter">
-        <select v-model="selectedTag" @change="handleTagChange" class="form-select">
-          <option value="">所有标签</option>
-          <option v-for="tag in tags" :key="tag" :value="tag">
-            {{ tag }}
-          </option>
-        </select>
-      </div>
-      
-      <div class="featured-filter">
-        <label>
-          <input type="checkbox" v-model="filters.featured" @change="handleSearch" />
-          仅显示精选插件
-        </label>
+      <div class="header-actions">
+        <button class="btn btn-secondary" @click="$emit('close')">返回插件管理</button>
+        <button class="btn btn-primary" @click="activeTab = 'settings'" v-if="activeTab !== 'settings'">
+          数据源设置
+        </button>
       </div>
     </div>
     
-    <div class="plugins-grid" v-if="!loading">
-      <div v-for="plugin in plugins" :key="plugin.id" class="plugin-card" @click="viewPluginDetail(plugin)">
-        <div class="plugin-icon">
-          <img :src="plugin.icon || '/default-plugin-icon.png'" alt="插件图标" />
+    <!-- 选项卡导航 -->
+    <div class="tabs-nav" v-if="!showPluginDetail">
+      <button 
+        class="tab-button" 
+        :class="{ active: activeTab === 'marketplace' }" 
+        @click="activeTab = 'marketplace'"
+      >
+        浏览插件
+      </button>
+      <button 
+        class="tab-button" 
+        :class="{ active: activeTab === 'settings' }" 
+        @click="activeTab = 'settings'"
+      >
+        数据源设置
+      </button>
+    </div>
+    
+    <!-- 插件市场设置 -->
+    <div v-if="activeTab === 'settings'">
+      <MarketplaceSettings @refresh-marketplace="fetchMarketplaceData" />
+    </div>
+    
+    <!-- 插件市场浏览 -->
+    <div v-else-if="activeTab === 'marketplace'">
+      <div class="marketplace-info" v-if="marketplaceInfo">
+        <p>版本: {{ marketplaceInfo.version }} | 最近更新: {{ marketplaceInfo.last_updated }}</p>
+        <p>{{ marketplaceInfo.description }}</p>
+      </div>
+      
+      <div class="filter-section">
+        <div class="search-box">
+          <input 
+            type="text" 
+            v-model="filters.search" 
+            placeholder="搜索插件..." 
+            @input="handleSearch"
+            class="form-control"
+          />
         </div>
-        <div class="plugin-info">
-          <h3>{{ plugin.name }}</h3>
-          <p class="plugin-description">{{ plugin.description }}</p>
-          <div class="plugin-meta">
-            <span class="plugin-author">作者: {{ plugin.author }}</span>
-            <span class="plugin-version">版本: {{ plugin.version }}</span>
-            <span class="plugin-rating">评分: {{ plugin.rating }} ({{ plugin.ratings_count }})</span>
-            <span class="plugin-downloads">下载: {{ plugin.downloads }}</span>
-          </div>
-          <div class="plugin-tags">
-            <span v-for="tag in plugin.tags" :key="tag" class="tag">{{ tag }}</span>
-          </div>
+        
+        <div class="category-filter">
+          <select v-model="filters.category_id" @change="handleSearch" class="form-select">
+            <option :value="null">所有分类</option>
+            <option v-for="category in categories" :key="category.id" :value="category.id">
+              {{ category.name }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="tag-filter">
+          <select v-model="selectedTag" @change="handleTagChange" class="form-select">
+            <option value="">所有标签</option>
+            <option v-for="tag in tags" :key="tag" :value="tag">
+              {{ tag }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="featured-filter">
+          <label>
+            <input type="checkbox" v-model="filters.featured" @change="handleSearch" />
+            仅显示精选插件
+          </label>
         </div>
       </div>
       
-      <div class="no-plugins" v-if="plugins.length === 0">
-        <p>没有找到符合条件的插件</p>
+      <div class="plugins-grid" v-if="!loading">
+        <div v-for="plugin in plugins" :key="plugin.id" class="plugin-card" @click="viewPluginDetail(plugin)">
+          <div class="plugin-icon">
+            <img :src="plugin.icon || '/default-plugin-icon.png'" alt="插件图标" />
+          </div>
+          <div class="plugin-info">
+            <h3>{{ plugin.name }}</h3>
+            <p class="plugin-description">{{ plugin.description }}</p>
+            <div class="plugin-meta">
+              <span class="plugin-author">作者: {{ plugin.author }}</span>
+              <span class="plugin-version">版本: {{ plugin.version }}</span>
+              <span class="plugin-rating">评分: {{ plugin.rating }} ({{ plugin.ratings_count }})</span>
+              <span class="plugin-downloads">下载: {{ plugin.downloads }}</span>
+            </div>
+            <div class="plugin-tags">
+              <span v-for="tag in plugin.tags" :key="tag" class="tag">{{ tag }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-plugins" v-if="plugins.length === 0">
+          <p>没有找到符合条件的插件</p>
+        </div>
       </div>
-    </div>
-    
-    <div class="loading-indicator" v-else>
-      <p>正在加载插件...</p>
+      
+      <div class="loading-indicator" v-else>
+        <p>正在加载插件...</p>
+      </div>
     </div>
     
     <!-- 插件详情对话框 -->
@@ -126,7 +157,7 @@
         <div class="plugin-readme" v-if="selectedPlugin.readme">
           <h3>插件说明</h3>
           <div class="markdown-content">
-            <MarkdownEditor :content="selectedPlugin.readme" />
+            <MarkdownEditor :content="selectedPlugin.readme" :readonly="true" />
           </div>
         </div>
         
@@ -150,14 +181,19 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { marketplaceApi } from '../../services/api'
 import MarkdownEditor from '../../components/MarkdownEditor.vue'
+import MarketplaceSettings from '../../components/MarketplaceSettings.vue'
 
 export default {
   name: 'AdminPluginMarketplace',
   components: {
-    MarkdownEditor
+    MarkdownEditor,
+    MarketplaceSettings
   },
   emits: ['close', 'plugin-installed'],
   setup(props, { emit }) {
+    // 选项卡
+    const activeTab = ref('marketplace')
+    
     // 数据
     const loading = ref(true)
     const marketplaceInfo = ref(null)
@@ -182,6 +218,10 @@ export default {
     
     // 获取所有数据
     const fetchMarketplaceData = async () => {
+      if (activeTab.value !== 'marketplace') {
+        return;
+      }
+      
       loading.value = true
       try {
         // 获取基本信息
@@ -248,44 +288,25 @@ export default {
     }
     
     // 查看插件详情
-    const viewPluginDetail = async (plugin) => {
-      try {
-        // 获取完整的插件详情
-        const detail = await marketplaceApi.getMarketplacePlugin(plugin.id)
-        selectedPlugin.value = detail
-        showPluginDetail.value = true
-      } catch (error) {
-        console.error('获取插件详情失败:', error)
-      }
+    const viewPluginDetail = (plugin) => {
+      selectedPlugin.value = plugin
+      showPluginDetail.value = true
     }
     
     // 关闭插件详情
     const closePluginDetail = () => {
       showPluginDetail.value = false
-      selectedPlugin.value = null
-    }
-    
-    // 打开全屏图片
-    const openFullScreenImage = (imageUrl) => {
-      fullscreenImage.value = imageUrl
-    }
-    
-    // 关闭全屏图片
-    const closeFullscreenImage = () => {
-      fullscreenImage.value = null
     }
     
     // 安装插件
     const installPlugin = async (plugin) => {
       try {
-        const result = await marketplaceApi.downloadMarketplacePlugin(plugin.id)
-        if (result.success) {
-          alert(result.message || `插件"${plugin.name}"已成功安装`)
-          emit('plugin-installed', result.plugin_id)
-          closePluginDetail()
-        }
+        await marketplaceApi.downloadMarketplacePlugin(plugin.id)
+        alert(`插件 ${plugin.name} 已成功安装`)
+        emit('plugin-installed')
       } catch (error) {
-        alert(`安装插件失败: ${error.response?.data?.detail || error.message}`)
+        console.error('安装插件失败:', error)
+        alert(`安装插件失败: ${error.message || '未知错误'}`)
       }
     }
     
@@ -295,11 +316,29 @@ export default {
       return category ? category.name : '未分类'
     }
     
+    // 全屏显示图片
+    const openFullScreenImage = (imageSrc) => {
+      fullscreenImage.value = imageSrc
+    }
+    
+    // 关闭全屏图片
+    const closeFullscreenImage = () => {
+      fullscreenImage.value = null
+    }
+    
+    // 监听选项卡变化，在切换到marketplace时加载数据
+    const watchTabChange = () => {
+      if (activeTab.value === 'marketplace') {
+        fetchMarketplaceData()
+      }
+    }
+    
     onMounted(() => {
       fetchMarketplaceData()
     })
     
     return {
+      activeTab,
       loading,
       marketplaceInfo,
       categories,
@@ -310,22 +349,31 @@ export default {
       showPluginDetail,
       selectedPlugin,
       fullscreenImage,
+      fetchMarketplaceData,
       handleSearch,
       handleTagChange,
       viewPluginDetail,
       closePluginDetail,
+      installPlugin,
+      getCategoryName,
       openFullScreenImage,
       closeFullscreenImage,
-      installPlugin,
-      getCategoryName
+      watchTabChange
+    }
+  },
+  watch: {
+    activeTab() {
+      this.watchTabChange()
     }
   }
-}
+};
 </script>
 
 <style scoped>
 .admin-plugin-marketplace {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .header-section {
@@ -335,115 +383,204 @@ export default {
   margin-bottom: 20px;
 }
 
+.header-section h1 {
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* 选项卡样式 */
+.tabs-nav {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-button:hover {
+  background-color: #f5f5f5;
+}
+
+.tab-button.active {
+  border-bottom: 2px solid #3498db;
+  font-weight: bold;
+}
+
 .marketplace-info {
-  background-color: #f0f8ff;
-  padding: 10px 15px;
-  border-radius: 5px;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
   margin-bottom: 20px;
 }
 
 .filter-section {
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
   align-items: center;
 }
 
 .search-box {
-  flex: 1;
+  flex: 2;
   min-width: 200px;
+}
+
+.category-filter,
+.tag-filter {
+  flex: 1;
+  min-width: 150px;
+}
+
+.featured-filter {
+  white-space: nowrap;
 }
 
 .plugins-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
+  margin-top: 20px;
 }
 
 .plugin-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  cursor: pointer;
-  transition: all 0.3s;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  background-color: white;
 }
 
 .plugin-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .plugin-icon {
-  width: 60px;
-  height: 60px;
-  margin-right: 15px;
+  width: 100%;
+  height: 150px;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  background-color: #f8f9fa;
 }
 
 .plugin-icon img {
-  max-width: 100%;
-  max-height: 100%;
-  border-radius: 5px;
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
 }
 
 .plugin-info {
-  flex: 1;
+  padding: 15px;
 }
 
 .plugin-info h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 1.2rem;
+  margin: 0 0 10px 0;
 }
 
 .plugin-description {
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 10px;
+  margin: 0 0 10px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .plugin-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: 0.8rem;
-  color: #777;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
 }
 
 .plugin-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin-top: 10px;
 }
 
 .tag {
-  font-size: 0.8rem;
-  background-color: #e9ecef;
+  background-color: #e9f5fe;
+  color: #3498db;
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
-.loading-indicator {
+.loading-indicator,
+.no-plugins {
   text-align: center;
-  padding: 30px;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
 }
 
-.plugin-detail-dialog {
+/* 对话框样式 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+  z-index: 101;
   width: 80%;
   max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.dialog-header h2 {
+  margin: 0;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.dialog-body {
+  padding: 20px;
 }
 
 .plugin-header {
@@ -452,23 +589,32 @@ export default {
   margin-bottom: 20px;
 }
 
-.plugin-meta-info {
-  flex: 1;
+.plugin-header .plugin-icon {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
 }
 
-.plugin-meta-info p {
-  margin: 5px 0;
+.plugin-meta-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.plugin-description {
+  margin-bottom: 20px;
 }
 
 .plugin-category-tags {
-  margin-top: 15px;
   display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 10px;
 }
 
 .plugin-screenshots {
-  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .screenshots-container {
@@ -479,28 +625,28 @@ export default {
 }
 
 .screenshots-container img {
-  max-height: 150px;
-  border-radius: 5px;
+  height: 150px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
 .plugin-readme {
-  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .markdown-content {
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  border: 1px solid #eee;
+  border-radius: 4px;
   padding: 15px;
-  background-color: #f9f9f9;
+  background-color: #f8f9fa;
 }
 
 .plugin-actions {
-  margin-top: 20px;
   display: flex;
   gap: 10px;
 }
 
+/* 全屏图片查看器 */
 .fullscreen-image-overlay {
   position: fixed;
   top: 0;
@@ -508,10 +654,10 @@ export default {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.9);
+  z-index: 200;
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1100;
+  align-items: center;
   cursor: pointer;
 }
 
@@ -521,24 +667,35 @@ export default {
   object-fit: contain;
 }
 
-.no-plugins {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 30px;
-  color: #777;
+.form-control, .form-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  width: 100%;
 }
 
-/* 适配暗色主题 */
-:root.dark .plugin-card {
-  background-color: #2c2c2c;
-  border-color: #444;
+.btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-:root.dark .tag {
-  background-color: #444;
+.btn-primary {
+  background-color: #3498db;
+  color: white;
 }
 
-:root.dark .marketplace-info {
-  background-color: #2c2c2c;
+.btn-secondary {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.btn-link {
+  background: none;
+  color: #3498db;
+  text-decoration: none;
+  padding: 8px 15px;
 }
 </style> 

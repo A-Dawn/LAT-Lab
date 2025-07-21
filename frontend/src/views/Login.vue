@@ -24,11 +24,27 @@ const isResending = ref(false)
 
 // 检查URL中是否有错误消息
 onMounted(() => {
+  // 安全处理URL参数 - 使用白名单方式验证消息
   if (route.query.message) {
-    errorMsg.value = route.query.message
+    // 预定义可接受的消息列表
+    const validMessages = [
+      '登录失败，请检查用户名和密码',
+      '会话已过期，请重新登录',
+      '请先登录后再访问',
+      '您的账号已被禁用',
+      '权限不足，请使用管理员账号'
+    ];
+    
+    if (validMessages.includes(route.query.message)) {
+      errorMsg.value = route.query.message;
+    } else {
+      // 记录可疑参数但不显示
+      console.warn('收到非预期的消息参数:', route.query.message);
+      errorMsg.value = '登录时出现问题，请重试';
+    }
   }
   
-  // 检查是否刚刚完成邮箱验证
+  // 检查是否刚刚完成邮箱验证 - 使用布尔值检查避免注入
   if (route.query.verified === 'true') {
     successMsg.value = '邮箱验证成功，请登录'
   }
@@ -63,8 +79,23 @@ const handleSubmit = async () => {
       localStorage.setItem('remember', 'true')
     }
     
-    // 登录成功后跳转到首页或重定向页面
-    const redirectPath = route.query.redirect || '/'
+    // 登录成功后跳转到首页或重定向页面 - 验证重定向地址的安全性
+    let redirectPath = '/';
+    
+    // 获取并验证重定向路径 - 只允许内部路径，不允许外部URL
+    if (route.query.redirect && typeof route.query.redirect === 'string') {
+      const redirectQuery = route.query.redirect;
+      
+      // 确保是相对路径且不包含协议部分
+      if (redirectQuery.startsWith('/') && 
+          !redirectQuery.includes('://') &&
+          !redirectQuery.includes('javascript:')) {
+        redirectPath = redirectQuery;
+      } else {
+        console.warn('重定向参数可能不安全，已忽略:', redirectQuery);
+      }
+    }
+    
     router.push(redirectPath)
   } catch (error) {
     console.error('登录失败:', error)

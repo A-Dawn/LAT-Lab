@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
+import { sanitizeMarkdown } from '../utils/sanitize';
 
 const props = defineProps({
   modelValue: {
@@ -70,9 +71,15 @@ onMounted(() => {
 
 // 渲染Markdown为HTML
 const renderedContent = computed(() => {
-  if (!content.value) return ''
-  return marked(content.value)
-})
+  if (!props.modelValue) return '';
+  try {
+    // 使用marked渲染Markdown，然后通过sanitizeMarkdown净化HTML防止XSS攻击
+    return sanitizeMarkdown(marked.parse(props.modelValue));
+  } catch (error) {
+    console.error('Markdown渲染错误:', error);
+    return `<p>渲染错误: ${error.message}</p>`;
+  }
+});
 
 // 切换预览模式
 const togglePreview = () => {

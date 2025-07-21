@@ -1,0 +1,145 @@
+{
+  "marketplace_info": {
+    "version": "1.0.0",
+    "last_updated": "2023-07-15",
+    "description": "LAT-LAB插件市场配置文件"
+  },
+  "categories": [
+    {
+      "id": 1,
+      "name": "工具",
+      "description": "实用工具类插件"
+    },
+    {
+      "id": 2,
+      "name": "增强",
+      "description": "增强博客功能的插件"
+    },
+    {
+      "id": 3,
+      "name": "数据分析",
+      "description": "数据处理和分析类插件"
+    },
+    {
+      "id": 4,
+      "name": "AI 与机器学习",
+      "description": "人工智能和机器学习相关插件"
+    },
+    {
+      "id": 5,
+      "name": "外部集成",
+      "description": "与外部服务集成的插件"
+    },
+    {
+      "id": 6,
+      "name": "SEO",
+      "description": "搜索引擎优化相关插件"
+    }
+  ],
+  "tags": [
+    "ai",
+    "seo",
+    "数据可视化",
+    "文件管理",
+    "社交媒体",
+    "安全",
+    "性能优化",
+    "内容处理",
+    "UI增强",
+    "工具",
+    "编辑器",
+    "图像处理",
+    "音频",
+    "视频",
+    "统计",
+    "备份",
+    "导入导出",
+    "通知",
+    "评论增强",
+    "搜索"
+  ],
+  "plugins": [
+    {
+      "id": "simple_counter",
+      "name": "简单访问计数器",
+      "description": "为博客文章添加简单的访问计数器，记录并显示文章的访问次数。",
+      "version": "1.0.0",
+      "category_id": 2,
+      "tags": [
+        "统计",
+        "UI增强"
+      ],
+      "author": "LAT-LAB",
+      "author_url": "https://github.com/lat-lab",
+      "repository_url": "https://github.com/lat-lab/simple-counter",
+      "download_url": "https://github.com/lat-lab/simple-counter/releases/download/v1.0.0/simple-counter.zip",
+      "icon": "/static/icons/simple-counter.png",
+      "featured": true,
+      "rating": 4.5,
+      "ratings_count": 12,
+      "downloads": 87,
+      "created_at": "2023-07-01",
+      "updated_at": "2023-07-15",
+      "screenshots": [
+        "/static/screenshots/simple-counter-1.jpg"
+      ],
+      "readme": "# 简单访问计数器\n\n为博客文章添加访问计数器功能。\n\n```python\n# 简单访问计数器插件\nimport sqlite3\nimport datetime\n\n# 连接数据库（如果使用内存数据库，每次重启将会重置计数）\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\n# 创建计数表\ncursor.execute('''\nCREATE TABLE IF NOT EXISTS article_visits (\n    article_id INTEGER PRIMARY KEY,\n    visits INTEGER DEFAULT 0,\n    last_visit TIMESTAMP\n)\n''')\nconn.commit()\n\n# 假设这个函数会被调用来更新特定文章的访问次数\ndef update_visit_count(article_id):\n    # 检查文章是否已有记录\n    cursor.execute('SELECT visits FROM article_visits WHERE article_id = ?', (article_id,))\n    result = cursor.fetchone()\n    \n    if result:\n        # 更新现有记录\n        cursor.execute(\n            'UPDATE article_visits SET visits = visits + 1, last_visit = ? WHERE article_id = ?',\n            (datetime.datetime.now(), article_id)\n        )\n    else:\n        # 创建新记录\n        cursor.execute(\n            'INSERT INTO article_visits (article_id, visits, last_visit) VALUES (?, 1, ?)',\n            (article_id, datetime.datetime.now())\n        )\n    \n    conn.commit()\n    return get_visit_count(article_id)\n\n# 获取特定文章的访问次数\ndef get_visit_count(article_id):\n    cursor.execute('SELECT visits FROM article_visits WHERE article_id = ?', (article_id,))\n    result = cursor.fetchone()\n    return result[0] if result else 0\n\n# 为示例，更新几篇文章的访问记录\nupdate_visit_count(1)  # 文章1访问一次\nupdate_visit_count(2)  # 文章2访问一次\nupdate_visit_count(1)  # 文章1再次访问\n\n# 生成小部件HTML\nwidget_html = f'''\n<div class=\"visit-counter-widget\">\n    <h3>文章访问统计</h3>\n    <ul>\n        <li>文章1: {get_visit_count(1)}次访问</li>\n        <li>文章2: {get_visit_count(2)}次访问</li>\n    </ul>\n</div>\n'''\n\n# 生成结果\nresult = f\"\"\"\n# 访问计数器插件演示\n\n这个插件为博客文章添加简单的访问计数功能。\n\n## 当前访问统计\n\n- 文章1: {get_visit_count(1)}次访问\n- 文章2: {get_visit_count(2)}次访问\n\n## 小部件代码\n\n```html\n{widget_html}\n```\n\"\"\"\n```"
+    },
+    {
+      "id": "ai-assistant",
+      "name": "AI 助手",
+      "description": "集成OpenAI API，为博客提供智能写作、内容优化和问答功能。支持自动生成文章摘要、标题建议和关键词提取。",
+      "version": "1.0.0",
+      "category_id": 4,
+      "tags": [
+        "ai",
+        "内容处理",
+        "编辑器"
+      ],
+      "author": "DawnARC",
+      "author_url": "https://github.com/A-Dawn",
+      "repository_url": "https://github.com/A-Dawn/plugin-ai-assistant",
+      "download_url": "https://github.com/A-Dawn/plugin-ai-assistant/releases/download/v1.0.0/ai-assistant.zip",
+      "icon": "/static/icons/ai-assistant.png",
+      "featured": true,
+      "rating": 4.8,
+      "ratings_count": 24,
+      "downloads": 156,
+      "created_at": "2023-10-01",
+      "updated_at": "2023-10-15",
+      "screenshots": [
+        "/static/screenshots/ai-assistant-1.jpg",
+        "/static/screenshots/ai-assistant-2.jpg"
+      ],
+      "readme": "# AI 助手插件\n\n集成OpenAI API，为博客提供智能写作、内容优化和问答功能。\n\n## 功能\n\n- 自动生成文章摘要\n- 提供标题建议\n- 关键词提取\n- AI辅助写作\n\n## 安装\n\n1. 下载插件\n2. 上传到你的DSBlog\n3. 在插件管理页面启用\n\n## 配置\n\n需要设置OpenAI API密钥。"
+    },
+    {
+      "id": "code-highlighter",
+      "name": "代码高亮增强",
+      "description": "为博客文章中的代码块提供语法高亮和格式化功能。支持多种编程语言，提供多种高亮主题，以及代码复制按钮和行号显示。",
+      "version": "2.0.1",
+      "category_id": 2,
+      "tags": [
+        "编辑器",
+        "UI增强",
+        "内容处理"
+      ],
+      "author": "DawnARC",
+      "author_url": "https://github.com/code-master",
+      "repository_url": "https://github.com/code-master/code-highlighter",
+      "download_url": "https://github.com/code-master/code-highlighter/releases/download/v2.0.1/code-highlighter.zip",
+      "icon": "/static/icons/code-highlighter.png",
+      "featured": true,
+      "rating": 4.9,
+      "ratings_count": 32,
+      "downloads": 245,
+      "created_at": "2023-08-10",
+      "updated_at": "2023-10-05",
+      "screenshots": [
+        "/static/screenshots/code-highlighter-1.jpg",
+        "/static/screenshots/code-highlighter-2.jpg"
+      ],
+      "readme": "# 代码高亮增强\n\n为博客文章中的代码块提供语法高亮和格式化功能。\n\n## 功能\n\n- 支持多种编程语言\n- 多种高亮主题\n- 代码复制按钮\n- 行号显示\n\n## 安装\n\n1. 下载插件\n2. 上传到你的DSBlog\n3. 在插件管理页面启用"
+    }
+  ]
+} 

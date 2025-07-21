@@ -1,0 +1,78 @@
+# 项目文件清理说明
+
+为了确保LAT-Lab博客系统v0.2.1版本的代码质量和安全性，我们进行了以下文件清理工作：
+
+## 已清理的临时文件
+
+### 后端
+- ✅ 删除了`.venv`虚拟环境目录
+- ✅ 删除了所有`__pycache__`缓存目录
+- ✅ 移除了所有数据库文件(`*.db`和`*.sqlite3`)
+- ✅ 清空了`uploads/avatars`目录中的用户上传文件
+- ✅ 保留了必要的空目录结构（使用.gitkeep文件）
+- ✅ 创建了`.gitignore`文件以防止临时文件被包含在版本控制中
+
+### 前端
+- ✅ 删除了`node_modules`依赖目录
+- ✅ 删除了`dist`构建目录
+- ✅ 删除了`.vscode`和IDE相关配置目录
+- ✅ 确认`.gitignore`文件包含必要的忽略规则
+
+## 敏感信息处理
+
+- ✅ 创建了示例环境变量文件`env.example`，移除了敏感信息
+- ✅ 确保数据库连接使用环境变量，避免硬编码敏感信息
+- ✅ 修改了Docker配置，使用环境变量替代硬编码值
+- ✅ 移除了生产环境密钥和证书
+- ✅ 确保DEBUG模式在生产环境中被禁用
+- ✅ 确保API文档在生产环境中不可访问
+
+## 安全加固措施
+
+- ✅ 实施了XSS防护机制：
+  - 集成DOMPurify库处理所有v-html指令
+  - 添加了多层次的HTML净化函数(sanitizeHtml, strictSanitizeHtml, sanitizeMarkdown)
+  - 创建了`SECURITY.md`详细说明XSS防护和最佳实践
+- ✅ 添加了URL参数验证：
+  - 对查询参数进行净化和验证
+  - 对重定向URL进行严格检查，防止Open Redirect攻击
+- ✅ 增强了网站安全配置：
+  - 在`instruct.md`中添加了内容安全策略(CSP)建议
+  - 配置了安全的HTTP响应头
+
+## 目录结构保护
+
+为确保项目结构完整，我们保留了以下空目录：
+- `backend/uploads/avatars/` - 用于存储用户上传的头像
+- `backend/plugins/` - 用于存放用户安装的插件
+- `backend/data/` - 用于存储数据文件
+
+## 前端生产部署
+
+前端应用已配置为可以轻松生成生产环境构建：
+
+1. 本地部署：`npm run build` 命令会在 `frontend/dist` 目录生成静态文件
+2. Docker部署：Docker配置自动处理前端构建和部署，包括：
+   - 使用多阶段构建减小镜像大小
+   - Nginx配置自动代理后端API请求
+   - 正确设置API基础路径和上传URL
+3. API地址配置：生产环境使用相对路径 `/api`，无需手动配置后端地址
+4. 部署安全性：
+   - 静态文件可被任何Web服务器托管
+   - Nginx配置包含基本安全设置
+
+## 数据重置说明
+
+为了确保发布版本不包含测试数据，我们提供了完整的数据库初始化流程：
+
+1. 创建必要的目录：`mkdir -p data`
+2. 复制配置文件：`python scripts/copy_config.py`
+3. 运行数据库迁移：`python scripts/run_migrations.py run`
+4. 初始化示例数据：`python -m src.lat_lab.init_examples`
+5. 创建管理员账户：`python scripts/init_db.py`
+
+以上步骤确保系统干净启动，无残留测试数据。
+
+## 启动说明
+
+完整的项目启动和部署说明已在`instruct.md`文件中提供，请参考该文件进行项目设置。 

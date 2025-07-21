@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 
@@ -10,6 +10,18 @@ const router = useRouter()
 const isSidebarCollapsed = ref(false)
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
+}
+
+// 计算是否显示遮罩层（只在中等屏幕且侧边栏展开时显示）
+const showOverlay = computed(() => {
+  if (window.innerWidth > 992) return false;
+  if (window.innerWidth <= 768) return false;
+  return !isSidebarCollapsed.value;
+})
+
+// 点击遮罩层时收起侧边栏
+const handleOverlayClick = () => {
+  isSidebarCollapsed.value = true;
 }
 
 // 获取当前用户信息
@@ -25,6 +37,22 @@ onMounted(() => {
 if (!isAdmin.value) {
   router.push('/')
 }
+  
+  // 添加窗口大小变化监听，用于处理响应式布局
+  window.addEventListener('resize', handleResize);
+})
+
+// 在组件销毁时移除事件监听
+const handleResize = () => {
+  // 如果是大屏幕且侧边栏是折叠状态，则可能需要展开
+  if (window.innerWidth > 992 && isSidebarCollapsed.value) {
+    // 可以选择自动展开或保持现状
+  }
+}
+
+// 在组件销毁时移除事件监听
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
 })
 
 // 导航项
@@ -45,6 +73,7 @@ const navItems = [
         <div class="header-left">
           <button 
             class="sidebar-toggle" 
+            :class="{ 'collapsed': isSidebarCollapsed }"
             @click="toggleSidebar" 
             aria-label="切换侧边栏"
           >
@@ -66,6 +95,13 @@ const navItems = [
     <div class="admin-content">
       <div class="container">
         <div class="admin-layout">
+          <!-- 遮罩层 -->
+          <div 
+            v-if="showOverlay" 
+            class="sidebar-overlay" 
+            @click="handleOverlayClick"
+          ></div>
+          
           <!-- 侧边导航 -->
           <div 
             class="admin-sidebar" 
@@ -368,7 +404,7 @@ const navItems = [
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -419,6 +455,7 @@ const navItems = [
   height: 2px;
   background-color: currentColor;
   transition: all 0.3s;
+  left: 0;
 }
 
 .toggle-icon::before {
@@ -427,6 +464,19 @@ const navItems = [
 
 .toggle-icon::after {
   transform: translateY(6px);
+}
+
+/* 添加折叠状态的按钮样式 */
+.collapsed .toggle-icon {
+  background-color: transparent;
+}
+
+.collapsed .toggle-icon::before {
+  transform: rotate(45deg);
+}
+
+.collapsed .toggle-icon::after {
+  transform: rotate(-45deg);
 }
 
 .admin-title {
@@ -469,15 +519,17 @@ const navItems = [
   transform: translateY(-2px);
 }
 
-.admin-content {
-  padding: 20px 0;
-}
-
 .admin-layout {
   display: flex;
-  gap: 20px;
   min-height: calc(100vh - 100px);
   position: relative;
+  overflow-x: auto;
+}
+
+.admin-content {
+  padding: 20px 0;
+  overflow-x: auto;
+  width: 100%;
 }
 
 .admin-sidebar {
@@ -487,11 +539,13 @@ const navItems = [
   box-shadow: var(--card-shadow);
   flex-shrink: 0;
   border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
-  position: sticky;
-  top: 80px;
+  transition: width 0.3s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
   height: calc(100vh - 100px);
   overflow-y: auto;
+  z-index: 10;
 }
 
 .admin-sidebar.collapsed {
@@ -556,14 +610,18 @@ const navItems = [
   margin-right: 10px;
   font-size: 1.2rem;
   transition: margin 0.3s;
+  width: 18px;
+  display: inline-block;
+  text-align: center;
 }
 
 .collapsed .nav-icon {
   margin-right: 0;
+  width: auto;
 }
 
 .nav-label {
-  transition: opacity 0.3s, visibility 0.3s;
+  transition: opacity 0.2s, visibility 0.2s, width 0.2s;
   white-space: nowrap;
 }
 
@@ -571,6 +629,7 @@ const navItems = [
   opacity: 0;
   visibility: hidden;
   width: 0;
+  display: none;
   overflow: hidden;
 }
 
@@ -581,15 +640,38 @@ const navItems = [
   box-shadow: var(--card-shadow);
   padding: 20px;
   border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
+  transition: margin-left 0.3s ease;
   min-height: calc(100vh - 100px);
+  min-width: 800px;
+  width: 100%;
+  margin-left: 270px; /* 侧边栏宽度(250px) + 间距(20px) */
 }
 
 .admin-main.expanded {
-  margin-left: -160px;
+  margin-left: 90px; /* 折叠后侧边栏宽度(70px) + 间距(20px) */
 }
 
 /* 响应式调整 */
+@media (max-width: 1200px) {
+  .admin-main {
+    min-width: 700px;
+  }
+}
+
+@media (max-width: 992px) {
+  .admin-sidebar {
+    position: fixed;
+    z-index: 1000;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    top: 65px;
+  }
+  
+  .admin-main {
+    margin-left: 0;
+    min-width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
@@ -601,6 +683,7 @@ const navItems = [
     top: 0;
     height: auto;
     margin-bottom: 20px;
+    box-shadow: none;
   }
   
   .admin-sidebar.collapsed {
@@ -611,14 +694,16 @@ const navItems = [
     opacity: 1;
     visibility: visible;
     width: auto;
+    display: inline;
   }
   
   .collapsed .nav-icon {
     margin-right: 10px;
   }
   
-  .admin-main.expanded {
-    margin-left: 0;
+  .admin-main {
+    margin-left: 0 !important;
+    min-width: 100%;
   }
   
   .sidebar-toggle {
@@ -641,5 +726,16 @@ const navItems = [
   .admin-main {
     padding: 15px;
   }
+}
+
+/* 添加遮罩层样式 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9;
 }
 </style> 

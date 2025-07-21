@@ -18,8 +18,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from app.models.user import Base
-from app.core.config import settings
+from src.lat_lab.models.user import Base
+from src.lat_lab.core.config import settings
 
 target_metadata = Base.metadata
 
@@ -81,4 +81,4 @@ def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()
+    run_migrations_online() 

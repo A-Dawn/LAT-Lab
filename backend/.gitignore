@@ -1,0 +1,56 @@
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 数据库文件
+*.db
+*.sqlite3
+
+# 上传文件
+uploads/avatars/*
+!uploads/avatars/.gitkeep
+
+# 插件文件
+plugins/*
+!plugins/.gitkeep
+
+# IDE文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 环境变量
+.env
+
+# 日志文件
+logs/
+*.log
+
+# 构建文件
+dist/
+build/
+.eggs/
+
+# 临时文件
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json 

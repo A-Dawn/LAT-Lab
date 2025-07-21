@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { commentApi } from '../../services/api'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 
 const router = useRouter()
 const comments = ref([])
@@ -10,6 +11,10 @@ const approvedComments = ref([])
 const isLoading = ref(true)
 const error = ref(null)
 const activeTab = ref('pending')
+
+// 删除确认对话框状态
+const confirmDialogVisible = ref(false)
+const commentToDelete = ref(null)
 
 // 获取所有评论
 const fetchComments = async () => {
@@ -55,19 +60,32 @@ const approveComment = async (commentId) => {
   }
 }
 
+// 打开删除确认对话框
+const openDeleteConfirm = (comment) => {
+  commentToDelete.value = comment
+  confirmDialogVisible.value = true
+}
+
+// 关闭删除确认对话框
+const closeDeleteConfirm = () => {
+  confirmDialogVisible.value = false
+  commentToDelete.value = null
+}
+
 // 删除评论
-const deleteComment = async (commentId) => {
-  if (!confirm('确定要删除这条评论吗？此操作不可恢复。')) {
-    return
-  }
+const deleteComment = async () => {
+  if (!commentToDelete.value) return
   
   try {
-    await commentApi.deleteComment(commentId)
+    await commentApi.deleteComment(commentToDelete.value.id)
     
     // 从列表中移除已删除的评论
-    comments.value = comments.value.filter(c => c.id !== commentId)
-    pendingComments.value = pendingComments.value.filter(c => c.id !== commentId)
-    approvedComments.value = approvedComments.value.filter(c => c.id !== commentId)
+    comments.value = comments.value.filter(c => c.id !== commentToDelete.value.id)
+    pendingComments.value = pendingComments.value.filter(c => c.id !== commentToDelete.value.id)
+    approvedComments.value = approvedComments.value.filter(c => c.id !== commentToDelete.value.id)
+    
+    // 关闭对话框
+    closeDeleteConfirm()
   } catch (err) {
     console.error('删除评论失败:', err)
     alert('删除评论失败')
@@ -173,7 +191,7 @@ onMounted(fetchComments)
                 <button @click="approveComment(comment.id)" class="action-button approve">
                   通过
                 </button>
-                <button @click="deleteComment(comment.id)" class="action-button delete">
+                <button @click="openDeleteConfirm(comment)" class="action-button delete">
                   删除
                 </button>
               </td>
@@ -212,7 +230,7 @@ onMounted(fetchComments)
               <td>{{ formatDate(comment.created_at) }}</td>
               <td>{{ comment.likes || 0 }}</td>
               <td class="actions-cell">
-                <button @click="deleteComment(comment.id)" class="action-button delete">
+                <button @click="openDeleteConfirm(comment)" class="action-button delete">
                   删除
                 </button>
               </td>
@@ -264,7 +282,7 @@ onMounted(fetchComments)
                 >
                   通过
                 </button>
-                <button @click="deleteComment(comment.id)" class="action-button delete">
+                <button @click="openDeleteConfirm(comment)" class="action-button delete">
                   删除
                 </button>
               </td>
@@ -273,6 +291,17 @@ onMounted(fetchComments)
         </table>
       </div>
     </div>
+    
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog 
+      :visible="confirmDialogVisible"
+      title="确认删除"
+      :message="commentToDelete ? `您确定要删除这条评论吗？此操作不可恢复。` : ''"
+      confirmText="确认删除"
+      cancelText="取消"
+      @confirm="deleteComment"
+      @cancel="closeDeleteConfirm"
+    />
   </div>
 </template>
 

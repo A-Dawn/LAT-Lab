@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>插件市场设置</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .hidden {
+            display: none;
+        }
+        .alert {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>插件市场设置</h1>
+    
+    <div class="card">
+        <h2>当前数据源设置</h2>
+        <div id="current-settings">
+            <p>加载中...</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>更新数据源设置</h2>
+        <div id="alert-container"></div>
+        
+        <form id="settings-form">
+            <div class="form-group">
+                <label for="source">数据源类型:</label>
+                <select id="source" name="source">
+                    <option value="local">本地文件</option>
+                    <option value="git">Git仓库</option>
+                </select>
+            </div>
+            
+            <div id="git-repo-group" class="form-group hidden">
+                <label for="git-repo">Git仓库地址:</label>
+                <input type="text" id="git-repo" name="git-repo" placeholder="https://github.com/A-Dawn/LAT-Lab-marketplace">
+            </div>
+            
+            <button type="submit">保存设置</button>
+        </form>
+    </div>
+    
+    <div class="card">
+        <h2>插件列表</h2>
+        <button id="refresh-btn">刷新插件列表</button>
+        <div id="plugins-container">
+            <p>加载中...</p>
+        </div>
+    </div>
+    
+    <script>
+        // API基础URL
+        const API_BASE_URL = '/api/plugins/marketplace';
+        
+        // 获取DOM元素
+        const sourceSelect = document.getElementById('source');
+        const gitRepoGroup = document.getElementById('git-repo-group');
+        const gitRepoInput = document.getElementById('git-repo');
+        const settingsForm = document.getElementById('settings-form');
+        const currentSettingsDiv = document.getElementById('current-settings');
+        const alertContainer = document.getElementById('alert-container');
+        const pluginsContainer = document.getElementById('plugins-container');
+        const refreshBtn = document.getElementById('refresh-btn');
+        
+        // 显示/隐藏Git仓库输入框
+        sourceSelect.addEventListener('change', function() {
+            if (this.value === 'git') {
+                gitRepoGroup.classList.remove('hidden');
+            } else {
+                gitRepoGroup.classList.add('hidden');
+            }
+        });
+        
+        // 显示提示信息
+        function showAlert(message, type = 'success') {
+            alertContainer.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        // 获取当前设置
+        async function getCurrentSettings() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/source`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                // 显示当前设置
+                let html = `
+                    <p><strong>数据源类型:</strong> ${data.source === 'local' ? '本地文件' : 'Git仓库'}</p>
+                `;
+                
+                if (data.source === 'local') {
+                    html += `<p><strong>本地路径:</strong> ${data.local_path}</p>`;
+                } else if (data.source === 'git') {
+                    html += `<p><strong>Git仓库地址:</strong> ${data.git_repo}</p>`;
+                }
+                
+                currentSettingsDiv.innerHTML = html;
+                
+                // 更新表单
+                sourceSelect.value = data.source;
+                if (data.source === 'git') {
+                    gitRepoInput.value = data.git_repo || '';
+                    gitRepoGroup.classList.remove('hidden');
+                } else {
+                    gitRepoGroup.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('获取设置失败:', error);
+                currentSettingsDiv.innerHTML = `<p class="alert alert-danger">获取设置失败: ${error.message}</p>`;
+            }
+        }
+        
+        // 更新设置
+        async function updateSettings(source, gitRepo) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/source`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        source: source,
+                        git_repo: gitRepo
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                showAlert('设置已成功更新!');
+                getCurrentSettings();
+                getPlugins();
+                
+                return data;
+            } catch (error) {
+                console.error('更新设置失败:', error);
+                showAlert(`更新设置失败: ${error.message}`, 'danger');
+                throw error;
+            }
+        }
+        
+        // 获取插件列表
+        async function getPlugins() {
+            try {
+                pluginsContainer.innerHTML = '<p>加载中...</p>';
+                
+                const response = await fetch(`${API_BASE_URL}/plugins`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const plugins = await response.json();
+                
+                if (plugins.length === 0) {
+                    pluginsContainer.innerHTML = '<p>没有找到插件</p>';
+                    return;
+                }
+                
+                let html = `<p>共找到 ${plugins.length} 个插件:</p><ul>`;
+                
+                plugins.forEach(plugin => {
+                    html += `
+                        <li>
+                            <strong>${plugin.name}</strong> (${plugin.version})
+                            <p>${plugin.description}</p>
+                        </li>
+                    `;
+                });
+                
+                html += '</ul>';
+                pluginsContainer.innerHTML = html;
+            } catch (error) {
+                console.error('获取插件失败:', error);
+                pluginsContainer.innerHTML = `<p class="alert alert-danger">获取插件失败: ${error.message}</p>`;
+            }
+        }
+        
+        // 表单提交
+        settingsForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const source = sourceSelect.value;
+            const gitRepo = source === 'git' ? gitRepoInput.value.trim() : null;
+            
+            if (source === 'git' && !gitRepo) {
+                showAlert('请输入Git仓库地址', 'danger');
+                return;
+            }
+            
+            try {
+                await updateSettings(source, gitRepo);
+            } catch (error) {
+                // 错误已在updateSettings中处理
+            }
+        });
+        
+        // 刷新插件列表
+        refreshBtn.addEventListener('click', async function() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/refresh`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                showAlert('插件列表已刷新!');
+                getPlugins();
+            } catch (error) {
+                console.error('刷新插件失败:', error);
+                showAlert(`刷新插件失败: ${error.message}`, 'danger');
+            }
+        });
+        
+        // 页面加载时获取设置和插件列表
+        document.addEventListener('DOMContentLoaded', function() {
+            getCurrentSettings();
+            getPlugins();
+        });
+    </script>
+</body>
+</html> 

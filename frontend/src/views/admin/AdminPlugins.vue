@@ -47,7 +47,7 @@
                     {{ plugin.is_active ? '停用' : '激活' }}
                   </button>
                   <button class="btn btn-sm btn-success" :disabled="!plugin.is_active" @click="runPlugin(plugin)">运行</button>
-                  <button class="btn btn-sm btn-danger" @click="deletePlugin(plugin)">删除</button>
+                  <button class="btn btn-sm btn-danger" @click="openDeleteConfirm(plugin)">删除</button>
                 </div>
               </td>
             </tr>
@@ -142,6 +142,17 @@
           </div>
         </div>
       </div>
+      
+      <!-- 删除确认对话框 -->
+      <ConfirmDialog 
+        :visible="confirmDialogVisible"
+        title="确认删除"
+        :message="pluginToDelete ? `确定要删除插件 '${pluginToDelete.name}' 吗？此操作不可恢复。` : ''"
+        confirmText="确认删除"
+        cancelText="取消"
+        @confirm="deletePlugin"
+        @cancel="closeDeleteConfirm"
+      />
     </div>
 
     <!-- 插件市场组件 -->
@@ -157,11 +168,13 @@
 import { pluginApi } from '../../services/api'
 import { ref, onMounted } from 'vue'
 import AdminPluginMarketplace from './AdminPluginMarketplace.vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 
 export default {
   name: 'AdminPlugins',
   components: {
-    AdminPluginMarketplace
+    AdminPluginMarketplace,
+    ConfirmDialog
   },
   setup() {
     const plugins = ref([])
@@ -177,6 +190,10 @@ export default {
     const isEditing = ref(false)
     const runResult = ref('')
     const showPluginMarketplace = ref(false)
+    
+    // 删除确认对话框状态
+    const confirmDialogVisible = ref(false)
+    const pluginToDelete = ref(null)
 
     // 加载插件列表
     const loadPlugins = async () => {
@@ -257,16 +274,31 @@ export default {
         alert('保存插件失败: ' + (error.response?.data?.detail || error.message))
       }
     }
+    
+    // 打开删除确认对话框
+    const openDeleteConfirm = (plugin) => {
+      pluginToDelete.value = plugin
+      confirmDialogVisible.value = true
+    }
+    
+    // 关闭删除确认对话框
+    const closeDeleteConfirm = () => {
+      confirmDialogVisible.value = false
+      pluginToDelete.value = null
+    }
 
     // 删除插件
-    const deletePlugin = async (plugin) => {
-      if (!confirm(`确定要删除插件 "${plugin.name}" 吗？`)) return
+    const deletePlugin = async () => {
+      if (!pluginToDelete.value) return
       
       try {
-        console.log('删除插件:', plugin.id)
-        await pluginApi.deletePlugin(plugin.id)
+        console.log('删除插件:', pluginToDelete.value.id)
+        await pluginApi.deletePlugin(pluginToDelete.value.id)
         console.log('插件删除成功')
         loadPlugins()
+        
+        // 关闭对话框
+        closeDeleteConfirm()
       } catch (error) {
         console.error('删除插件失败:', error)
         alert('删除插件失败: ' + (error.response?.data?.detail || error.message))
@@ -393,22 +425,22 @@ export default {
       }
     }
 
-    // 打开插件市场
+    // 插件市场相关
     const openPluginMarketplace = () => {
-      console.log('打开插件市场')
       showPluginMarketplace.value = true
     }
     
-    // 关闭插件市场
     const closePluginMarketplace = () => {
       showPluginMarketplace.value = false
-      loadPlugins() // 重新加载插件列表
     }
     
-    // 处理插件安装完成事件
-    const handlePluginInstalled = (pluginId) => {
-      console.log('插件安装完成:', pluginId)
-      loadPlugins() // 重新加载插件列表
+    const handlePluginInstalled = () => {
+      // 关闭插件市场视图
+      showPluginMarketplace.value = false
+      // 重新加载插件列表
+      loadPlugins()
+      // 显示成功提示
+      alert('插件已成功安装！')
     }
 
     onMounted(() => {
@@ -424,6 +456,8 @@ export default {
       isEditing,
       runResult,
       showPluginMarketplace,
+      confirmDialogVisible,
+      pluginToDelete,
       loadPlugins,
       formatDate,
       openCreateDialog,
@@ -433,6 +467,8 @@ export default {
       closeViewDialog,
       closeRunResultDialog,
       savePlugin,
+      openDeleteConfirm,
+      closeDeleteConfirm,
       deletePlugin,
       togglePluginStatus,
       runPlugin,

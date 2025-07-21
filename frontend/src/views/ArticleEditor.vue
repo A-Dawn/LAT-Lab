@@ -5,6 +5,8 @@ import { useStore } from 'vuex'
 import { marked } from 'marked'
 import { articleApi, categoryApi, tagApi } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor.vue'
+// 导入HTML净化工具
+import { sanitizeMarkdown } from '../utils/sanitize'
 
 const route = useRoute()
 const router = useRouter()
@@ -209,9 +211,14 @@ const generateSummary = () => {
 
 // 渲染Markdown为HTML
 const renderedContent = computed(() => {
-  if (!articleForm.value.content) return ''
-  return marked(articleForm.value.content)
-})
+  try {
+    // 使用marked渲染，然后通过sanitizeMarkdown净化防止XSS
+    return sanitizeMarkdown(marked.parse(articleForm.content || ''));
+  } catch (e) {
+    console.error('Markdown渲染失败:', e);
+    return articleForm.content || '';
+  }
+});
 
 // 切换预览模式
 const togglePreview = () => {

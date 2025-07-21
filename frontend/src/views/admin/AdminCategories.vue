@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { categoryApi } from '../../services/api'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 
 const categories = ref([])
 const isLoading = ref(true)
@@ -18,6 +19,10 @@ const editForm = ref({
   name: '',
   description: ''
 })
+
+// 删除确认对话框状态
+const confirmDialogVisible = ref(false)
+const categoryToDelete = ref(null)
 
 // 获取所有分类
 const fetchCategories = async () => {
@@ -97,17 +102,30 @@ const saveEdit = async () => {
   }
 }
 
+// 打开删除确认对话框
+const openDeleteConfirm = (category) => {
+  categoryToDelete.value = category
+  confirmDialogVisible.value = true
+}
+
+// 关闭删除确认对话框
+const closeDeleteConfirm = () => {
+  confirmDialogVisible.value = false
+  categoryToDelete.value = null
+}
+
 // 删除分类
-const deleteCategory = async (id) => {
-  if (!confirm('确定要删除这个分类吗？此操作不可恢复。')) {
-    return
-  }
+const deleteCategory = async () => {
+  if (!categoryToDelete.value) return
   
   try {
-    await categoryApi.deleteCategory(id)
+    await categoryApi.deleteCategory(categoryToDelete.value.id)
     
     // 从列表中移除
-    categories.value = categories.value.filter(c => c.id !== id)
+    categories.value = categories.value.filter(c => c.id !== categoryToDelete.value.id)
+    
+    // 关闭对话框
+    closeDeleteConfirm()
   } catch (err) {
     console.error('删除分类失败:', err)
     alert('删除分类失败')
@@ -175,7 +193,7 @@ onMounted(fetchCategories)
                 <button @click="startEdit(category)" class="action-button edit">
                   编辑
                 </button>
-                <button @click="deleteCategory(category.id)" class="action-button delete">
+                <button @click="openDeleteConfirm(category)" class="action-button delete">
                   删除
                 </button>
               </td>
@@ -214,6 +232,17 @@ onMounted(fetchCategories)
         </tbody>
       </table>
     </div>
+    
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog 
+      :visible="confirmDialogVisible"
+      title="确认删除"
+      :message="categoryToDelete ? `您确定要删除这个分类吗？此操作不可恢复。` : ''"
+      confirmText="确认删除"
+      cancelText="取消"
+      @confirm="deleteCategory"
+      @cancel="closeDeleteConfirm"
+    />
   </div>
 </template>
 

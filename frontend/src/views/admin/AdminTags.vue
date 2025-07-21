@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { tagApi } from '../../services/api'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 
 // 标签列表
 const tags = ref([])
@@ -15,6 +16,10 @@ const successMessage = ref('')
 const showDialog = ref(false)
 const dialogMode = ref('add') // 'add' 或 'edit'
 const editingTag = ref(null)
+
+// 删除确认对话框状态
+const confirmDialogVisible = ref(false)
+const tagToDelete = ref(null)
 
 // 新标签表单
 const tagForm = ref({
@@ -99,22 +104,35 @@ const saveTag = async () => {
   }
 }
 
+// 打开删除确认对话框
+const openDeleteConfirm = (tag) => {
+  tagToDelete.value = tag
+  confirmDialogVisible.value = true
+}
+
+// 关闭删除确认对话框
+const closeDeleteConfirm = () => {
+  confirmDialogVisible.value = false
+  tagToDelete.value = null
+}
+
 // 删除标签
-const deleteTag = async (tag) => {
-  if (!confirm(`确定要删除标签 "${tag.name}" 吗？这可能会影响使用此标签的文章。`)) {
-    return
-  }
+const deleteTag = async () => {
+  if (!tagToDelete.value) return
   
   try {
     isLoading.value = true
     error.value = null
     
-    await tagApi.deleteTag(tag.id)
+    await tagApi.deleteTag(tagToDelete.value.id)
     
     // 重新获取标签列表
     await fetchTags()
     
     successMessage.value = '标签删除成功'
+    
+    // 关闭对话框
+    closeDeleteConfirm()
     
     // 3秒后清除成功消息
     setTimeout(() => {
@@ -191,7 +209,7 @@ onMounted(() => {
                     编辑
                   </button>
                   <button 
-                    @click="deleteTag(tag)" 
+                    @click="openDeleteConfirm(tag)" 
                     class="action-button delete"
                     aria-label="删除标签"
                   >
@@ -263,6 +281,17 @@ onMounted(() => {
           </div>
         </div>
       </div>
+      
+      <!-- 删除确认对话框 -->
+      <ConfirmDialog 
+        :visible="confirmDialogVisible"
+        title="确认删除"
+        :message="tagToDelete ? `您确定要删除标签 '${tagToDelete.name}' 吗？这可能会影响使用此标签的文章。` : ''"
+        confirmText="确认删除"
+        cancelText="取消"
+        @confirm="deleteTag"
+        @cancel="closeDeleteConfirm"
+      />
     </div>
   </div>
 </template>

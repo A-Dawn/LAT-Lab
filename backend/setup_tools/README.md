@@ -26,7 +26,7 @@ python setup_tools/create_admin_user.py admin admin@example.com your_password
 
 ```bash
 # 在后端根目录执行
-sqlite3 blog.db < setup_tools/add_admin.sql
+sqlite3 data/blog.db < setup_tools/add_admin.sql
 ```
 
 **预设管理员信息**：

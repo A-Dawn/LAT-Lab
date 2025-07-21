@@ -2,12 +2,25 @@
 import { ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { userApi } from '../../services/api'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 
 const store = useStore()
 const users = ref([])
 const isLoading = ref(true)
 const error = ref(null)
 const currentUser = ref(null)
+
+// 删除确认对话框状态
+const confirmDialogVisible = ref(false)
+const userToDelete = ref(null)
+
+// 重置密码对话框状态
+const resetPasswordDialogVisible = ref(false)
+const userToReset = ref(null)
+const newPassword = ref('')
+const isResetting = ref(false)
+const resetSuccess = ref(false)
+const resetError = ref('')
 
 // 获取所有用户
 const fetchUsers = async () => {
@@ -47,26 +60,86 @@ const changeUserRole = async (userId, newRole) => {
   }
 }
 
-// 删除用户
-const deleteUser = async (userId) => {
-  if (userId === currentUser.value?.id) {
+// 打开删除确认对话框
+const openDeleteConfirm = (user) => {
+  if (user.id === currentUser.value?.id) {
     alert('不能删除自己的账号')
     return
   }
-  
-  if (!confirm('确定要删除这个用户吗？此操作不可恢复。')) {
-    return
-  }
+  userToDelete.value = user
+  confirmDialogVisible.value = true
+}
+
+// 关闭删除确认对话框
+const closeDeleteConfirm = () => {
+  confirmDialogVisible.value = false
+  userToDelete.value = null
+}
+
+// 删除用户
+const deleteUser = async () => {
+  if (!userToDelete.value) return
   
   try {
-    await userApi.deleteUser(userId)
+    await userApi.deleteUser(userToDelete.value.id)
     
     // 从列表中移除已删除的用户
-    users.value = users.value.filter(user => user.id !== userId)
+    users.value = users.value.filter(user => user.id !== userToDelete.value.id)
+    
+    // 关闭对话框
+    closeDeleteConfirm()
   } catch (err) {
     console.error('删除用户失败:', err)
     alert('删除用户失败')
   }
+}
+
+// 打开重置密码对话框
+const openResetPassword = (user) => {
+  userToReset.value = user
+  newPassword.value = generateRandomPassword()
+  resetPasswordDialogVisible.value = true
+  resetSuccess.value = false
+  resetError.value = ''
+}
+
+// 关闭重置密码对话框
+const closeResetPasswordDialog = () => {
+  resetPasswordDialogVisible.value = false
+  userToReset.value = null
+  newPassword.value = ''
+  isResetting.value = false
+  resetSuccess.value = false
+  resetError.value = ''
+}
+
+// 重置用户密码
+const resetUserPassword = async () => {
+  if (!userToReset.value) return
+  
+  try {
+    isResetting.value = true
+    resetError.value = ''
+    
+    await userApi.resetUserPassword(userToReset.value.id, newPassword.value)
+    resetSuccess.value = true
+  } catch (err) {
+    console.error('重置密码失败:', err)
+    resetError.value = '重置密码失败，请重试'
+    resetSuccess.value = false
+  } finally {
+    isResetting.value = false
+  }
+}
+
+// 生成随机密码
+const generateRandomPassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+  let password = ''
+  for (let i = 0; i < 10; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return password
 }
 
 // 格式化日期
@@ -79,6 +152,17 @@ const formatDate = (dateString) => {
     month: 'long',
     day: 'numeric'
   })
+}
+
+// 复制到剪贴板
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    alert('密码已复制到剪贴板')
+  } catch (err) {
+    console.error('复制失败:', err)
+    alert('复制失败，请手动复制')
+  }
 }
 
 onMounted(fetchUsers)
@@ -134,8 +218,15 @@ onMounted(fetchUsers)
                 <option value="admin">管理员</option>
               </select>
               <button 
+                @click="openResetPassword(user)" 
+                class="action-button reset"
+                title="重置密码"
+              >
+                重置密码
+              </button>
+              <button 
                 v-if="user.id !== currentUser?.id"
-                @click="deleteUser(user.id)" 
+                @click="openDeleteConfirm(user)" 
                 class="action-button delete"
               >
                 删除
@@ -148,6 +239,75 @@ onMounted(fetchUsers)
           </tr>
         </tbody>
       </table>
+    </div>
+    
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog 
+      :visible="confirmDialogVisible"
+      title="确认删除"
+      :message="userToDelete ? `您确定要删除这个用户吗？此操作不可恢复。` : ''"
+      confirmText="确认删除"
+      cancelText="取消"
+      @confirm="deleteUser"
+      @cancel="closeDeleteConfirm"
+    />
+    
+    <!-- 重置密码对话框 -->
+    <div v-if="resetPasswordDialogVisible" class="modal-overlay" @click.self="closeResetPasswordDialog">
+      <div class="reset-password-dialog" @click.stop>
+        <h3>重置用户密码</h3>
+        <p v-if="userToReset">您正在重置用户 <strong>{{ userToReset.username }}</strong> 的密码</p>
+        
+        <div v-if="resetSuccess" class="success-message">
+          <p>密码重置成功！新密码为：</p>
+          <div class="password-display">
+            <span>{{ newPassword }}</span>
+            <button @click="copyToClipboard(newPassword)" class="copy-button">复制</button>
+          </div>
+          <p class="tip">请将此密码安全地传递给用户。</p>
+        </div>
+        
+        <div v-else class="password-form">
+          <div class="form-group">
+            <label for="new-password">新密码</label>
+            <div class="password-input-group">
+              <input 
+                id="new-password" 
+                v-model="newPassword" 
+                type="text" 
+                class="password-input"
+                :disabled="isResetting"
+              />
+              <button 
+                @click="newPassword = generateRandomPassword()" 
+                class="regenerate-button"
+                :disabled="isResetting"
+              >
+                重新生成
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="resetError" class="error-message">{{ resetError }}</div>
+        </div>
+        
+        <div class="dialog-actions">
+          <button 
+            v-if="!resetSuccess"
+            @click="resetUserPassword" 
+            class="dialog-button reset-button"
+            :disabled="isResetting || !newPassword"
+          >
+            {{ isResetting ? '重置中...' : '确认重置' }}
+          </button>
+          <button 
+            @click="closeResetPasswordDialog" 
+            class="dialog-button cancel-button"
+          >
+            {{ resetSuccess ? '关闭' : '取消' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -243,6 +403,7 @@ onMounted(fetchUsers)
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .role-select {
@@ -259,11 +420,17 @@ onMounted(fetchUsers)
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .action-button.delete {
   background-color: #fef0f0;
   color: #f56c6c;
+}
+
+.action-button.reset {
+  background-color: #ecf5ff;
+  color: #409eff;
 }
 
 .current-user-badge {
@@ -278,5 +445,161 @@ onMounted(fetchUsers)
   text-align: center;
   color: #909399;
   padding: 20px 0;
+}
+
+/* 重置密码对话框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.2s ease;
+}
+
+.reset-password-dialog {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: slide-up 0.3s ease;
+}
+
+.reset-password-dialog h3 {
+  color: var(--text-primary);
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-secondary);
+}
+
+.password-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.password-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 1rem;
+}
+
+.regenerate-button {
+  background-color: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #d9ecff;
+  border-radius: 4px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.dialog-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+
+.reset-button {
+  background-color: #409eff;
+  color: white;
+}
+
+.reset-button:hover {
+  background-color: #66b1ff;
+}
+
+.cancel-button {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.cancel-button:hover {
+  background-color: var(--bg-hover);
+}
+
+.success-message {
+  background-color: #f0f9eb;
+  color: #67c23a;
+  padding: 15px;
+  border-radius: 4px;
+  margin: 15px 0;
+}
+
+.error-message {
+  background-color: #fef0f0;
+  color: #f56c6c;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.password-display {
+  background-color: white;
+  border: 1px solid #e1f3d8;
+  padding: 10px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.password-display span {
+  font-family: monospace;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.copy-button {
+  background-color: #67c23a;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tip {
+  font-size: 0.9rem;
+  margin: 10px 0 0 0;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 </style> 

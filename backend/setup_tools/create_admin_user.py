@@ -14,7 +14,7 @@ import datetime
 from passlib.context import CryptContext
 import pathlib
 
-# 密码哈希配置，必须与app/core/security.py中保持一致
+# 密码哈希配置，必须与src/lat_lab/core/security.py中保持一致
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
@@ -26,7 +26,7 @@ def create_admin_user(username, email, password):
     # 获取脚本所在目录
     script_dir = pathlib.Path(__file__).parent.resolve()
     # 数据库路径 (相对于后端根目录)
-    db_path = os.path.join(script_dir, "..", "blog.db")
+    db_path = os.path.join(script_dir, "..", "data", "blog.db")
     
     # 检查数据库是否存在
     if not os.path.exists(db_path):

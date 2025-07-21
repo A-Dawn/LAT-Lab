@@ -12,16 +12,18 @@ const countdown = ref(5)
 const token = ref('')
 
 onMounted(async () => {
-  // 从URL获取验证令牌
-  token.value = route.query.token
+  // 从URL获取验证令牌，并进行基本验证
+  const rawToken = route.query.token;
   
-  if (!token.value) {
+  // 验证令牌格式 - 只允许字母数字和有限的特殊字符
+  if (!rawToken || typeof rawToken !== 'string' || !/^[a-zA-Z0-9_\-\.]+$/.test(rawToken)) {
     status.value = 'error'
-    message.value = '验证链接无效，缺少验证令牌'
+    message.value = '验证链接无效，缺少验证令牌或令牌格式错误'
     return
   }
   
-  console.log('获取到验证令牌:', token.value)
+  token.value = rawToken;
+  console.log('获取到有效的验证令牌')
   
   try {
     // 调用验证API

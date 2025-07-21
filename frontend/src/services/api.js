@@ -126,6 +126,11 @@ export const userApi = {
     return api.put(`/users/${userId}`, userData)
   },
   
+  // 重置用户密码（管理员）
+  resetUserPassword(userId, newPassword) {
+    return api.post(`/users/${userId}/reset-password`, { new_password: newPassword })
+  },
+  
   // 删除用户（管理员）
   deleteUser(userId) {
     return api.delete(`/users/${userId}`)
@@ -608,44 +613,59 @@ export const testEmailSending = (email) => {
 export const marketplaceApi = {
   // 获取插件市场基本信息
   getMarketplaceInfo() {
-    return api.get('/plugins/marketplace/info')
+    return api.get('/marketplace/info')
   },
   
   // 获取插件市场分类
   getMarketplaceCategories() {
-    return api.get('/plugins/marketplace/categories')
+    return api.get('/marketplace/categories')
   },
   
   // 获取插件市场标签
   getMarketplaceTags() {
-    return api.get('/plugins/marketplace/tags')
+    return api.get('/marketplace/tags')
   },
   
   // 获取插件市场插件列表
   getMarketplacePlugins(params = {}) {
-    return api.get('/plugins/marketplace/plugins', { params })
+    return api.get('/marketplace/plugins', { params })
   },
   
   // 获取插件市场插件详情
   getMarketplacePlugin(pluginId) {
-    return api.get(`/plugins/marketplace/plugins/${pluginId}`)
+    return api.get(`/marketplace/plugins/${pluginId}`)
   },
   
   // 下载/安装插件市场插件
   downloadMarketplacePlugin(pluginId) {
-    return api.post(`/plugins/marketplace/plugins/${pluginId}/download`)
+    return api.post(`/marketplace/plugins/${pluginId}/download`)
   },
   
   // 获取精选插件
   getFeaturedPlugins(limit = 6) {
-    return api.get('/plugins/marketplace/plugins', { 
+    return api.get('/marketplace/plugins', { 
       params: { featured: true, limit }
     })
   },
   
+  // 获取插件市场数据源设置
+  getMarketplaceSource() {
+    return api.get('/marketplace/source')
+  },
+  
+  // 更新插件市场数据源设置
+  updateMarketplaceSource(settings) {
+    return api.post('/marketplace/source', settings)
+  },
+  
+  // 刷新插件市场数据
+  refreshMarketplace() {
+    return api.post('/marketplace/refresh')
+  },
+  
   // 搜索插件
   searchPlugins(params = {}) {
-    return api.get('/plugins/marketplace/plugins', { params })
+    return api.get('/marketplace/plugins', { params })
   }
 }
 
