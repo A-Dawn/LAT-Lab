@@ -228,9 +228,13 @@ class MarketplaceService:
             }
             
             # 支持GitHub仓库
-            if "github.com" in repo:
+            from urllib.parse import urlparse
+            
+            # 解析URL并验证主机名
+            parsed_url = urlparse(repo)
+            if parsed_url.hostname == "github.com":
                 # 从GitHub URL提取owner和repo
-                parts = repo.rstrip('/').split('/')
+                parts = parsed_url.path.rstrip('/').split('/')
                 owner = parts[-2]
                 repo_name = parts[-1]
                 
