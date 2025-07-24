@@ -6,6 +6,7 @@ import tempfile
 import os
 import importlib.util
 import traceback
+import re  # 添加用于路径验证的正则表达式库
 from src.lat_lab.schemas.plugin import (
     Plugin, PluginCreate, PluginUpdate, PluginDetail
 )
@@ -19,6 +20,32 @@ from src.lat_lab.core.config import settings
 from datetime import datetime
 
 router = APIRouter(prefix="/plugins", tags=["plugins"])
+
+# 添加安全的路径验证函数
+def secure_filename(filename):
+    """安全地验证文件名，防止路径遍历攻击
+    
+    Args:
+        filename (str): 要验证的文件名
+        
+    Returns:
+        str: 安全的文件名（移除路径分隔符和特殊字符）
+    """
+    # 仅保留文件名，移除任何路径信息
+    basename = os.path.basename(filename)
+    
+    # 移除可能导致问题的特殊字符
+    basename = re.sub(r'[^a-zA-Z0-9_.-]', '', basename)
+    
+    # 确保不以点或破折号开头
+    if basename.startswith(('.', '-')):
+        basename = 'x' + basename
+        
+    # 确保不为空
+    if not basename:
+        basename = 'untitled'
+        
+    return basename
 
 # 示例插件相关路由应该放在具体ID路由之前
 @router.get("/examples", response_model=List[Dict[str, str]])
@@ -57,6 +84,8 @@ def list_example_plugins(
     for filename in os.listdir(settings.PLUGIN_EXAMPLES_DIR):
         if filename.endswith('.py'):
             example_name = filename[:-3]  # 去掉.py后缀
+            # 使用安全的文件名
+            safe_example_name = secure_filename(example_name)
             example_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, filename)
             
             # 读取文件前几行获取描述
@@ -97,7 +126,7 @@ def list_example_plugins(
                 description = "无法读取描述"
             
             examples.append({
-                "name": example_name,
+                "name": safe_example_name,
                 "description": description
             })
     
@@ -127,14 +156,17 @@ def get_example_plugin(
             raise HTTPException(status_code=500, detail=f"无法创建插件示例目录: {str(e)}")
         raise HTTPException(status_code=404, detail="插件示例目录不存在")
     
-    # 构建示例文件路径
-    example_name = example_name.replace('.py', '')  # 移除可能存在的.py后缀
-    example_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, f"{example_name}.py")
+    # 构建示例文件路径 - 使用安全函数处理用户输入
+    # 移除可能存在的.py后缀
+    example_name = example_name.replace('.py', '')
+    # 应用安全验证
+    safe_example_name = secure_filename(example_name)
+    example_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, f"{safe_example_name}.py")
     
     # 检查示例文件是否存在
     if not os.path.exists(example_path):
         # 如果找不到指定的示例，返回README
-        if example_name.lower() == "readme":
+        if safe_example_name.lower() == "readme":
             readme_path = os.path.join(settings.PLUGIN_EXAMPLES_DIR, "README.md")
             if os.path.exists(readme_path):
                 try:

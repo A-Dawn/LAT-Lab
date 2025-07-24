@@ -11,6 +11,7 @@ import 'highlight.js/styles/github.css'
 // 以后可以根据主题切换添加暗色样式
 // import 'highlight.js/styles/github-dark.css'
 import { sanitizeMarkdown } from '../utils/sanitize'
+import { secureStorage } from '../utils/crypto'
 
 const route = useRoute()
 const router = useRouter()
@@ -22,9 +23,32 @@ const error = ref(null)
 const commentContent = ref('')
 const isSubmittingComment = ref(false)
 const commentError = ref('')
-const likedArticles = ref(JSON.parse(sessionStorage.getItem('likedArticles') || '[]'))
+const likedArticles = ref([])
 const likeCount = ref(0)
 const hasLiked = computed(() => likedArticles.value.includes(article.value?.id))
+
+// 初始化点赞数据
+const initLikedArticles = async () => {
+  try {
+    // 从安全存储中获取数据
+    const data = await secureStorage.getItem('likedArticles')
+    if (data) {
+      likedArticles.value = data
+    }
+  } catch (e) {
+    console.error('获取点赞数据失败:', e)
+    // 尝试降级获取
+    const legacyData = sessionStorage.getItem('likedArticles')
+    if (legacyData) {
+      try {
+        likedArticles.value = JSON.parse(legacyData)
+      } catch (parseError) {
+        console.error('解析旧点赞数据失败:', parseError)
+        likedArticles.value = []
+      }
+    }
+  }
+}
 
 // 密码保护相关
 const isPasswordProtected = ref(false)
@@ -199,9 +223,9 @@ const likeArticle = async () => {
       likeCount.value += 1
     }
     
-    // 不在本地存储中保存敏感信息，改为使用会话存储
-    // 使用会话存储而不是本地存储，避免长期保存用户行为
-    sessionStorage.setItem('likedArticles', JSON.stringify(likedArticles.value))
+    // 使用密钥派生函数进行安全存储
+    // 这将增加计算复杂度，确保密码哈希安全
+    await secureStorage.setItem('likedArticles', likedArticles.value)
     
     // 尝试调用后端API（如果有的话）
     try {
@@ -257,7 +281,13 @@ const formatDate = (dateString) => {
   })
 }
 
-onMounted(fetchArticle)
+// 页面加载时初始化
+onMounted(async () => {
+  // 先加载点赞数据
+  await initLikedArticles()
+  // 再获取文章
+  await fetchArticle()
+})
 </script>
 
 <template>

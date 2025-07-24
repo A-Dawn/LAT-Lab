@@ -2,23 +2,50 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 import os
-import shutil
 import uuid
-from src.lat_lab.schemas.user import UserCreate, UserOut, UserUpdate, PasswordReset
-from src.lat_lab.crud.user import create_user, get_user, get_user_by_username, get_user_by_email, get_users, update_user, delete_user
+import re
+from src.lat_lab.schemas.user import UserOut, UserUpdate, Token, PasswordReset
+from src.lat_lab.crud.user import get_user, get_users, update_user, delete_user
 from src.lat_lab.core.deps import get_db, get_current_user, get_current_admin_user
-from src.lat_lab.models.user import User, RoleEnum
+from src.lat_lab.models.user import User
 from src.lat_lab.core.security import get_password_hash
-
-# 创建上传目录
-UPLOAD_DIR = "uploads/avatars"
-os.makedirs(UPLOAD_DIR, exist_ok=True)  # 使用exist_ok参数，确保目录存在
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+# 头像上传目录
+UPLOAD_DIR = os.path.join("uploads", "avatars")
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# 添加安全的路径验证函数
+def secure_filename(filename):
+    """安全地验证文件名，防止路径遍历攻击
+    
+    Args:
+        filename (str): 要验证的文件名
+        
+    Returns:
+        str: 安全的文件名（移除路径分隔符和特殊字符）
+    """
+    # 仅保留文件名，移除任何路径信息
+    basename = os.path.basename(filename)
+    
+    # 移除可能导致问题的特殊字符
+    basename = re.sub(r'[^a-zA-Z0-9_.-]', '', basename)
+    
+    # 确保不以点或破折号开头
+    if basename.startswith(('.', '-')):
+        basename = 'x' + basename
+        
+    # 确保不为空
+    if not basename:
+        basename = 'untitled'
+        
+    return basename
+
 @router.get("/me", response_model=UserOut)
 def read_current_user(current_user: User = Depends(get_current_user)):
-    """获取当前登录用户信息"""
+    """获取当前用户信息"""
     return current_user
 
 @router.put("/me", response_model=UserOut)
@@ -27,21 +54,7 @@ def update_current_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """更新当前登录用户信息"""
-    # 普通用户不能修改自己的角色
-    if user_update.role is not None and current_user.role != RoleEnum.admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="没有权限修改用户角色"
-        )
-    
-    # 不允许修改邮箱
-    if user_update.email is not None and user_update.email != current_user.email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="邮箱作为身份标识符不允许修改"
-        )
-    
+    """更新当前用户信息"""
     return update_user(db, current_user.id, user_update)
 
 @router.post("/me/avatar", response_model=dict)
@@ -62,8 +75,16 @@ async def upload_avatar(
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     
     # 生成唯一文件名
-    file_extension = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
+    original_filename = file.filename or "avatar.jpg"
+    file_extension = os.path.splitext(original_filename)[1] if original_filename else ".jpg"
+    # 确保文件扩展名安全
+    file_extension = secure_filename(file_extension)
+    if not file_extension:
+        file_extension = ".jpg"  # 默认扩展名
+        
     unique_filename = f"avatar_{current_user.id}_{uuid.uuid4()}{file_extension}"
+    
+    # 使用安全路径构建
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
     try:

@@ -67,19 +67,19 @@ api.interceptors.response.use(
 export const userApi = {
   // 登录
   login(credentials) {
-    // 使用FormData格式提交，符合OAuth2PasswordRequestForm的要求
-    const formData = new FormData()
-    formData.append('username', credentials.username)
-    formData.append('password', credentials.password)
+    // 使用URLSearchParams代替FormData，正确地处理application/x-www-form-urlencoded格式
+    const formData = new URLSearchParams();
+    formData.append('username', credentials.username);
+    formData.append('password', credentials.password);
     
     // 先清除旧的用户信息和token，确保不会使用缓存的数据
-    localStorage.removeItem('token')
+    localStorage.removeItem('token');
     
-    return api.post('/auth/login', formData, {
+    return api.post('/auth/login', formData.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
-    })
+    });
   },
   
   // 注册
