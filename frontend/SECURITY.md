@@ -77,4 +77,4 @@
 
 ## 漏洞报告
 
-如果发现任何安全漏洞，请联系安全团队：security@luminarc.tech 
+如果发现任何安全漏洞，请联系安全团队：contact@luminarc.tech 

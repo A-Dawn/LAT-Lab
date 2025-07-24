@@ -106,11 +106,17 @@ const fetchArticle = async (password = null) => {
       data = await articleApi.getArticle(articleId)
     }
     
-    console.log('获取到文章数据:', data)
-    
     if (!data) {
       error.value = '获取文章失败: 没有返回数据'
       return
+    }
+    
+    // 安全处理文章数据
+    if (password) {
+      // 如果是密码保护的文章，使用安全存储
+      const cacheKey = `article_${articleId}_${currentUser.value?.id || 'guest'}`
+      // 存储文章数据时使用安全机制
+      await secureStorage.setItem(cacheKey, data)
     }
     
     article.value = data
@@ -223,8 +229,7 @@ const likeArticle = async () => {
       likeCount.value += 1
     }
     
-    // 使用密钥派生函数进行安全存储
-    // 这将增加计算复杂度，确保密码哈希安全
+    // 使用安全存储API保存点赞数据
     await secureStorage.setItem('likedArticles', likedArticles.value)
     
     // 尝试调用后端API（如果有的话）

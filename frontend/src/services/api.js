@@ -151,7 +151,31 @@ export const articleApi = {
   
   // 获取文章详情（带密码）
   getArticleWithPassword(id, password) {
-    return api.get(`/articles/${id}`, { params: { password } })
+    // 使用Web Crypto API计算密码哈希，防止明文传输
+    const encoder = new TextEncoder();
+    const passwordData = encoder.encode(password);
+    
+    // 创建密码哈希
+    return crypto.subtle.digest('SHA-256', passwordData)
+      .then(hashBuffer => {
+        // 将哈希转换为Base64字符串
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const passwordHash = btoa(String.fromCharCode(...hashArray));
+        
+        // 使用哈希而非明文密码
+        return api.get(`/articles/${id}`, { 
+          params: { 
+            password_hash: passwordHash,
+            client_hash: true // 告知后端我们发送的是客户端哈希
+          } 
+        })
+      })
+      .catch(error => {
+        console.error('密码处理失败:', error);
+        // 回退到原始方法，但添加警告
+        console.warn('回退到不安全的密码传输方式');
+        return api.get(`/articles/${id}`, { params: { password } })
+      });
   },
   
   // 创建文章

@@ -176,68 +176,66 @@ def read_user_drafts(
 def read_article(
     article_id: int,
     password: Optional[str] = None,
+    password_hash: Optional[str] = None,
+    client_hash: bool = False,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user)
 ):
-    """获取文章详情，同时增加阅读计数"""
-    # 获取当前用户ID（如果已登录）
-    current_user_id = current_user.id if current_user else None
+    """获取文章详情
     
-    # 获取文章，包含权限检查
-    db_article = get_article(db, article_id, current_user_id)
-    if db_article is None:
-        raise HTTPException(status_code=404, detail="文章不存在或您没有权限查看")
+    支持两种密码验证方式：
+    1. 传统明文密码 (password参数)
+    2. 客户端哈希 (password_hash + client_hash=True)
+    """
+    article = get_article(db, article_id, current_user.id if current_user else None)
     
-    # 处理密码保护
-    if db_article.visibility == ArticleVisibility.password:
-        # 如果是作者本人，无需密码
-        if current_user_id and db_article.author_id == current_user_id:
-            pass
-        # 管理员也无需密码
-        elif current_user and current_user.role == RoleEnum.admin:
-            pass
-        # 其他用户需要提供正确密码
-        elif not password or password != db_article.password:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="此文章受密码保护，请提供正确的密码"
-            )
+    if not article:
+        raise HTTPException(status_code=404, detail="文章不存在")
     
-    # 增加阅读计数，传递current_user_id参数
-    updated_article = increment_view_count(db, article_id, current_user_id)
+    # 检查是否需要密码
+    if article.visibility == ArticleVisibility.password:
+        # 检查是否为作者或管理员
+        is_author = current_user and current_user.id == article.author_id
+        is_admin = current_user and current_user.role == 'admin'
+        
+        if not (is_author or is_admin):
+            # 验证密码
+            if not password and not password_hash:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="此文章需要密码访问"
+                )
+            
+            # 处理两种验证方式
+            password_correct = False
+            
+            # 1. 客户端哈希模式
+            if password_hash and client_hash:
+                # 在服务器端也计算密码哈希
+                import hashlib
+                import base64
+                
+                # 计算密码的SHA-256哈希
+                server_hash = hashlib.sha256(article.password.encode()).digest()
+                server_hash_b64 = base64.b64encode(server_hash).decode()
+                
+                # 比较哈希值
+                password_correct = password_hash == server_hash_b64
+            
+            # 2. 传统明文密码模式
+            elif password:
+                password_correct = password == article.password
+            
+            if not password_correct:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="密码错误"
+                )
     
-    # 如果增加阅读计数失败，不中断流程，继续返回文章
-    if updated_article:
-        db_article = updated_article
+    # 增加浏览量
+    increment_view_count(db, article_id, current_user.id if current_user else None)
     
-    # 创建一个字典来存储文章数据，并确保author是一个字典
-    article_data = {
-        "id": db_article.id,
-        "title": db_article.title,
-        "content": db_article.content,
-        "summary": db_article.summary,
-        "is_pinned": db_article.is_pinned,
-        "category_id": db_article.category_id,
-        "author_id": db_article.author_id,
-        "view_count": db_article.view_count,
-        "likes_count": db_article.likes_count if db_article.likes_count is not None else 0,
-        "created_at": db_article.created_at,
-        "updated_at": db_article.updated_at,
-        "tags": db_article.tags,
-        "category": db_article.category,
-        "status": db_article.status,
-        "published_at": db_article.published_at,
-        "visibility": db_article.visibility,
-        # 不返回密码
-        "author": {
-            "id": db_article.author.id,
-            "username": db_article.author.username,
-            "email": db_article.author.email,
-            "role": db_article.author.role
-        }
-    }
-    
-    return article_data
+    return article
 
 @router.put("/{article_id}", response_model=Article)
 def update_article_by_id(
