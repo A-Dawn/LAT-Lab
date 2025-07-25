@@ -6,7 +6,7 @@ LAT-Lab是一个现代化的个人博客系统，基于前后端分离架构，�
 
 本次更新对系统进行了全面的安全审查和加固，修复了多个安全漏洞，显著提升了系统整体安全性，具体详见
 
-[v0.2.3_DevOps.md]: https://github.com/A-Dawn/LAT-Lab/Docs/v0.2.3_DevOps.md	"0.2.3更新"
+[v0.2.3_DevOps.md](https://github.com/A-Dawn/LAT-Lab/blob/main/Docs/v0.2.3_DevOps.md)	"0.2.3更新"
 
 
 
