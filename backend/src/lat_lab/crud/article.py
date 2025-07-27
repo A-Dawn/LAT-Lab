@@ -2,10 +2,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, or_
 from typing import List, Optional
 from datetime import datetime
-from src.lat_lab.models.article import Article, ArticleStatus
+from src.lat_lab.models.article import Article, ArticleStatus, article_likes
 from src.lat_lab.models.tag import Tag, article_tags
 from src.lat_lab.models.category import Category
 from src.lat_lab.schemas.article import ArticleCreate, ArticleUpdate
+from src.lat_lab.models.user import User
 
 def get_article(db: Session, article_id: int, current_user_id: Optional[int] = None):
     """
@@ -301,31 +302,70 @@ def update_like_count(db: Session, article_id: int, increment: bool = True, curr
     Args:
         db: 数据库会话
         article_id: 文章ID  
-        increment: True表示增加点赞，False表示取消点赞
+        increment: True表示点赞，False表示取消点赞
         current_user_id: 当前用户ID，用于权限检查
     
     Returns:
         更新后的文章对象，如果文章不存在或无权访问则返回None
+        如果用户已经点过赞，则返回文章对象但不增加点赞数
     """
     db_article = get_article(db, article_id, current_user_id)
-    if not db_article:
+    if not db_article or not current_user_id:
         return None
     
-    # 确保likes_count字段至少为0
-    if db_article.likes_count is None:
-        db_article.likes_count = 0
+    # 获取当前用户对象
+    current_user = db.query(User).filter(User.id == current_user_id).first()
+    if not current_user:
+        return None
+    
+    # 检查用户是否已点赞
+    # 通过查询article_likes表
+    like_exists = db.query(article_likes).filter(
+        article_likes.c.user_id == current_user_id,
+        article_likes.c.article_id == article_id
+    ).first() is not None
     
     try:
-        # 根据increment参数增加或减少点赞数
+        # 确保likes_count字段至少为0
+        if db_article.likes_count is None:
+            db_article.likes_count = 0
+        
+        # 根据increment参数和当前点赞状态处理
         if increment:
-            db_article.likes_count += 1
+            if not like_exists:  # 如果用户未点赞，添加点赞记录
+                # 在article_likes表中添加记录
+                stmt = article_likes.insert().values(
+                    user_id=current_user_id,
+                    article_id=article_id
+                )
+                db.execute(stmt)
+                
+                # 更新文章点赞计数
+                db_article.likes_count += 1
         else:
-            # 避免负数
-            db_article.likes_count = max(0, db_article.likes_count - 1)
+            if like_exists:  # 如果用户已点赞，删除点赞记录
+                # 从article_likes表中删除记录
+                stmt = article_likes.delete().where(
+                    article_likes.c.user_id == current_user_id,
+                    article_likes.c.article_id == article_id
+                )
+                db.execute(stmt)
+                
+                # 更新文章点赞计数，避免负数
+                db_article.likes_count = max(0, db_article.likes_count - 1)
         
         db.commit()
-        db.refresh(db_article)
-        return db_article 
+        
+        # 获取用户是否已点赞此文章的状态
+        user_has_liked = db.query(article_likes).filter(
+            article_likes.c.user_id == current_user_id,
+            article_likes.c.article_id == article_id
+        ).first() is not None
+        
+        # 为文章对象添加临时属性，表示用户是否已点赞
+        setattr(db_article, 'current_user_liked', user_has_liked)
+        
+        return db_article
     except Exception as e:
         db.rollback()
         print(f"更新点赞数失败: {str(e)}")

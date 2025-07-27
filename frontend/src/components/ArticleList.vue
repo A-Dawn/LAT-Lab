@@ -3,7 +3,7 @@
   @description 文章列表组件，展示博客文章列表，支持分页和加载状态
 -->
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { articleApi } from '../services/api'
 
@@ -44,6 +44,9 @@ const emit = defineEmits(['retry', 'page-change'])
 
 // 路由
 const router = useRouter()
+
+// 保存已点赞的文章ID
+const likedArticles = ref(new Set())
 
 // 计算总页数
 const totalPages = computed(() => {
@@ -111,13 +114,34 @@ const handleLike = async (articleId, event) => {
     const article = props.articles.find(a => a.id === articleId)
     if (!article) return
     
+    // 判断是点赞还是取消点赞
+    const isLiked = likedArticles.value.has(articleId)
+    const action = isLiked ? 'unlike' : 'like'
+    
     // 乐观更新UI
-    article.likes_count = (article.likes_count || 0) + 1
+    if (isLiked) {
+      article.likes_count = Math.max(0, (article.likes_count || 0) - 1)
+      likedArticles.value.delete(articleId)
+    } else {
+      article.likes_count = (article.likes_count || 0) + 1
+      likedArticles.value.add(articleId)
+    }
     
     // 调用API
-    await articleApi.likeArticle(articleId)
+    const response = await articleApi.likeArticle(articleId, action)
+    
+    // 如果API返回了结果，用实际结果更新UI
+    if (response && response.success) {
+      article.likes_count = response.likes_count || article.likes_count
+      
+      if (response.is_liked) {
+        likedArticles.value.add(articleId)
+      } else {
+        likedArticles.value.delete(articleId)
+      }
+    }
   } catch (err) {
-    console.error('点赞失败:', err)
+    console.error('点赞操作失败:', err)
   }
 }
 
@@ -160,10 +184,37 @@ const truncateText = (text, length = 100) => {
   return text.length > length ? text.substring(0, length) + '...' : text
 }
 
-// 监视文章数据变化，用于调试
+// 监视文章数据变化
 watch(() => props.articles, (newArticles) => {
   console.log('ArticleList组件接收到新的文章数据:', newArticles)
+  // 当文章数据变化时，获取点赞状态
+  if (props.isAuthenticated) {
+    fetchArticlesLikeStatus(newArticles)
+  }
 }, { deep: true })
+
+// 初始化时，获取已登录用户的点赞状态
+onMounted(() => {
+  if (props.isAuthenticated && props.articles.length > 0) {
+    fetchArticlesLikeStatus(props.articles)
+  }
+})
+
+// 获取文章点赞状态
+const fetchArticlesLikeStatus = async (articles) => {
+  if (!articles || articles.length === 0) return
+  
+  for (const article of articles) {
+    try {
+      const result = await articleApi.getArticleLikeStatus(article.id)
+      if (result && result.is_liked) {
+        likedArticles.value.add(article.id)
+      }
+    } catch (err) {
+      console.warn(`获取文章${article.id}点赞状态失败:`, err)
+    }
+  }
+}
 </script>
 
 <template>
@@ -220,6 +271,7 @@ watch(() => props.articles, (newArticles) => {
             </span>
             <span 
               class="article-likes"
+              :class="{ 'liked': likedArticles.has(article.id) }"
               @click="handleLike(article.id, $event)"
             >
               <i class="icon-heart"></i> {{ article.likes_count || 0 }}
@@ -388,12 +440,23 @@ watch(() => props.articles, (newArticles) => {
 }
 
 .article-likes {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .article-likes:hover {
   color: var(--primary-color);
+}
+
+.article-likes.liked {
+  color: var(--primary-color);
+}
+
+.article-likes.liked i {
+  transform: scale(1.2);
 }
 
 /* 图标样式 */

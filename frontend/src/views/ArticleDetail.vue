@@ -23,32 +23,9 @@ const error = ref(null)
 const commentContent = ref('')
 const isSubmittingComment = ref(false)
 const commentError = ref('')
-const likedArticles = ref([])
 const likeCount = ref(0)
-const hasLiked = computed(() => likedArticles.value.includes(article.value?.id))
-
-// 初始化点赞数据
-const initLikedArticles = async () => {
-  try {
-    // 从安全存储中获取数据
-    const data = await secureStorage.getItem('likedArticles')
-    if (data) {
-      likedArticles.value = data
-    }
-  } catch (e) {
-    console.error('获取点赞数据失败:', e)
-    // 尝试降级获取
-    const legacyData = sessionStorage.getItem('likedArticles')
-    if (legacyData) {
-      try {
-        likedArticles.value = JSON.parse(legacyData)
-      } catch (parseError) {
-        console.error('解析旧点赞数据失败:', parseError)
-        likedArticles.value = []
-      }
-    }
-  }
-}
+const isLiked = ref(false)
+const isLiking = ref(false)
 
 // 密码保护相关
 const isPasswordProtected = ref(false)
@@ -81,6 +58,21 @@ const renderedContent = computed(() => {
   // 使用marked渲染Markdown，然后通过sanitizeMarkdown净化防止XSS攻击
   return sanitizeMarkdown(marked.parse(article.value.content || ''))
 })
+
+// 初始化文章点赞状态
+const fetchArticleLikeStatus = async () => {
+  if (!article.value) return
+  
+  try {
+    const result = await articleApi.getArticleLikeStatus(article.value.id)
+    if (result) {
+      likeCount.value = result.likes_count || 0
+      isLiked.value = result.is_liked || false
+    }
+  } catch (e) {
+    console.error('获取文章点赞状态失败:', e)
+  }
+}
 
 // 获取文章详情
 const fetchArticle = async (password = null) => {
@@ -132,6 +124,9 @@ const fetchArticle = async (password = null) => {
     
     // 获取文章评论
     await fetchComments()
+    
+    // 获取文章点赞状态
+    await fetchArticleLikeStatus()
   } catch (e) {
     console.error('获取文章失败, 详细错误:', e)
     if (e.response) {
@@ -212,35 +207,47 @@ const submitComment = async () => {
 
 // 点赞文章
 const likeArticle = async () => {
-  if (!article.value) return
+  if (!article.value || !isAuthenticated.value) {
+    if (!isAuthenticated.value) {
+      alert('请先登录后再点赞')
+      router.push('/login?redirect=' + route.fullPath)
+    }
+    return
+  }
+  
+  if (isLiking.value) return
   
   try {
-    // 检查是否已点赞
-    if (hasLiked.value) {
-      // 取消点赞
-      const index = likedArticles.value.indexOf(article.value.id)
-      if (index > -1) {
-        likedArticles.value.splice(index, 1)
-        likeCount.value -= 1
-      }
+    isLiking.value = true
+    
+    // 确定点赞动作类型
+    const action = isLiked.value ? 'unlike' : 'like'
+    
+    // 乐观更新UI（先更新界面再等待服务器响应）
+    if (isLiked.value) {
+      // 取消点赞，减少计数
+      likeCount.value = Math.max(0, likeCount.value - 1)
+      isLiked.value = false
     } else {
-      // 添加点赞
-      likedArticles.value.push(article.value.id)
-      likeCount.value += 1
+      // 点赞，增加计数
+      likeCount.value++
+      isLiked.value = true
     }
     
-    // 使用安全存储API保存点赞数据
-    await secureStorage.setItem('likedArticles', likedArticles.value)
+    // 调用点赞API，传递正确的action参数
+    const result = await articleApi.likeArticle(article.value.id, action)
     
-    // 尝试调用后端API（如果有的话）
-    try {
-      await articleApi.likeArticle(article.value.id)
-    } catch (e) {
-      // 如果后端API不存在或失败，不影响前端显示
-      console.warn('后端点赞API不可用:', e)
+    if (result && result.success) {
+      // 使用服务器返回的真实数据更新UI
+      likeCount.value = result.likes_count
+      isLiked.value = result.is_liked
     }
   } catch (e) {
     console.error('点赞失败:', e)
+    // 发生错误时，恢复到之前的状态
+    await fetchArticleLikeStatus()
+  } finally {
+    isLiking.value = false
   }
 }
 
@@ -288,9 +295,7 @@ const formatDate = (dateString) => {
 
 // 页面加载时初始化
 onMounted(async () => {
-  // 先加载点赞数据
-  await initLikedArticles()
-  // 再获取文章
+  // 获取文章
   await fetchArticle()
 })
 </script>
@@ -399,7 +404,7 @@ onMounted(async () => {
         <div class="article-content markdown-body" v-html="renderedContent"></div>
         
         <div class="article-actions">
-          <button class="action-button like-button" :class="{ 'liked': hasLiked }" @click="likeArticle">
+          <button class="action-button like-button" :class="{ 'liked': isLiked }" @click="likeArticle">
             <i class="icon-heart"></i>
             <span>{{ likeCount }}</span>
           </button>

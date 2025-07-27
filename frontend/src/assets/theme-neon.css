@@ -588,3 +588,15 @@ html[data-theme="neon"] .comment-form {
   border: 1px solid rgba(var(--secondary-rgb), 0.1);
   border-radius: 8px;
 } 
+
+/* 确保霓虹主题下内容区域文本左对齐 */
+html[data-theme="neon"] .article-content,
+html[data-theme="neon"] .markdown-body,
+html[data-theme="neon"] .content-container,
+html[data-theme="neon"] .page-content {
+  text-align: left !important;
+}
+
+html[data-theme="neon"] .markdown-body * {
+  text-align: left !important;
+} 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .user import Base
@@ -12,6 +12,15 @@ class ArticleVisibility(str, enum.Enum):
     public = "public"
     private = "private"
     password = "password"
+
+# 用户文章点赞关联表
+article_likes = Table(
+    "article_likes",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("article_id", Integer, ForeignKey("articles.id"), primary_key=True),
+    Column("created_at", DateTime(timezone=True), server_default=func.now())
+)
 
 class Article(Base):
     __tablename__ = "articles"
@@ -38,4 +47,7 @@ class Article(Base):
     author = relationship("User", back_populates="articles")
     category = relationship("Category", back_populates="articles")
     tags = relationship("Tag", secondary="article_tags", back_populates="articles")
-    comments = relationship("Comment", back_populates="article", cascade="all, delete-orphan") 
+    comments = relationship("Comment", back_populates="article", cascade="all, delete-orphan")
+    
+    # 添加点赞关联
+    liked_by = relationship("User", secondary=article_likes, backref="liked_articles") 

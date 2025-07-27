@@ -12,6 +12,8 @@ import './assets/theme-light.css'
 import './assets/theme-dark.css'
 import './assets/theme-neon.css'
 
+import { installContentStyles } from './utils/content-styles'
+
 /**
  * 在应用渲染前初始化主题
  * 从本地存储中获取主题设置并应用到页面
@@ -69,6 +71,9 @@ const initApp = async () => {
   // 使用路由和状态管理
   app.use(router);
   app.use(store);
+  
+  // 安装内容样式
+  installContentStyles(app)
   
   // 如果本地存储中有token，尝试获取用户信息
   if (localStorage.getItem('token')) {

@@ -235,6 +235,43 @@ def read_article(
     # 增加浏览量
     increment_view_count(db, article_id, current_user.id if current_user else None)
     
+    # 直接处理author属性，确保它是字典而不是ORM对象
+    try:
+        if hasattr(article, 'author') and article.author is not None:
+            # 创建author字典
+            author_obj = article.author
+            author_dict = {
+                "id": author_obj.id,
+                "username": author_obj.username,
+                "email": author_obj.email,
+                "role": author_obj.role
+            }
+            
+            # 添加可选字段
+            if hasattr(author_obj, 'avatar') and author_obj.avatar is not None:
+                author_dict["avatar"] = author_obj.avatar
+            
+            if hasattr(author_obj, 'bio') and author_obj.bio is not None:
+                author_dict["bio"] = author_obj.bio
+                
+            # 替换原始author对象
+            article_dict = article.__dict__.copy()
+            article_dict['author'] = author_dict
+            
+            # 移除SQLAlchemy特有属性
+            if '_sa_instance_state' in article_dict:
+                del article_dict['_sa_instance_state']
+                
+            # 创建自定义响应对象
+            from fastapi.encoders import jsonable_encoder
+            from fastapi.responses import JSONResponse
+            
+            # 返回自定义JSON响应
+            return JSONResponse(content=jsonable_encoder(article_dict))
+    except Exception as e:
+        print(f"处理author字段时出错: {str(e)}")
+    
+    # 如果上面的处理失败，尝试正常返回
     return article
 
 @router.put("/{article_id}", response_model=Article)
@@ -302,18 +339,46 @@ def delete_article_by_id(
 @router.post("/{article_id}/like", response_model=Dict[str, Any])
 def like_article(
     article_id: int,
+    action: Optional[str] = "toggle",  # 'toggle', 'like', 'unlike'
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """点赞或取消点赞文章（需要用户登录）"""
+    """点赞或取消点赞文章（需要用户登录）
+    
+    Args:
+        article_id: 文章ID
+        action: 
+            - toggle: 自动切换点赞状态（默认）
+            - like: 强制点赞
+            - unlike: 强制取消点赞
+    
+    Returns:
+        点赞状态信息和点赞数量
+    """
     # 使用修改后的get_article函数，传入当前用户ID以检查权限
     db_article = get_article(db, article_id, current_user.id)
     if db_article is None:
         raise HTTPException(status_code=404, detail="文章不存在或您没有权限查看")
     
     try:
+        # 检查用户是否已点赞该文章
+        from src.lat_lab.models.article import article_likes
+        has_liked = db.query(article_likes).filter(
+            article_likes.c.user_id == current_user.id,
+            article_likes.c.article_id == article_id
+        ).first() is not None
+        
+        # 根据action参数决定是点赞还是取消点赞
+        increment = False
+        if action == "toggle":
+            increment = not has_liked  # 如果已点赞则取消，未点赞则添加
+        elif action == "like":
+            increment = True  # 强制点赞
+        elif action == "unlike":
+            increment = False  # 强制取消点赞
+        
         # 使用CRUD函数更新点赞数，传递current_user_id参数
-        updated_article = update_like_count(db, article_id, increment=True, current_user_id=current_user.id)
+        updated_article = update_like_count(db, article_id, increment=increment, current_user_id=current_user.id)
         
         if updated_article is None:
             raise HTTPException(
@@ -321,16 +386,20 @@ def like_article(
                 detail="处理点赞失败"
             )
         
+        # 获取更新后的点赞状态
+        is_liked = getattr(updated_article, 'current_user_liked', has_liked)
+        
         return {
             "success": True,
-            "likes_count": updated_article.likes_count
+            "likes_count": updated_article.likes_count,
+            "is_liked": is_liked
         }
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"处理点赞失败: {str(e)}"
-        ) 
+        )
 
 @router.post("/{article_id}/publish", response_model=Article)
 def publish_article(
@@ -376,3 +445,39 @@ def publish_article(
         )
     
     return updated_article 
+
+@router.get("/{article_id}/like-status", response_model=Dict[str, Any])
+def get_like_status(
+    article_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    """获取当前用户对文章的点赞状态
+    
+    Args:
+        article_id: 文章ID
+        
+    Returns:
+        点赞状态信息和点赞数量
+    """
+    # 获取文章
+    db_article = get_article(db, article_id, current_user.id if current_user else None)
+    if db_article is None:
+        raise HTTPException(status_code=404, detail="文章不存在或您没有权限查看")
+    
+    # 默认未点赞
+    is_liked = False
+    
+    # 如果用户已登录，检查点赞状态
+    if current_user:
+        from src.lat_lab.models.article import article_likes
+        is_liked = db.query(article_likes).filter(
+            article_likes.c.user_id == current_user.id,
+            article_likes.c.article_id == article_id
+        ).first() is not None
+    
+    # 返回点赞状态
+    return {
+        "likes_count": db_article.likes_count or 0,
+        "is_liked": is_liked
+    } 

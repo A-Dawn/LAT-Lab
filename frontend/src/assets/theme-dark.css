@@ -479,3 +479,15 @@ html[data-theme="dark"] .article-content {
 html[data-theme="dark"] .comment-form {
   background-color: var(--bg-secondary);
 } 
+
+/* 确保暗色主题下内容区域文本左对齐 */
+html[data-theme="dark"] .article-content,
+html[data-theme="dark"] .markdown-body,
+html[data-theme="dark"] .content-container,
+html[data-theme="dark"] .page-content {
+  text-align: left !important;
+}
+
+html[data-theme="dark"] .markdown-body * {
+  text-align: left !important;
+} 

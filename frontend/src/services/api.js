@@ -209,12 +209,21 @@ export const articleApi = {
   },
   
   // 点赞文章
-  likeArticle(id) {
-    return api.post(`/articles/${id}/like`)
+  likeArticle(id, action = 'toggle') {
+    return api.post(`/articles/${id}/like`, { action })
       .catch(error => {
         // 如果后端API不存在，静默失败
         console.warn('点赞API调用失败', error);
         return { success: false, error: error.message };
+      });
+  },
+  
+  // 获取文章点赞状态
+  getArticleLikeStatus(id) {
+    return api.get(`/articles/${id}/like-status`)
+      .catch(error => {
+        console.warn('获取点赞状态失败', error);
+        return { likes_count: 0, is_liked: false };
       });
   },
   

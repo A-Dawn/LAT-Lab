@@ -311,3 +311,15 @@ html[data-theme="light"] .article-card:hover,
   transform: translateY(-3px);
   box-shadow: var(--card-shadow-hover);
 } 
+
+/* 确保亮色主题下内容区域文本左对齐 */
+html[data-theme="light"] .article-content,
+html[data-theme="light"] .markdown-body,
+html[data-theme="light"] .content-container,
+html[data-theme="light"] .page-content {
+  text-align: left !important;
+}
+
+html[data-theme="light"] .markdown-body * {
+  text-align: left !important;
+} 
