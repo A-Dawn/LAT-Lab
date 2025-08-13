@@ -210,8 +210,8 @@ const generateJsCode = (changes) => {
     code += '// 应用布局修改\n';
     code += 'function applyLayoutChanges() {\n';
     changes.layouts.forEach(layout => {
-      code += `  document.querySelectorAll('${layout.selector}').forEach(el => {\n`;
-      code += `    el.style['${layout.property}'] = '${layout.currentValue}';\n`;
+      code += `  document.querySelectorAll(${JSON.stringify(layout.selector)}).forEach(el => {\n`;
+      code += `    el.style[${JSON.stringify(layout.property)}] = ${JSON.stringify(layout.currentValue)};\n`;
       code += '  });\n';
     });
     code += '}\n\n';
@@ -222,8 +222,8 @@ const generateJsCode = (changes) => {
     code += '// 应用文本修改\n';
     code += 'function applyTextChanges() {\n';
     changes.texts.forEach(text => {
-      code += `  document.querySelectorAll('${text.selector}').forEach(el => {\n`;
-      code += `    el.textContent = '${text.currentValue.replace(/'/g, "\\'")}';\n`;
+      code += `  document.querySelectorAll(${JSON.stringify(text.selector)}).forEach(el => {\n`;
+      code += `    el.textContent = ${JSON.stringify(text.currentValue)};\n`;
       code += '  });\n';
     });
     code += '}\n\n';

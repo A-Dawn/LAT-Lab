@@ -391,6 +391,9 @@ print("当前目录:", os.getcwd(), file=sys.stderr)
 print("文件目录:", os.path.dirname(os.path.abspath(__file__)), file=sys.stderr)
 print("模块路径:", sys.path, file=sys.stderr)
 
+# 从环境变量中安全获取prompt参数
+plugin_prompt = os.environ.get('PLUGIN_PROMPT', '')
+
 # 定义安全的标准库白名单（仅限安全子集）
 SAFE_MODULES = [
     'datetime', 'json', 'base64', 'hashlib', 'math', 
@@ -496,6 +499,9 @@ for module_name in SAFE_MODULES:
 # 也提供一个 requests 变量（非必需，import 更常见）
 safe_globals['requests'] = _safe_requests
 
+# 将prompt参数安全地传递给插件
+safe_globals['prompt'] = plugin_prompt
+
 # 执行插件代码
 try:
     local_vars = {}
@@ -528,12 +534,17 @@ except Exception as e:
             with open(wrapper_path, 'w', encoding='utf-8') as f:
                 f.write(wrapper_code)
             
-            # 准备运行参数
+            # 准备运行参数 - 移除不安全的命令行参数传递
             run_args = [sys.executable, wrapper_path]
             
-            # 添加参数到命令行
+            # 通过环境变量安全传递prompt参数，避免命令行注入
+            env = os.environ.copy()
             if 'prompt' in params:
-                run_args.append(str(params['prompt']))
+                # 将prompt参数通过环境变量传递，避免命令行注入风险
+                env['PLUGIN_PROMPT'] = str(params['prompt'])
+            else:
+                # 确保环境变量存在，即使没有prompt参数
+                env['PLUGIN_PROMPT'] = ''
             
             # 运行包装器脚本
             result = subprocess.run(
@@ -541,7 +552,8 @@ except Exception as e:
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
-                timeout=settings.PLUGIN_TIMEOUT_SECONDS
+                timeout=settings.PLUGIN_TIMEOUT_SECONDS,
+                env=env
             )
             
             # 删除包装器脚本
@@ -609,6 +621,10 @@ except Exception as e:
                     global_vars[module_name] = module
                 except ImportError:
                     pass
+            
+            # 添加prompt参数支持（从环境变量获取）
+            if 'prompt' in params:
+                global_vars['prompt'] = params['prompt']
             
             # 执行代码
             exec(code, global_vars, local_vars)

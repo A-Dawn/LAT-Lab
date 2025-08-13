@@ -434,8 +434,8 @@ const generateJsCode = (changes, pageData) => {
     code += '// 应用全局布局修改\n';
     code += 'function applyGlobalLayoutChanges() {\n';
     changes.layouts.forEach(layout => {
-      code += `  document.querySelectorAll('${layout.selector}').forEach(el => {\n`;
-      code += `    el.style['${layout.property}'] = '${layout.currentValue}';\n`;
+      code += `  document.querySelectorAll(${JSON.stringify(layout.selector)}).forEach(el => {\n`;
+      code += `    el.style[${JSON.stringify(layout.property)}] = ${JSON.stringify(layout.currentValue)};\n`;
       code += '  });\n';
     });
     code += '}\n\n';
@@ -446,8 +446,8 @@ const generateJsCode = (changes, pageData) => {
     code += '// 应用全局文本修改\n';
     code += 'function applyGlobalTextChanges() {\n';
     changes.texts.forEach(text => {
-      code += `  document.querySelectorAll('${text.selector}').forEach(el => {\n`;
-      code += `    el.textContent = '${text.currentValue.replace(/'/g, "\\'")}';\n`;
+      code += `  document.querySelectorAll(${JSON.stringify(text.selector)}).forEach(el => {\n`;
+      code += `    el.textContent = ${JSON.stringify(text.currentValue)};\n`;
       code += '  });\n';
     });
     code += '}\n\n';
@@ -473,8 +473,8 @@ const generateJsCode = (changes, pageData) => {
         if (data.layouts && data.layouts.length > 0) {
           code += '  // 布局修改\n';
           data.layouts.forEach(layout => {
-            code += `  document.querySelectorAll('${layout.selector}').forEach(el => {\n`;
-            code += `    el.style['${layout.property}'] = '${layout.currentValue}';\n`;
+            code += `  document.querySelectorAll(${JSON.stringify(layout.selector)}).forEach(el => {\n`;
+            code += `    el.style[${JSON.stringify(layout.property)}] = ${JSON.stringify(layout.currentValue)};\n`;
             code += '  });\n';
           });
           code += '\n';
@@ -484,8 +484,8 @@ const generateJsCode = (changes, pageData) => {
         if (data.texts && data.texts.length > 0) {
           code += '  // 文本修改\n';
           data.texts.forEach(text => {
-            code += `  document.querySelectorAll('${text.selector}').forEach(el => {\n`;
-            code += `    el.textContent = '${text.currentValue.replace(/'/g, "\\'")}';\n`;
+            code += `  document.querySelectorAll(${JSON.stringify(text.selector)}).forEach(el => {\n`;
+            code += `    el.textContent = ${JSON.stringify(text.currentValue)};\n`;
             code += '  });\n';
           });
         }
