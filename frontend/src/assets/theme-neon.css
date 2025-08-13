@@ -15,8 +15,11 @@
   
   /* 文本色 - 增强对比度 */
   --text-primary: rgba(255, 255, 255, 0.95);
+  --text-primary-rgb: 255, 255, 255;
   --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-secondary-rgb: 255, 255, 255;
   --text-tertiary: rgba(255, 255, 255, 0.7);
+  --text-tertiary-rgb: 255, 255, 255;
   
   /* 边框和分隔线 - 更均衡的霓虹感 */
   --border-color: rgba(0, 223, 255, 0.2);
@@ -38,9 +41,13 @@
   
   /* 状态颜色 - 更鲜艳 */
   --success-color: #00ffa3;
+  --success-color-rgb: 0, 255, 163;
   --warning-color: #ffb800;
+  --warning-color-rgb: 255, 184, 0;
   --error-color: #ff2e6a;
+  --error-color-rgb: 255, 46, 106;
   --info-color: #00b3ff;
+  --info-color-rgb: 0, 179, 255;
   
   /* 悬浮颜色 */
   --hover-color: rgba(0, 223, 255, 0.08);
@@ -599,4 +606,6 @@ html[data-theme="neon"] .page-content {
 
 html[data-theme="neon"] .markdown-body * {
   text-align: left !important;
-} 
+}
+
+ 

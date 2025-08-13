@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { categoryApi } from '../../services/api'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import toast from '../../utils/toast'
 
 const categories = ref([])
 const isLoading = ref(true)
@@ -43,7 +44,7 @@ const fetchCategories = async () => {
 // 创建分类
 const createCategory = async () => {
   if (!newCategory.value.name) {
-    alert('请输入分类名称')
+    toast.warning('请输入分类名称')
     return
   }
   
@@ -58,9 +59,11 @@ const createCategory = async () => {
       name: '',
       description: ''
     }
+    
+    toast.success('分类创建成功')
   } catch (err) {
     console.error('创建分类失败:', err)
-    alert('创建分类失败')
+    toast.error('创建分类失败')
   }
 }
 
@@ -81,7 +84,7 @@ const cancelEdit = () => {
 // 保存编辑
 const saveEdit = async () => {
   if (!editForm.value.name) {
-    alert('请输入分类名称')
+    toast.warning('请输入分类名称')
     return
   }
   
@@ -96,9 +99,11 @@ const saveEdit = async () => {
     
     // 退出编辑模式
     editingCategory.value = null
+    
+    toast.success('分类更新成功')
   } catch (err) {
     console.error('更新分类失败:', err)
-    alert('更新分类失败')
+    toast.error('更新分类失败')
   }
 }
 
@@ -126,9 +131,11 @@ const deleteCategory = async () => {
     
     // 关闭对话框
     closeDeleteConfirm()
+    
+    toast.success('分类删除成功')
   } catch (err) {
     console.error('删除分类失败:', err)
-    alert('删除分类失败')
+    toast.error('删除分类失败')
   }
 }
 
@@ -260,20 +267,22 @@ onMounted(fetchCategories)
 
 .page-header h2 {
   margin: 0;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .create-category-form {
-  background-color: #f5f7fa;
+  background-color: var(--card-bg);
   padding: 15px;
-  border-radius: 4px;
+  border-radius: 8px;
   margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
 }
 
 .create-category-form h3 {
   margin: 0 0 10px 0;
   font-size: 1rem;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .form-row {
@@ -284,17 +293,34 @@ onMounted(fetchCategories)
 .form-input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-input::placeholder {
+  color: var(--text-tertiary);
 }
 
 .create-button {
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   padding: 0 16px;
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.create-button:hover {
+  background-color: var(--secondary-color);
 }
 
 .loading-state, .error-state {
@@ -303,14 +329,15 @@ onMounted(fetchCategories)
   align-items: center;
   justify-content: center;
   padding: 40px 0;
+  color: var(--text-secondary);
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(76, 132, 255, 0.2);
+  border: 3px solid var(--border-color);
   border-radius: 50%;
-  border-top-color: #4c84ff;
+  border-top-color: var(--primary-color);
   animation: spin 1s ease-in-out infinite;
   margin-bottom: 10px;
 }
@@ -320,17 +347,26 @@ onMounted(fetchCategories)
 }
 
 .retry-button {
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
   margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.retry-button:hover {
+  background-color: var(--secondary-color);
 }
 
 .categories-table-container {
   overflow-x: auto;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
 }
 
 .categories-table {
@@ -341,20 +377,33 @@ onMounted(fetchCategories)
 .categories-table th, .categories-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .categories-table th {
-  background-color: #f5f7fa;
-  color: #606266;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
   font-weight: 500;
+}
+
+.categories-table tbody tr:hover {
+  background-color: var(--hover-color);
 }
 
 .edit-input {
   width: 100%;
   padding: 6px 10px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
 }
 
 .actions-cell {
@@ -368,31 +417,52 @@ onMounted(fetchCategories)
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
+  transition: all 0.3s ease;
 }
 
 .action-button.edit {
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+
+.action-button.edit:hover {
+  background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .action-button.delete {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--accent-rgb), 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+}
+
+.action-button.delete:hover {
+  background-color: rgba(var(--accent-rgb), 0.2);
 }
 
 .action-button.save {
-  background-color: #ecf5ff;
-  color: #4c84ff;
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+
+.action-button.save:hover {
+  background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .action-button.cancel {
-  background-color: #f4f4f5;
-  color: #909399;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.action-button.cancel:hover {
+  background-color: var(--hover-color);
 }
 
 .empty-message {
   text-align: center;
-  color: #909399;
+  color: var(--text-tertiary);
   padding: 20px 0;
 }
 </style> 

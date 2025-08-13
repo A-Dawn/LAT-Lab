@@ -302,11 +302,11 @@ export default {
     const installPlugin = async (plugin) => {
       try {
         await marketplaceApi.downloadMarketplacePlugin(plugin.id)
-        alert(`插件 ${plugin.name} 已成功安装`)
+        toast.success(`插件 ${plugin.name} 已成功安装`)
         emit('plugin-installed')
       } catch (error) {
         console.error('安装插件失败:', error)
-        alert(`安装插件失败: ${error.message || '未知错误'}`)
+        toast.error(`安装插件失败: ${error.message || '未知错误'}`)
       }
     }
     
@@ -395,7 +395,7 @@ export default {
 /* 选项卡样式 */
 .tabs-nav {
   display: flex;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 20px;
 }
 
@@ -405,24 +405,28 @@ export default {
   border: none;
   cursor: pointer;
   font-size: 16px;
+  color: var(--text-secondary);
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
 }
 
 .tab-button:hover {
-  background-color: #f5f5f5;
+  background-color: var(--hover-color);
+  color: var(--text-primary);
 }
 
 .tab-button.active {
-  border-bottom: 2px solid #3498db;
+  border-bottom: 2px solid var(--primary-color);
+  color: var(--primary-color);
   font-weight: bold;
 }
 
 .marketplace-info {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
+  color: var(--text-secondary);
 }
 
 .filter-section {
@@ -458,17 +462,17 @@ export default {
 .plugin-card {
   display: flex;
   flex-direction: column;
-  border: 1px solid #eee;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
-  background-color: white;
+  background-color: var(--card-bg);
 }
 
 .plugin-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .plugin-icon {
@@ -477,7 +481,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .plugin-icon img {
@@ -508,7 +512,7 @@ export default {
   grid-template-columns: 1fr 1fr;
   gap: 5px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-tertiary);
   margin-bottom: 10px;
 }
 
@@ -519,18 +523,19 @@ export default {
 }
 
 .tag {
-  background-color: #e9f5fe;
-  color: #3498db;
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
 }
 
 .loading-indicator,
 .no-plugins {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
@@ -550,9 +555,9 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: white;
+  background-color: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--card-shadow-hover);
   z-index: 101;
   width: 80%;
   max-width: 800px;
@@ -565,7 +570,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .dialog-header h2 {
@@ -635,10 +640,11 @@ export default {
 }
 
 .markdown-content {
-  border: 1px solid #eee;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 15px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .plugin-actions {
@@ -669,10 +675,18 @@ export default {
 
 .form-control, .form-select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 16px;
   width: 100%;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.form-control:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
 }
 
 .btn {
@@ -680,22 +694,38 @@ export default {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .btn-primary {
-  background-color: #3498db;
+  background-color: var(--primary-color);
   color: white;
 }
 
+.btn-primary:hover {
+  background-color: var(--secondary-color);
+}
+
 .btn-secondary {
-  background-color: #95a5a6;
+  background-color: var(--text-tertiary);
   color: white;
+}
+
+.btn-secondary:hover {
+  opacity: 0.8;
 }
 
 .btn-link {
   background: none;
-  color: #3498db;
+  color: var(--primary-color);
   text-decoration: none;
   padding: 8px 15px;
+  border: 1px solid transparent;
+}
+
+.btn-link:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
 }
 </style> 

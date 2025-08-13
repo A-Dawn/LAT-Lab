@@ -15,16 +15,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #4c84ff 0%, #2861ff 100%);
+  background: var(--hero-gradient);
   padding: 20px;
 }
 
 .not-found-container {
   text-align: center;
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 10px;
   padding: 40px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-medium);
   max-width: 500px;
   width: 100%;
 }
@@ -32,27 +32,27 @@
 .error-code {
   font-size: 8rem;
   font-weight: bold;
-  color: #4c84ff;
+  color: var(--primary-color);
   line-height: 1;
   margin-bottom: 20px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 2px 2px 4px rgba(var(--text-primary-rgb), 0.1);
 }
 
 h1 {
   font-size: 2rem;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 15px;
 }
 
 p {
-  color: #606266;
+  color: var(--text-secondary);
   margin-bottom: 30px;
   font-size: 1.1rem;
 }
 
 .home-button {
   display: inline-block;
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
   text-decoration: none;
   padding: 12px 24px;
@@ -62,6 +62,6 @@ p {
 }
 
 .home-button:hover {
-  background-color: #2861ff;
+  background-color: var(--primary-hover);
 }
 </style> 

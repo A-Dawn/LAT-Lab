@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { userApi, articleApi } from '../services/api'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import toast from '../utils/toast'
 
 const store = useStore()
 const router = useRouter()
@@ -26,6 +28,10 @@ const userStats = ref({
   totalComments: 0,
   lastActive: ''
 })
+
+// 确认对话框
+const confirmDialogVisible = ref(false)
+const articleToDelete = ref(null)
 // 分页
 const currentPage = ref(1)
 const pageSize = ref(5)
@@ -354,21 +360,33 @@ const getAvatarUrl = (path) => {
   return `http://localhost:8000${path}`
 }
 
+// 打开删除确认对话框
+const openDeleteConfirm = (articleId) => {
+  articleToDelete.value = articleId
+  confirmDialogVisible.value = true
+}
+
+// 关闭删除确认对话框
+const closeDeleteConfirm = () => {
+  confirmDialogVisible.value = false
+  articleToDelete.value = null
+}
+
 // 删除文章
-const deleteArticle = async (articleId) => {
-  if (!confirm('确定要删除这篇文章吗？此操作不可恢复。')) {
-    return
-  }
+const deleteArticle = async () => {
+  if (!articleToDelete.value) return
   
   try {
     // 调用API删除文章
-    await articleApi.deleteArticle(articleId)
+    await articleApi.deleteArticle(articleToDelete.value)
     
     // 从列表中移除已删除的文章
-    userArticles.value = userArticles.value.filter(article => article.id !== articleId)
+    userArticles.value = userArticles.value.filter(article => article.id !== articleToDelete.value)
+    toast.success('文章删除成功')
+    closeDeleteConfirm()
   } catch (err) {
     console.error('删除文章失败:', err)
-    error.value = '删除文章失败'
+    toast.error('删除文章失败')
   }
 }
 
@@ -617,7 +635,7 @@ onMounted(async () => {
                 <div class="article-actions">
                   <router-link :to="`/article/${article.id}/edit`" class="action-link">编辑</router-link>
                   <button 
-                    @click="deleteArticle(article.id)" 
+                    @click="openDeleteConfirm(article.id)" 
                     class="action-link danger"
                     aria-label="删除文章"
                   >
@@ -729,6 +747,17 @@ onMounted(async () => {
         </div>
       </template>
     </div>
+    
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog 
+      :visible="confirmDialogVisible"
+      title="确认删除"
+      message="确定要删除这篇文章吗？此操作不可恢复。"
+      confirmText="确认删除"
+      cancelText="取消"
+      @confirm="deleteArticle"
+      @cancel="closeDeleteConfirm"
+    />
   </div>
 </template>
 
@@ -792,21 +821,23 @@ onMounted(async () => {
 
 /* 表单错误和成功消息 */
 .form-error {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--error-color), 0.1);
+  color: var(--error-color);
   padding: 12px;
   border-radius: 4px;
   margin-bottom: 20px;
-  border-left: 4px solid #f56c6c;
+  border: 1px solid rgba(var(--error-color), 0.2);
+  border-left: 4px solid var(--error-color);
 }
 
 .form-success {
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: rgba(var(--success-color), 0.1);
+  color: var(--success-color);
   padding: 12px;
   border-radius: 4px;
   margin-bottom: 20px;
-  border-left: 4px solid #67c23a;
+  border: 1px solid rgba(var(--success-color), 0.2);
+  border-left: 4px solid var(--success-color);
 }
 
 /* 个人资料头部 */
@@ -873,7 +904,7 @@ onMounted(async () => {
 }
 
 .avatar-button.cancel {
-  background-color: #f56c6c;
+  background-color: var(--error-color);
 }
 
 .avatar-preview-actions {
@@ -1197,11 +1228,11 @@ onMounted(async () => {
 }
 
 .action-link.danger {
-  color: #f56c6c;
+  color: var(--error-color);
 }
 
 .action-link.danger:hover {
-  background-color: #fef0f0;
+  background-color: rgba(var(--error-color), 0.1);
 }
 
 /* 分页控制 */
@@ -1298,7 +1329,7 @@ onMounted(async () => {
 
 .strength-bar-container {
   height: 5px;
-  background-color: #e9e9e9;
+  background-color: var(--border-color);
   border-radius: 3px;
   margin-bottom: 5px;
   overflow: hidden;
@@ -1311,31 +1342,32 @@ onMounted(async () => {
 }
 
 .strength-bar.weak {
-  background-color: #f56c6c;
+  background-color: var(--error-color);
 }
 
 .strength-bar.medium {
-  background-color: #e6a23c;
+  background-color: var(--warning-color);
 }
 
 .strength-bar.strong {
-  background-color: #67c23a;
+  background-color: var(--success-color);
 }
 
 .strength-text {
   font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .strength-text.weak {
-  color: #f56c6c;
+  color: var(--error-color);
 }
 
 .strength-text.medium {
-  color: #e6a23c;
+  color: var(--warning-color);
 }
 
 .strength-text.strong {
-  color: #67c23a;
+  color: var(--success-color);
 }
 
 /* 添加到样式表的末尾 */

@@ -1,18 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import Home from '../views/Home.vue'
-import Register from '../views/Register.vue'
-import ArticleDetail from '../views/ArticleDetail.vue'
-import ArticleEditor from '../views/ArticleEditor.vue'
-import UserProfile from '../views/UserProfile.vue'
 import NotFound from '../views/NotFound.vue'
-import AdminDashboard from '../views/admin/AdminDashboard.vue'
-import AdminArticles from '../views/admin/AdminArticles.vue'
-import AdminUsers from '../views/admin/AdminUsers.vue'
-import AdminCategories from '../views/admin/AdminCategories.vue'
-import AdminComments from '../views/admin/AdminComments.vue'
-import AdminPlugins from '../views/admin/AdminPlugins.vue'
-import AdminTags from '../views/admin/AdminTags.vue'
 import store from '../store'
 
 const routes = [
@@ -26,81 +15,81 @@ const routes = [
     name: 'Login',
     component: Login,
     meta: { 
-      requiresGuest: true  // 已登录用户不应该访问登录页
+      requiresGuest: true
     }
   },
   {
     path: '/register',
     name: 'Register',
-    component: Register,
+    component: () => import('../views/Register.vue'),
     meta: { 
-      requiresGuest: true  // 已登录用户不应该访问注册页
+      requiresGuest: true
     }
   },
   {
     path: '/article/:id',
     name: 'ArticleDetail',
-    component: ArticleDetail,
+    component: () => import('../views/ArticleDetail.vue'),
     props: true
   },
   {
     path: '/article/new',
     name: 'CreateArticle',
-    component: ArticleEditor,
+    component: () => import('../views/ArticleEditor.vue'),
     meta: { 
-      requiresAuth: true  // 需要登录
+      requiresAuth: true
     }
   },
   {
     path: '/article/:id/edit',
     name: 'EditArticle',
-    component: ArticleEditor,
+    component: () => import('../views/ArticleEditor.vue'),
     props: true,
     meta: { 
-      requiresAuth: true  // 需要登录
+      requiresAuth: true
     }
   },
   {
     path: '/profile',
     name: 'UserProfile',
-    component: UserProfile,
+    component: () => import('../views/UserProfile.vue'),
     meta: { 
-      requiresAuth: true  // 需要登录
+      requiresAuth: true
     }
   },
   {
     path: '/admin',
     name: 'AdminDashboard',
-    component: AdminDashboard,
+    component: () => import('../views/admin/AdminDashboard.vue'),
     meta: {
       requiresAuth: true,
-      requiresAdmin: true  // 需要管理员权限
+      requiresAdmin: true
     },
     children: [
       {
         path: 'articles',
         name: 'AdminArticles',
-        component: AdminArticles
+        component: () => import('../views/admin/AdminArticles.vue')
       },
       {
         path: 'users',
         name: 'AdminUsers',
-        component: AdminUsers
+        component: () => import('../views/admin/AdminUsers.vue')
       },
       {
         path: 'categories',
         name: 'AdminCategories',
-        component: AdminCategories
+        component: () => import('../views/admin/AdminCategories.vue')
       },
       {
         path: 'comments',
         name: 'AdminComments',
-        component: AdminComments
+        component: () => import('../views/admin/AdminComments.vue')
       },
       {
         path: 'plugins',
         name: 'AdminPlugins',
-        component: AdminPlugins,
+        component: () => import('../views/admin/AdminPlugins.vue'),
         meta: { requiresAuth: true, requiresAdmin: true },
         children: [
           {
@@ -114,8 +103,24 @@ const routes = [
       {
         path: 'tags',
         name: 'AdminTags',
-        component: AdminTags
+        component: () => import('../views/admin/AdminTags.vue')
       },
+      {
+        path: 'about',
+        name: 'AdminAbout',
+        component: () => import('../views/admin/AdminAbout.vue')
+      },
+      // 开发工具路由 - 仅在开发环境下可用
+      ...(import.meta.env.DEV ? [{
+        path: 'dev-tools',
+        name: 'DevTools',
+        component: () => import('../views/admin/DevTools.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          requiresDev: true // 需要开发环境
+        }
+      }] : []),
       {
         path: '',
         redirect: { name: 'AdminArticles' }
@@ -143,28 +148,26 @@ const router = createRouter({
   routes
 })
 
-// 全局前置守卫
 router.beforeEach(async (to, from, next) => {
-  // 获取登录状态
   const token = localStorage.getItem('token')
   
-  // 1. 如果有token但Vuex中没有用户信息，尝试异步获取
   if (token && !store.getters.isAuthenticated) {
     try {
       await store.dispatch('fetchCurrentUser')
     } catch (e) {
-      // token无效，清除它
       console.error('获取用户信息失败, token可能已过期', e)
-      await store.dispatch('logout') // 使用action来确保状态一致
+      await store.dispatch('logout')
     }
   }
 
-  // 2. 在获取用户信息后，再获取最新的状态
   const isAuthenticated = store.getters.isAuthenticated
   const currentUser = store.getters.currentUser
 
-  // 3. 根据最新的状态进行路由判断
-  // 检查是否需要管理员权限
+  if (to.meta.requiresDev && import.meta.env.PROD) {
+    console.log('此功能仅在开发环境下可用')
+    next({ path: '/admin' })
+    return
+  }
   if (to.meta.requiresAdmin) {
     if (!isAuthenticated || !currentUser || currentUser.role !== 'admin') {
       console.log('需要管理员权限，但用户不是管理员或未登录')

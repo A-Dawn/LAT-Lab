@@ -8,11 +8,10 @@ const store = createStore({
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      // 插件系统状态
       plugins: {
-        activePlugins: [], // 当前激活的插件列表
-        frontendExtensions: [], // 前端扩展组件
-        homeWidgets: [] // 首页小部件
+        activePlugins: [],
+        frontendExtensions: [],
+        homeWidgets: []
       }
     }
   },
@@ -22,7 +21,6 @@ const store = createStore({
     isAuthenticated: state => state.isAuthenticated,
     isLoading: state => state.isLoading,
     error: state => state.error,
-    // 插件系统的getter
     activePlugins: state => state.plugins.activePlugins,
     frontendExtensions: state => state.plugins.frontendExtensions,
     homeWidgets: state => state.plugins.homeWidgets
@@ -46,7 +44,6 @@ const store = createStore({
       state.error = null
     },
     
-    // 插件系统相关的mutations
     setActivePlugins(state, plugins) {
       state.plugins.activePlugins = plugins
     },
@@ -74,7 +71,6 @@ const store = createStore({
   },
   
   actions: {
-    // 获取当前用户信息
     async fetchCurrentUser({ commit }) {
       try {
         commit('setLoading', true)
@@ -87,7 +83,6 @@ const store = createStore({
           return null
         }
         
-        // 添加随机参数避免缓存
         const timestamp = new Date().getTime()
         const userData = await userApi.getCurrentUser()
         console.log('获取到用户信息:', userData)
@@ -277,7 +272,22 @@ const store = createStore({
         console.error('加载插件扩展失败:', error)
       }
     }
-  }
+  },
+  
+  // 动态注册模块
+  modules: {}
 })
+
+// 在开发环境下注册开发工具模块
+// 生产环境构建时此代码块将被完全移除
+if (import.meta.env.DEV) {
+  // 使用动态导入确保生产环境不包含此代码
+  import('./modules/devTools.js').then(module => {
+    store.registerModule('devTools', module.default);
+    console.log('开发工具模块已注册');
+  }).catch(error => {
+    console.error('开发工具模块加载失败:', error);
+  });
+}
 
 export default store 

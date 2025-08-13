@@ -82,7 +82,7 @@ def get_marketplace_data(
         return data
     except Exception as e:
         logger.exception(f"获取插件市场数据失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取插件市场数据失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件市场数据失败")
 
 @router.get("/info", response_model=MarketplaceInfo)
 def get_marketplace_info(
@@ -99,7 +99,7 @@ def get_marketplace_info(
         return info
     except Exception as e:
         logger.exception(f"获取插件市场信息失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取插件市场信息失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件市场信息失败")
 
 @router.get("/plugins", response_model=List[Plugin])
 def get_plugins(
@@ -124,7 +124,7 @@ def get_plugins(
         return plugins
     except Exception as e:
         logger.exception(f"获取插件列表失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取插件列表失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件列表失败")
 
 @router.get("/plugins/{plugin_id}", response_model=Plugin)
 def get_plugin(
@@ -142,7 +142,7 @@ def get_plugin(
         return plugin
     except Exception as e:
         logger.exception(f"获取插件详情失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取插件详情失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件详情失败")
 
 @router.get("/categories", response_model=List[Category])
 def get_categories(
@@ -157,7 +157,7 @@ def get_categories(
         return categories
     except Exception as e:
         logger.exception(f"获取分类列表失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取分类列表失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取分类列表失败")
 
 @router.get("/tags", response_model=List[str])
 def get_tags(
@@ -172,7 +172,7 @@ def get_tags(
         return tags
     except Exception as e:
         logger.exception(f"获取标签列表失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取标签列表失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取标签列表失败")
 
 @router.post("/refresh", response_model=dict)
 def refresh_marketplace_data(
@@ -213,7 +213,7 @@ def refresh_marketplace_data(
         return {"status": "success", "message": "插件市场数据已刷新"}
     except Exception as e:
         logger.exception(f"刷新插件市场数据失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"刷新插件市场数据失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="刷新插件市场数据失败")
 
 @router.get("/source", response_model=Dict[str, Any])
 def get_source_settings(
@@ -228,7 +228,7 @@ def get_source_settings(
         return settings
     except Exception as e:
         logger.exception(f"获取数据源设置失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取数据源设置失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取数据源设置失败")
 
 @router.post("/source", response_model=Dict[str, Any])
 def update_source_settings(
@@ -258,7 +258,7 @@ def update_source_settings(
         return updated_settings
     except ValueError as e:
         logger.exception(f"更新数据源设置失败: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="数据源设置验证失败")
     except Exception as e:
         logger.exception(f"更新数据源设置失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"更新数据源设置失败: {str(e)}") 
+        raise HTTPException(status_code=500, detail="更新数据源设置失败") 

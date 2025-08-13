@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from src.lat_lab.core.deps import get_db, get_current_user, get_current_admin_user
 from src.lat_lab.core.security import create_access_token
+from src.lat_lab.core.rate_limiter import create_rate_limit_dependency
+from src.lat_lab.core.config import settings
 from src.lat_lab.schemas.user import Token, UserCreate, UserOut, EmailVerification
 from src.lat_lab.crud.user import authenticate_user, create_user, get_user_by_email, get_user_by_username, verify_email, regenerate_verification_token
 from src.lat_lab.models.user import RoleEnum, User
-from src.lat_lab.core.config import settings
 from src.lat_lab.core.email import send_verification_email, generate_verification_token
 import logging
 
@@ -15,10 +16,24 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 logger = logging.getLogger(__name__)
 
+# 创建速率限制依赖
+login_rate_limit = create_rate_limit_dependency(
+    "auth_login", 
+    settings.RATE_LIMIT_LOGIN_REQUESTS, 
+    settings.RATE_LIMIT_LOGIN_WINDOW
+)
+
+register_rate_limit = create_rate_limit_dependency(
+    "auth_register", 
+    settings.RATE_LIMIT_LOGIN_REQUESTS,  
+    settings.RATE_LIMIT_LOGIN_WINDOW
+)
+
 @router.post("/login", response_model=Token)
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _rate_limit: bool = Depends(login_rate_limit)
 ):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -42,12 +57,14 @@ def login_for_access_token(
 def register(
     user: UserCreate, 
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _rate_limit: bool = Depends(register_rate_limit)
 ):
-    if get_user_by_username(db, user.username):
-        raise HTTPException(status_code=400, detail="用户名已存在")
-    if get_user_by_email(db, user.email):
-        raise HTTPException(status_code=400, detail="邮箱已注册")
+    # 统一错误提示，避免基于差异的账号枚举
+    username_exists = get_user_by_username(db, user.username) is not None
+    email_exists = get_user_by_email(db, user.email) is not None
+    if username_exists or email_exists:
+        raise HTTPException(status_code=400, detail="注册信息无效或已存在")
     
     # First user is automatically an admin
     is_first_user = db.query(User).count() == 0

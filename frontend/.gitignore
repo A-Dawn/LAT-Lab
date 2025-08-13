@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# 构建时生成的备份目录
+.dev-tools-backup
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

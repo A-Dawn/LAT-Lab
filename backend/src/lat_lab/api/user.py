@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from typing import List
 import os
 import uuid
-import re
 from src.lat_lab.schemas.user import UserOut, UserUpdate, Token, PasswordReset
 from src.lat_lab.crud.user import get_user, get_users, update_user, delete_user
 from src.lat_lab.core.deps import get_db, get_current_user, get_current_admin_user
 from src.lat_lab.models.user import User
 from src.lat_lab.core.security import get_password_hash
+from src.lat_lab.utils.security import secure_filename
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,32 +16,6 @@ router = APIRouter(prefix="/users", tags=["users"])
 UPLOAD_DIR = os.path.join("uploads", "avatars")
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# 添加安全的路径验证函数
-def secure_filename(filename):
-    """安全地验证文件名，防止路径遍历攻击
-    
-    Args:
-        filename (str): 要验证的文件名
-        
-    Returns:
-        str: 安全的文件名（移除路径分隔符和特殊字符）
-    """
-    # 仅保留文件名，移除任何路径信息
-    basename = os.path.basename(filename)
-    
-    # 移除可能导致问题的特殊字符
-    basename = re.sub(r'[^a-zA-Z0-9_.-]', '', basename)
-    
-    # 确保不以点或破折号开头
-    if basename.startswith(('.', '-')):
-        basename = 'x' + basename
-        
-    # 确保不为空
-    if not basename:
-        basename = 'untitled'
-        
-    return basename
 
 @router.get("/me", response_model=UserOut)
 def read_current_user(current_user: User = Depends(get_current_user)):
@@ -93,9 +67,11 @@ async def upload_avatar(
             content = await file.read()  # 读取文件内容
             buffer.write(content)  # 写入文件
     except Exception as e:
+        from src.lat_lab.utils.security import SecurityError
+        SecurityError.log_error_safe(e, "头像上传", {"user_id": current_user.id})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"上传失败: {str(e)}"
+            detail="头像上传失败"
         )
     
     # 更新用户头像URL，确保路径正确

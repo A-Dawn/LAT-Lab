@@ -1,25 +1,19 @@
 import axios from 'axios'
 
-// 创建axios实例
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api', // 使用环境变量，并提供一个备用值
-  timeout: 10000,  // 请求超时时间
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// 请求拦截器
 api.interceptors.request.use(
   config => {
-    // 从本地存储获取token
     const token = localStorage.getItem('token')
-    
-    // 如果token存在，将其添加到请求头
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    
     return config
   },
   error => {
@@ -27,35 +21,24 @@ api.interceptors.request.use(
   }
 )
 
-// 响应拦截器
 api.interceptors.response.use(
   response => {
     return response.data
   },
-  async error => { // 将函数标记为async
-    // 检查URL是否包含/plugins/
+  async error => {
     const isPluginRequest = error.config && error.config.url && error.config.url.includes('/plugins/')
     
-    // 处理403错误（没有权限）和401错误（未授权）
     if (error.response && (error.response.status === 401 || (error.response.status === 403 && !isPluginRequest))) {
-      // 如果是插件相关请求，允许错误正常处理
       if (isPluginRequest) {
         console.warn('插件请求失败，但不重定向:', error.config.url)
         return Promise.reject(error)
       }
       
-      // 清除token
       localStorage.removeItem('token')
 
-      // 使用动态导入来避免循环依赖，并用router进行跳转
-      const router = (await import('../router')).default
-      if (router.currentRoute.value.path !== '/login') {
-        router.replace({
-          path: '/login',
-          query: {
-            redirect: router.currentRoute.value.fullPath
-          }
-        })
+      if (window.location.pathname !== '/login') {
+        const currentPath = window.location.pathname + window.location.search
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`
       }
     }
     
@@ -63,16 +46,12 @@ api.interceptors.response.use(
   }
 )
 
-// 用户相关API
 export const userApi = {
-  // 登录
   login(credentials) {
-    // 使用URLSearchParams代替FormData，正确地处理application/x-www-form-urlencoded格式
     const formData = new URLSearchParams();
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
     
-    // 先清除旧的用户信息和token，确保不会使用缓存的数据
     localStorage.removeItem('token');
     
     return api.post('/auth/login', formData.toString(), {
@@ -82,27 +61,22 @@ export const userApi = {
     });
   },
   
-  // 注册
   register(userData) {
     return api.post('/auth/register', userData)
   },
   
-  // 获取当前用户信息
   getCurrentUser() {
     return api.get('/users/me')
   },
   
-  // 更新用户信息
   updateProfile(userData) {
     return api.put('/users/me', userData)
   },
   
-  // 修改密码
   changePassword(passwordData) {
     return api.put('/users/me/password', passwordData)
   },
   
-  // 上传头像
   uploadAvatar(formData) {
     return api.post('/users/me/avatar', formData, {
       headers: {
@@ -111,99 +85,75 @@ export const userApi = {
     })
   },
   
-  // 获取所有用户（管理员）
   getUsers(params = {}) {
     return api.get('/users', { params })
   },
   
-  // 获取单个用户信息（管理员）
   getUser(userId) {
     return api.get(`/users/${userId}`)
   },
   
-  // 更新用户信息（管理员）
   updateUser(userId, userData) {
     return api.put(`/users/${userId}`, userData)
   },
   
-  // 重置用户密码（管理员）
   resetUserPassword(userId, newPassword) {
     return api.post(`/users/${userId}/reset-password`, { new_password: newPassword })
   },
   
-  // 删除用户（管理员）
   deleteUser(userId) {
     return api.delete(`/users/${userId}`)
   }
 }
 
-// 文章相关API
 export const articleApi = {
-  // 获取文章列表
   getArticles(params) {
     return api.get('/articles', { params })
   },
   
-  // 获取文章详情
   getArticle(id) {
     return api.get(`/articles/${id}`)
   },
   
-  // 获取文章详情（带密码）
-  getArticleWithPassword(id, password) {
-    // 使用Web Crypto API计算密码哈希，防止明文传输
-    const encoder = new TextEncoder();
-    const passwordData = encoder.encode(password);
-    
-    // 创建密码哈希
-    return crypto.subtle.digest('SHA-256', passwordData)
-      .then(hashBuffer => {
-        // 将哈希转换为Base64字符串
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const passwordHash = btoa(String.fromCharCode(...hashArray));
-        
-        // 使用哈希而非明文密码
-        return api.get(`/articles/${id}`, { 
-          params: { 
-            password_hash: passwordHash,
-            client_hash: true // 告知后端我们发送的是客户端哈希
-          } 
-        })
-      })
-      .catch(error => {
-        console.error('密码处理失败:', error);
-        // 回退到原始方法，但添加警告
-        console.warn('回退到不安全的密码传输方式');
-        return api.get(`/articles/${id}`, { params: { password } })
+  async getArticleWithPassword(id, password) {
+    try {
+      const { hashString } = await import('../utils/crypto.js');
+      const passwordHash = await hashString(password);
+      const passwordHashBase64 = btoa(passwordHash);
+      
+      return api.get(`/articles/${id}`, { 
+        params: { 
+          password_hash: passwordHashBase64,
+          client_hash: true
+        } 
       });
+    } catch (error) {
+      console.error('密码处理失败:', error);
+      console.warn('回退到不安全的密码传输方式');
+      return api.get(`/articles/${id}`, { params: { password } });
+    }
   },
   
-  // 创建文章
   createArticle(articleData) {
     return api.post('/articles', articleData)
   },
   
-  // 更新文章
   updateArticle(id, articleData) {
     return api.put(`/articles/${id}`, articleData)
   },
   
-  // 删除文章
   deleteArticle(id) {
     return api.delete(`/articles/${id}`)
   },
   
-  // 获取用户的文章
   getUserArticles(params) {
     return api.get('/articles/me', { params })
   },
   
-  // 获取用户的草稿文章
   getUserDrafts() {
     return api.get('/articles/drafts')
   },
   
-  // 发布草稿文章
   publishArticle(id, publishTime) {
     return api.post(`/articles/${id}/publish`, { publish_time: publishTime })
   },
@@ -409,9 +359,7 @@ export const tagApi = {
   }
 }
 
-// 插件相关API
 export const pluginApi = {
-  // 获取插件列表
   getPlugins(params) {
     return api.get('/plugins', { params })
       .catch(error => {
@@ -616,19 +564,15 @@ export const pluginApi = {
     return this.getMarketplacePlugins(params)
   },
   
-  // 获取插件详情
   getPluginDetail(pluginId) {
     return this.getMarketplacePlugin(pluginId)
   },
   
-  // 评论插件 - 这个功能暂时不可用，因为基于文件的插件市场不支持评论
   reviewPlugin(pluginId, reviewData) {
     console.warn('基于文件的插件市场不支持评论功能')
     return Promise.resolve({ success: false, message: '基于文件的插件市场不支持评论功能' })
   }
 }
-
-// 邮箱验证相关API
 export const verifyEmail = (token) => {
   console.log('验证邮箱，令牌:', token);
   return api.post('/auth/verify-email', { token });
@@ -699,6 +643,37 @@ export const marketplaceApi = {
   // 搜索插件
   searchPlugins(params = {}) {
     return api.get('/marketplace/plugins', { params })
+  }
+}
+
+// 管理员相关API
+export const adminApi = {
+  // 获取关于博主配置
+  getAboutSection() {
+    return api.get('/admin/about-section')
+  },
+  
+  // 更新关于博主配置
+  updateAboutSection(aboutData) {
+    return api.put('/admin/about-section', aboutData)
+  },
+  
+  // 获取速率限制统计
+  getRateLimitStats() {
+    return api.get('/admin/rate-limit/stats')
+  },
+  
+  // 清空速率限制记录
+  clearRateLimitRecords() {
+    return api.post('/admin/rate-limit/clear')
+  }
+}
+
+// 公开API（无需认证）
+export const publicApi = {
+  // 获取关于博主配置（公开接口）
+  getAboutSection() {
+    return api.get('/public/about-section')
   }
 }
 

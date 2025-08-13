@@ -107,7 +107,7 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #4c84ff 0%, #2861ff 100%);
+  background: var(--hero-gradient);
 }
 
 .verify-container {
@@ -117,9 +117,9 @@ onMounted(async () => {
 }
 
 .verify-box {
-  background-color: #fff;
+  background-color: var(--card-bg);
   border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow);
   padding: 40px;
   text-align: center;
 }
@@ -134,9 +134,9 @@ onMounted(async () => {
 .spinner {
   width: 80px;
   height: 80px;
-  border: 5px solid rgba(76, 132, 255, 0.1);
+  border: 5px solid rgba(var(--primary-color-rgb, 76, 132, 255), 0.1);
   border-radius: 50%;
-  border-top-color: #4c84ff;
+  border-top-color: var(--primary-color);
   position: absolute;
   top: 0;
   left: 0;
@@ -151,7 +151,7 @@ onMounted(async () => {
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background-color: #4cd964;
+  background-color: var(--success-color);
   color: white;
   font-size: 40px;
   line-height: 70px;
@@ -162,7 +162,7 @@ onMounted(async () => {
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background-color: #ff3b30;
+  background-color: var(--error-color);
   color: white;
   font-size: 40px;
   line-height: 70px;
@@ -172,16 +172,16 @@ onMounted(async () => {
 h2 {
   font-size: 24px;
   margin-bottom: 15px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 p {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 20px;
 }
 
 .countdown {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
   margin-bottom: 20px;
 }
@@ -196,7 +196,7 @@ p {
 
 .progress {
   height: 100%;
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   border-radius: 3px;
   transition: width 1s linear;
 }
@@ -218,21 +218,21 @@ p {
 }
 
 .login-button {
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
 }
 
 .home-button {
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .login-button:hover {
-  background-color: #3a70e0;
+  background-color: var(--primary-hover);
 }
 
 .home-button:hover {
-  background-color: #e5e5e5;
+  background-color: var(--bg-tertiary);
 }
 </style> 

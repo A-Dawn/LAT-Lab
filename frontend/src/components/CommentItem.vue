@@ -27,7 +27,6 @@ const isSubmittingReply = ref(false)
 const replyError = ref('')
 const showReplies = ref(false)
 
-// 格式化日期
 const formatDate = (dateString) => {
   const date = new Date(dateString)
   return date.toLocaleDateString('zh-CN', {
@@ -39,17 +38,15 @@ const formatDate = (dateString) => {
   })
 }
 
-// 判断是否可以编辑或删除评论
 const canModifyComment = computed(() => {
   if (!isAuthenticated.value) return false
   if (isAdmin.value) return true
   return currentUser.value?.id === props.comment.user_id
 })
 
-// 切换回复表单显示状态
 const toggleReplyForm = () => {
   if (!isAuthenticated.value) {
-    alert('请先登录后再回复评论')
+    toast.warning('请先登录后再回复评论')
     return
   }
   showReplyForm.value = !showReplyForm.value
@@ -59,12 +56,9 @@ const toggleReplyForm = () => {
   }
 }
 
-// 切换显示回复
 const toggleReplies = () => {
   showReplies.value = !showReplies.value
 }
-
-// 提交回复
 const submitReply = async () => {
   if (!replyContent.value.trim()) {
     replyError.value = '回复内容不能为空'
@@ -81,10 +75,8 @@ const submitReply = async () => {
       parent_id: props.comment.id
     })
     
-    // 提交成功后刷新评论
     emit('refresh-comments')
     
-    // 重置表单
     replyContent.value = ''
     showReplyForm.value = false
   } catch (e) {
@@ -94,11 +86,9 @@ const submitReply = async () => {
     isSubmittingReply.value = false
   }
 }
-
-// 点赞评论
 const likeComment = async () => {
   if (!isAuthenticated.value) {
-    alert('请先登录后再点赞')
+    toast.warning('请先登录后再点赞')
     return
   }
   
@@ -123,7 +113,7 @@ const deleteComment = async () => {
     emit('refresh-comments')
   } catch (e) {
     console.error('删除评论失败:', e)
-    alert('删除评论失败，请稍后再试')
+    toast.error('删除评论失败，请稍后再试')
   }
 }
 
@@ -138,7 +128,7 @@ const approveComment = async () => {
     emit('refresh-comments')
   } catch (e) {
     console.error('审核评论失败:', e)
-    alert('审核评论失败，请稍后再试')
+    toast.error('审核评论失败，请稍后再试')
   }
 }
 </script>

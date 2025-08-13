@@ -427,7 +427,7 @@ onMounted(fetchArticles)
 .search-box input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(76, 132, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
 }
 
 .search-icon {
@@ -475,7 +475,7 @@ onMounted(fetchArticles)
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(76, 132, 255, 0.2);
+  border: 3px solid var(--border-color);
   border-radius: 50%;
   border-top-color: var(--primary-color);
   animation: spin 1s ease-in-out infinite;
@@ -584,7 +584,7 @@ onMounted(fetchArticles)
 }
 
 .articles-table tr:hover {
-  background-color: var(--bg-hover);
+  background-color: var(--hover-color);
 }
 
 .articles-table tr:last-child td {
@@ -641,21 +641,21 @@ onMounted(fetchArticles)
 }
 
 .action-button.edit {
-  background-color: rgba(103, 194, 58, 0.1);
-  color: #67c23a;
+  background-color: rgba(var(--success-color-rgb, 103, 194, 58), 0.1);
+  color: var(--success-color);
 }
 
 .action-button.edit:hover {
-  background-color: rgba(103, 194, 58, 0.2);
+  background-color: rgba(var(--success-color-rgb, 103, 194, 58), 0.2);
 }
 
 .action-button.delete {
-  background-color: rgba(245, 108, 108, 0.1);
-  color: #f56c6c;
+  background-color: rgba(var(--error-color-rgb, 245, 108, 108), 0.1);
+  color: var(--error-color);
 }
 
 .action-button.delete:hover {
-  background-color: rgba(245, 108, 108, 0.2);
+  background-color: rgba(var(--error-color-rgb, 245, 108, 108), 0.2);
 }
 
 /* 分页控制 */
@@ -756,12 +756,13 @@ onMounted(fetchArticles)
 }
 
 .confirm-button {
-  background-color: #f56c6c;
+  background-color: var(--error-color);
   color: white;
 }
 
 .confirm-button:hover {
-  background-color: #f78989;
+  background-color: var(--error-color);
+  filter: brightness(1.1);
 }
 
 .cancel-button {

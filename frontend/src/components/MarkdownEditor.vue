@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { marked } from 'marked'
-import hljs from 'highlight.js'
+import hljs from '../utils/highlight.js'
 import 'highlight.js/styles/github.css'
 import { sanitizeMarkdown } from '../utils/sanitize';
 

@@ -16,10 +16,12 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+# 导入Base和所有模型以确保metadata包含所有表定义
 from src.lat_lab.models.user import Base
 from src.lat_lab.core.config import settings
+
+# 导入所有模型以确保它们被注册到metadata中
+from src.lat_lab.models import user, article, category, comment, tag, plugin
 
 target_metadata = Base.metadata
 

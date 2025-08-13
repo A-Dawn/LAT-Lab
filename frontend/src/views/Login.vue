@@ -15,18 +15,14 @@ const router = useRouter()
 const route = useRoute()
 const store = useStore()
 
-// 添加重新发送验证邮件相关的状态
 const showResendForm = ref(false)
 const resendEmail = ref('')
-const resendStatus = ref('') // 'success', 'error', ''
+const resendStatus = ref('')
 const resendMessage = ref('')
 const isResending = ref(false)
 
-// 检查URL中是否有错误消息
 onMounted(() => {
-  // 安全处理URL参数 - 使用白名单方式验证消息
   if (route.query.message) {
-    // 预定义可接受的消息列表
     const validMessages = [
       '登录失败，请检查用户名和密码',
       '会话已过期，请重新登录',
@@ -38,18 +34,15 @@ onMounted(() => {
     if (validMessages.includes(route.query.message)) {
       errorMsg.value = route.query.message;
     } else {
-      // 记录可疑参数但不显示
       console.warn('收到非预期的消息参数:', route.query.message);
       errorMsg.value = '登录时出现问题，请重试';
     }
   }
   
-  // 检查是否刚刚完成邮箱验证 - 使用布尔值检查避免注入
   if (route.query.verified === 'true') {
     successMsg.value = '邮箱验证成功，请登录'
   }
   
-  // 检查本地存储中的验证状态
   const justVerified = localStorage.getItem('just_verified')
   if (justVerified) {
     successMsg.value = '邮箱验证成功，请登录'
@@ -68,25 +61,20 @@ const handleSubmit = async () => {
     errorMsg.value = ''
     successMsg.value = ''
     
-    // 使用Vuex的login action
     await store.dispatch('login', {
       username: username.value,
       password: password.value
     })
     
-    // 如果选择了"记住我"，可以设置更长的过期时间
     if (rememberMe.value) {
       localStorage.setItem('remember', 'true')
     }
     
-    // 登录成功后跳转到首页或重定向页面 - 验证重定向地址的安全性
     let redirectPath = '/';
     
-    // 获取并验证重定向路径 - 只允许内部路径，不允许外部URL
     if (route.query.redirect && typeof route.query.redirect === 'string') {
       const redirectQuery = route.query.redirect;
       
-      // 确保是相对路径且不包含协议部分
       if (redirectQuery.startsWith('/') && 
           !redirectQuery.includes('://') &&
           !redirectQuery.includes('javascript:')) {
@@ -458,8 +446,8 @@ const toggleResendForm = () => {
 }
 
 .verification-reminder {
-  background-color: rgba(255, 193, 7, 0.1);
-  border-left: 4px solid #ffc107;
+  background-color: rgba(var(--warning-color-rgb), 0.1);
+  border-left: 4px solid var(--warning-color);
   padding: 15px;
   margin: 20px 0;
   border-radius: 4px;
@@ -471,7 +459,7 @@ const toggleResendForm = () => {
 .reminder-icon {
   width: 24px;
   height: 24px;
-  background-color: #ffc107;
+  background-color: var(--warning-color);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -488,12 +476,12 @@ const toggleResendForm = () => {
 .reminder-content h3 {
   margin: 0 0 8px;
   font-size: 16px;
-  color: #856404;
+  color: var(--text-primary);
 }
 
 .reminder-content p {
   margin: 0 0 12px;
-  color: #856404;
+  color: var(--text-secondary);
 }
 
 .resend-button {
@@ -513,7 +501,7 @@ const toggleResendForm = () => {
 }
 
 .resend-button:disabled {
-  background-color: #a0cfff;
+  background-color: rgba(var(--primary-color-rgb), 0.5);
   cursor: not-allowed;
   transform: none;
 }
@@ -557,13 +545,13 @@ const toggleResendForm = () => {
 }
 
 .resend-success {
-  background-color: rgba(76, 217, 100, 0.1);
-  color: #2c7a44;
+  background-color: rgba(var(--success-color-rgb), 0.1);
+  color: var(--success-color);
 }
 
 .resend-error {
-  background-color: rgba(245, 108, 108, 0.1);
-  color: #c45656;
+  background-color: rgba(var(--error-color-rgb), 0.1);
+  color: var(--error-color);
 }
 
 .status-icon {
@@ -578,12 +566,12 @@ const toggleResendForm = () => {
 }
 
 .resend-success .status-icon {
-  background-color: #4cd964;
+  background-color: var(--success-color);
   color: white;
 }
 
 .resend-error .status-icon {
-  background-color: #f56c6c;
+  background-color: var(--error-color);
   color: white;
 }
 </style> 

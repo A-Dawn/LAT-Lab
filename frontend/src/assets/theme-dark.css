@@ -15,8 +15,11 @@
   
   /* 文本色 - 提高可读性 */
   --text-primary: rgba(255, 255, 255, 0.95);
+  --text-primary-rgb: 255, 255, 255;
   --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-secondary-rgb: 255, 255, 255;
   --text-tertiary: rgba(255, 255, 255, 0.6);
+  --text-tertiary-rgb: 255, 255, 255;
   
   /* 边框和分隔线 - 微妙的蓝灰色调 */
   --border-color: rgba(156, 163, 175, 0.3);
@@ -38,9 +41,13 @@
   
   /* 状态颜色 - 更和谐 */
   --success-color: #4ade80;
+  --success-color-rgb: 74, 222, 128;
   --warning-color: #fbbf24;
+  --warning-color-rgb: 251, 191, 36;
   --error-color: #f87171;
+  --error-color-rgb: 248, 113, 113;
   --info-color: #38bdf8;
+  --info-color-rgb: 56, 189, 248;
   
   /* 悬浮颜色 */
   --hover-color: rgba(96, 165, 250, 0.15);
@@ -490,4 +497,6 @@ html[data-theme="dark"] .page-content {
 
 html[data-theme="dark"] .markdown-body * {
   text-align: left !important;
-} 
+}
+
+ 

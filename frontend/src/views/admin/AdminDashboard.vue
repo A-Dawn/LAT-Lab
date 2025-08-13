@@ -32,6 +32,11 @@ const isAdmin = computed(() => {
   return currentUser.value && currentUser.value.role === 'admin'
 })
 
+// 检查是否是开发环境
+const isDevelopment = computed(() => {
+  return import.meta.env.DEV
+})
+
 // 如果不是管理员，重定向到首页
 onMounted(() => {
 if (!isAdmin.value) {
@@ -55,15 +60,25 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 })
 
-// 导航项
-const navItems = [
-  { path: '/admin/articles', icon: '📄', label: '文章管理' },
-  { path: '/admin/users', icon: '👤', label: '用户管理' },
-  { path: '/admin/categories', icon: '📁', label: '分类管理' },
-  { path: '/admin/tags', icon: '🏷️', label: '标签管理' },
-  { path: '/admin/comments', icon: '💬', label: '评论管理' },
-  { path: '/admin/plugins', icon: '🧩', label: '插件管理' }
-]
+// 导航项 - 生产环境构建时开发工具项将被完全移除
+const navItems = computed(() => {
+  const baseItems = [
+    { path: '/admin/articles', icon: '📄', label: '文章管理' },
+    { path: '/admin/users', icon: '👤', label: '用户管理' },
+    { path: '/admin/categories', icon: '📁', label: '分类管理' },
+    { path: '/admin/tags', icon: '🏷️', label: '标签管理' },
+    { path: '/admin/comments', icon: '💬', label: '评论管理' },
+    { path: '/admin/plugins', icon: '🧩', label: '插件管理' },
+    { path: '/admin/about', icon: '👨‍💻', label: '关于博主' }
+  ]
+  
+  // 开发工具项仅在开发环境下包含
+  if (isDevelopment.value) {
+    baseItems.push({ path: '/admin/dev-tools', icon: '🛠️', label: '开发工具' })
+  }
+  
+  return baseItems
+})
 </script>
 
 <template>
@@ -85,6 +100,8 @@ const navItems = [
         <div class="admin-user">
           <span>{{ currentUser?.username }}</span>
           <span class="admin-role">管理员</span>
+          <!-- 开发环境标识 - 生产构建时此元素将被完全移除 -->
+          <span v-if="isDevelopment" class="dev-badge" title="开发环境">DEV</span>
           <router-link to="/" class="home-link" aria-label="返回首页">
             <span aria-hidden="true">🏠</span>
           </router-link>
@@ -327,12 +344,12 @@ const navItems = [
 }
 
 .admin-btn-danger {
-  background-color: #f56c6c;
+  background-color: var(--error-color);
   color: white;
 }
 
 .admin-btn-danger:hover {
-  filter: brightness(1.1);
+  background-color: var(--error-hover);
 }
 
 /* 状态徽章 */
@@ -345,13 +362,13 @@ const navItems = [
 }
 
 .status-active {
-  background-color: rgba(103, 194, 58, 0.1);
-  color: #67c23a;
+  background-color: rgba(var(--success-color), 0.1);
+  color: var(--success-color);
 }
 
 .status-inactive {
-  background-color: rgba(144, 147, 153, 0.1);
-  color: #909399;
+  background-color: rgba(var(--text-tertiary), 0.1);
+  color: var(--text-tertiary);
 }
 
 /* 加载状态 */
@@ -498,6 +515,16 @@ const navItems = [
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.8rem;
+}
+
+/* 开发环境标识 */
+.dev-badge {
+  background-color: var(--success-color);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
 }
 
 .home-link {

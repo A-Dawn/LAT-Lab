@@ -9,6 +9,9 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
 COPY data/ ./data/
+COPY scripts/ ./scripts/
+COPY migrations/ ./migrations/
+COPY alembic.ini ./
 
 # 安装项目依赖（使用uv）
 RUN uv pip install -e .

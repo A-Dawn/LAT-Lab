@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { tagApi } from '../../services/api'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import toast from '../../utils/toast'
 
 // 标签列表
 const tags = ref([])
@@ -10,7 +11,6 @@ const tags = ref([])
 const isLoading = ref(false)
 const isSaving = ref(false)
 const error = ref(null)
-const successMessage = ref('')
 
 // 对话框状态
 const showDialog = ref(false)
@@ -79,11 +79,11 @@ const saveTag = async () => {
     if (dialogMode.value === 'add') {
       // 添加新标签
       await tagApi.createTag({ name: tagForm.value.name })
-      successMessage.value = '标签添加成功'
+      toast.success('标签添加成功')
     } else {
       // 更新现有标签
       await tagApi.updateTag(editingTag.value.id, { name: tagForm.value.name })
-      successMessage.value = '标签更新成功'
+      toast.success('标签更新成功')
     }
     
     // 重新获取标签列表
@@ -91,11 +91,6 @@ const saveTag = async () => {
     
     // 关闭对话框
     closeDialog()
-    
-    // 3秒后清除成功消息
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 3000)
   } catch (err) {
     console.error('保存标签失败:', err)
     error.value = dialogMode.value === 'add' ? '添加标签失败' : '更新标签失败'
@@ -129,15 +124,10 @@ const deleteTag = async () => {
     // 重新获取标签列表
     await fetchTags()
     
-    successMessage.value = '标签删除成功'
+    toast.success('标签删除成功')
     
     // 关闭对话框
     closeDeleteConfirm()
-    
-    // 3秒后清除成功消息
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 3000)
   } catch (err) {
     console.error('删除标签失败:', err)
     error.value = '删除标签失败'
@@ -164,11 +154,6 @@ onMounted(() => {
         >
           添加标签
         </button>
-      </div>
-      
-      <!-- 成功消息 -->
-      <div v-if="successMessage" class="success-message" role="status">
-        {{ successMessage }}
       </div>
       
       <!-- 错误消息 -->
@@ -332,21 +317,23 @@ onMounted(() => {
 }
 
 .action-button.edit {
-  background-color: var(--primary-color);
-  color: white;
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
 }
 
 .action-button.edit:hover {
-  filter: brightness(1.1);
+  background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .action-button.delete {
-  background-color: #f56c6c;
-  color: white;
+  background-color: rgba(var(--accent-rgb), 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
 }
 
 .action-button.delete:hover {
-  filter: brightness(1.1);
+  background-color: rgba(var(--accent-rgb), 0.2);
 }
 
 .empty-state {
@@ -377,6 +364,35 @@ onMounted(() => {
   max-width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 10px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dialog-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.dialog-content {
+  padding: 20px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px 20px 20px;
+  border-top: 1px solid var(--border-color);
 }
 
 .close-button {
@@ -385,6 +401,7 @@ onMounted(() => {
   font-size: 1.5rem;
   cursor: pointer;
   color: var(--text-tertiary);
+  transition: color 0.3s ease;
 }
 
 .close-button:hover {
@@ -392,21 +409,23 @@ onMounted(() => {
 }
 
 .success-message {
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: rgba(var(--success-color), 0.1);
+  color: var(--success-color);
   padding: 12px;
   border-radius: 4px;
   margin-bottom: 20px;
-  border-left: 4px solid #67c23a;
+  border: 1px solid rgba(var(--success-color), 0.2);
+  border-left: 4px solid var(--success-color);
 }
 
 .error-message {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--error-color), 0.1);
+  color: var(--error-color);
   padding: 12px;
   border-radius: 4px;
   margin-bottom: 20px;
-  border-left: 4px solid #f56c6c;
+  border: 1px solid rgba(var(--error-color), 0.2);
+  border-left: 4px solid var(--error-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -415,9 +434,104 @@ onMounted(() => {
 .retry-button {
   background: none;
   border: none;
-  color: #f56c6c;
+  color: var(--error-color);
   text-decoration: underline;
   cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.retry-button:hover {
+  opacity: 0.8;
+}
+
+/* 表单样式 */
+.admin-form-group {
+  margin-bottom: 15px;
+}
+
+.admin-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.admin-form-group input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.admin-form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.admin-form-group input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 按钮样式 */
+.admin-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-weight: 500;
+}
+
+.admin-btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.admin-btn-primary:hover {
+  background-color: var(--secondary-color);
+}
+
+.admin-btn-secondary {
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.admin-btn-secondary:hover {
+  background-color: var(--hover-color);
+}
+
+.admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 加载状态 */
+.admin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: var(--text-secondary);
+}
+
+.admin-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 768px) {
@@ -433,6 +547,19 @@ onMounted(() => {
   }
   
   .action-button {
+    width: 100%;
+  }
+  
+  .dialog {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .dialog-footer {
+    flex-direction: column;
+  }
+  
+  .admin-btn {
     width: 100%;
   }
 }

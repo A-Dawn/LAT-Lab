@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, or_
 from typing import List, Optional
 from datetime import datetime
-from src.lat_lab.models.article import Article, ArticleStatus, article_likes
+from src.lat_lab.models.article import Article, ArticleStatus, article_likes, ArticleView
 from src.lat_lab.models.tag import Tag, article_tags
 from src.lat_lab.models.category import Category
 from src.lat_lab.schemas.article import ArticleCreate, ArticleUpdate
@@ -269,14 +269,17 @@ def delete_article(db: Session, article_id: int, current_user_id: Optional[int] 
         print(f"删除文章失败: {str(e)}")
         return False
 
-def increment_view_count(db: Session, article_id: int, current_user_id: Optional[int] = None):
+def increment_view_count(db: Session, article_id: int, current_user_id: Optional[int] = None, ip_address: str = "unknown"):
     """
-    增加文章浏览量
+    增加文章浏览量（防重复计算）
+    
+    通过用户ID+IP地址的组合来防止重复计算，确保每个特定的用户+IP组合只计算一次阅读量
     
     Args:
         db: 数据库会话
         article_id: 文章ID
         current_user_id: 当前用户ID，用于权限检查
+        ip_address: 客户端IP地址
         
     Returns:
         更新后的文章对象，如果文章不存在或无权访问则返回None
@@ -286,9 +289,29 @@ def increment_view_count(db: Session, article_id: int, current_user_id: Optional
         return None
     
     try:
-        db_article.view_count += 1
-        db.commit()
-        db.refresh(db_article)
+        # 检查是否已经有相同的用户+IP组合的浏览记录
+        existing_view = db.query(ArticleView).filter(
+            ArticleView.article_id == article_id,
+            ArticleView.user_id == current_user_id,
+            ArticleView.ip_address == ip_address
+        ).first()
+        
+        # 如果没有找到相同的记录，则创建新的浏览记录并增加浏览量
+        if not existing_view:
+            # 创建新的浏览记录
+            new_view = ArticleView(
+                article_id=article_id,
+                user_id=current_user_id,
+                ip_address=ip_address
+            )
+            db.add(new_view)
+            
+            # 增加文章浏览量
+            db_article.view_count += 1
+            
+            db.commit()
+            db.refresh(db_article)
+        
         return db_article
     except Exception as e:
         db.rollback()

@@ -730,29 +730,29 @@ onMounted(async () => {
 
 .cancel-button:hover {
   background-color: var(--bg-hover);
-  color: #f56c6c;
+  color: var(--error-color);
 }
 
 /* 错误消息 */
 .error-message {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--error-color-rgb, 245, 108, 108), 0.1);
+  color: var(--error-color);
   padding: 12px 20px;
   border-radius: 4px;
   margin: 20px 30px 0;
-  border-left: 4px solid #f56c6c;
+  border-left: 4px solid var(--error-color);
   display: flex;
   align-items: center;
 }
 
 /* 成功消息 */
 .success-message {
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: rgba(var(--success-color-rgb, 103, 194, 58), 0.1);
+  color: var(--success-color);
   padding: 12px 20px;
   border-radius: 4px;
   margin: 20px 30px 0;
-  border-left: 4px solid #67c23a;
+  border-left: 4px solid var(--success-color);
 }
 
 .message-content {
@@ -784,7 +784,7 @@ onMounted(async () => {
 
 .required-field::after {
   content: ' *';
-  color: #f56c6c;
+  color: var(--error-color);
 }
 
 .form-group label {
@@ -820,11 +820,11 @@ onMounted(async () => {
 .has-error select,
 .has-error textarea,
 .has-error .editor-wrapper {
-  border-color: #f56c6c;
+  border-color: var(--error-color);
 }
 
 .form-error-text {
-  color: #f56c6c;
+  color: var(--error-color);
   font-size: 0.85rem;
   margin: 5px 0 0;
 }

@@ -12,10 +12,10 @@ PLUGIN_EXAMPLES_DIR = BASE_DIR / "plugin_examples"
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "LAT-Lab博客系统API"
-    VERSION: str = "0.2.0"
+    VERSION: str = "0.3.1"
     
     # 基础配置
-    DEBUG: bool = True
+    DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     
@@ -61,7 +61,18 @@ class Settings(BaseSettings):
     UPLOADS_DIR: Path = UPLOADS_DIR
     AVATARS_DIR: Path = UPLOADS_DIR / "avatars"
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
-    
+
+    # 速率限制配置 - 调整为开发友好的默认值
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_LOGIN_REQUESTS: int = 50   # 登录每分钟最多50次（从10次增加）
+    RATE_LIMIT_LOGIN_WINDOW: int = 60     # 时间窗口60秒
+    RATE_LIMIT_API_REQUESTS: int = 1000   # API每分钟最多1000次（从100次增加）
+    RATE_LIMIT_API_WINDOW: int = 60       # 时间窗口60秒
+    RATE_LIMIT_UPLOAD_REQUESTS: int = 50  # 上传每分钟最多50次（从10次增加）
+    RATE_LIMIT_UPLOAD_WINDOW: int = 60    # 时间窗口60秒
+    RATE_LIMIT_PLUGIN_REQUESTS: int = 100 # 插件运行每分钟最多100次（从20次增加）
+    RATE_LIMIT_PLUGIN_WINDOW: int = 60    # 时间窗口60秒
+
     # 插件市场配置
     PLUGIN_MARKETPLACE_SOURCE: str = "local"  # local 或 git
     PLUGIN_MARKETPLACE_LOCAL_PATH: Path = PLUGIN_MARKETPLACE_CONFIG

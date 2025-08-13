@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 import subprocess
 import tempfile
 import os
 import importlib.util
-import traceback
-import re  # 添加用于路径验证的正则表达式库
+import sys
 from src.lat_lab.schemas.plugin import (
     Plugin, PluginCreate, PluginUpdate, PluginDetail
 )
@@ -15,37 +14,20 @@ from src.lat_lab.crud.plugin import (
     create_plugin, update_plugin, delete_plugin, activate_plugin
 )
 from src.lat_lab.core.deps import get_db, get_current_admin_user, get_current_user
+from src.lat_lab.core.rate_limiter import create_rate_limit_dependency
 from src.lat_lab.models.user import User
 from src.lat_lab.core.config import settings
+from src.lat_lab.utils.security import secure_filename
 from datetime import datetime
 
 router = APIRouter(prefix="/plugins", tags=["plugins"])
 
-# 添加安全的路径验证函数
-def secure_filename(filename):
-    """安全地验证文件名，防止路径遍历攻击
-    
-    Args:
-        filename (str): 要验证的文件名
-        
-    Returns:
-        str: 安全的文件名（移除路径分隔符和特殊字符）
-    """
-    # 仅保留文件名，移除任何路径信息
-    basename = os.path.basename(filename)
-    
-    # 移除可能导致问题的特殊字符
-    basename = re.sub(r'[^a-zA-Z0-9_.-]', '', basename)
-    
-    # 确保不以点或破折号开头
-    if basename.startswith(('.', '-')):
-        basename = 'x' + basename
-        
-    # 确保不为空
-    if not basename:
-        basename = 'untitled'
-        
-    return basename
+# 插件运行速率限制依赖
+plugin_run_rate_limit = create_rate_limit_dependency(
+    "plugin_run", 
+    settings.RATE_LIMIT_PLUGIN_REQUESTS, 
+    settings.RATE_LIMIT_PLUGIN_WINDOW
+)
 
 # 示例插件相关路由应该放在具体ID路由之前
 @router.get("/examples", response_model=List[Dict[str, str]])
@@ -153,10 +135,10 @@ def get_example_plugin(
         try:
             os.makedirs(settings.PLUGIN_EXAMPLES_DIR, exist_ok=True)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"无法创建插件示例目录: {str(e)}")
+            raise HTTPException(status_code=500, detail="无法创建插件示例目录")
         raise HTTPException(status_code=404, detail="插件示例目录不存在")
     
-    # 构建示例文件路径 - 使用安全函数处理用户输入
+    # 构建示例文件路径
     # 移除可能存在的.py后缀
     example_name = example_name.replace('.py', '')
     # 应用安全验证
@@ -191,7 +173,7 @@ def get_example_plugin(
                             "code": content
                         }
                     except Exception as e:
-                        raise HTTPException(status_code=500, detail=f"读取README文件失败: {str(e)}")
+                        raise HTTPException(status_code=500, detail="读取README文件失败")
         
         # 显示可用的示例插件列表
         available_examples = []
@@ -221,7 +203,7 @@ def get_example_plugin(
                 with open(example_path, 'w', encoding='utf-8') as fw:
                     fw.write(code)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"读取插件文件失败: {str(e)}")
+            raise HTTPException(status_code=500, detail="读取插件文件失败")
     
     # 解析插件描述（从注释中提取）
     description = ""
@@ -339,9 +321,12 @@ async def run_plugin(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    params: Dict[str, Any] = {}
+    params: Dict[str, Any] = {},
+    _rate_limit: bool = Depends(plugin_run_rate_limit)
 ):
     """运行插件（所有用户可运行激活的插件，未激活插件仅管理员可运行）"""
+    # 避免可变默认值造成的副作用
+    params = params or {}
     db_plugin = get_plugin(db, plugin_id)
     if not db_plugin:
         raise HTTPException(status_code=404, detail="插件不存在")
@@ -353,7 +338,8 @@ async def run_plugin(
             detail="只有管理员可以运行未激活的插件"
         )
     
-    if not db_plugin.is_active:
+    # 已由权限检查控制未激活插件的运行权限
+    if False and not db_plugin.is_active:
         raise HTTPException(status_code=400, detail="插件未激活，无法运行")
     
     # 创建临时文件
@@ -369,10 +355,6 @@ async def run_plugin(
             if params:
                 param_lines = []
                 for key, value in params.items():
-                    if isinstance(value, str):
-                        # 字符串参数增加引号
-                        param_lines.append(f"{key} = '''{value}'''")
-                    else:
                         param_lines.append(f"{key} = {repr(value)}")
                 
                 # 将参数添加到代码顶部
@@ -392,6 +374,7 @@ import os
 import sys
 import json
 import traceback
+import types
 
 # 确保使用UTF-8编码
 import io
@@ -401,22 +384,25 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 # 添加当前目录到路径以便导入
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# 首先打印出参数和环境信息，用于调试
-print("Python版本:", sys.version)
-print("参数:", sys.argv)
-print("当前目录:", os.getcwd())
-print("文件目录:", os.path.dirname(os.path.abspath(__file__)))
-print("模块路径:", sys.path)
+# 首先打印出参数和环境信息，用于调试（写入stderr，避免污染插件输出）
+print("Python版本:", sys.version, file=sys.stderr)
+print("参数:", sys.argv, file=sys.stderr)
+print("当前目录:", os.getcwd(), file=sys.stderr)
+print("文件目录:", os.path.dirname(os.path.abspath(__file__)), file=sys.stderr)
+print("模块路径:", sys.path, file=sys.stderr)
 
-# 定义安全的标准库白名单
+# 定义安全的标准库白名单（仅限安全子集）
 SAFE_MODULES = [
     'datetime', 'json', 'base64', 'hashlib', 'math', 
-    'random', 're', 'time', 'os.path', 'uuid',
-    'collections', 'io', 'string', 'sys'
+    'random', 're', 'time', 'uuid',
+    'collections', 'io', 'string'
 ]
 
 # 创建安全的执行环境
 safe_globals = dict()
+
+# 定义受限的内置函数集合
+safe_builtins = {}
 
 # 添加安全的内置函数
 for name in ['abs', 'all', 'any', 'ascii', 'bin', 'bool', 'bytes', 'chr', 
@@ -428,14 +414,73 @@ for name in ['abs', 'all', 'any', 'ascii', 'bin', 'bool', 'bytes', 'chr',
     try:
         if isinstance(__builtins__, dict):
             if name in __builtins__:
-                safe_globals[name] = __builtins__[name]
+                safe_builtins[name] = __builtins__[name]
         else:
             if hasattr(__builtins__, name):
-                safe_globals[name] = getattr(__builtins__, name)
+                safe_builtins[name] = getattr(__builtins__, name)
     except (AttributeError, KeyError):
         pass
 
-# 加载安全模块
+# 实现受限导入：仅允许白名单模块和伪 requests
+_allowed_modules = set([m.split('.')[0] for m in SAFE_MODULES])
+_allowed_modules.add('requests')
+
+class SafeRequests:
+    def __init__(self):
+        try:
+            import requests as real_requests
+            self._requests = real_requests
+        except Exception:
+            self._requests = None
+    def get(self, url, **kwargs):
+        if not self._requests:
+            return {"error": "requests模块不可用"}
+        try:
+            allowed_domains = ['api.openweathermap.org', 'api.openrouter.ai', 'picsum.photos']
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc
+            if not any(allowed_domain in domain for allowed_domain in allowed_domains):
+                return {"error": "不允许访问域名: " + domain}
+            if 'timeout' not in kwargs:
+                kwargs['timeout'] = 3
+            response = self._requests.get(url, **kwargs)
+            return response
+        except Exception as e:
+            return {"error": str(e)}
+    def post(self, url, **kwargs):
+        if not self._requests:
+            return {"error": "requests模块不可用"}
+        try:
+            allowed_domains = ['api.openrouter.ai']
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc
+            if not any(allowed_domain in domain for allowed_domain in allowed_domains):
+                return {"error": "不允许访问域名: " + domain}
+            if 'timeout' not in kwargs:
+                kwargs['timeout'] = 3
+            response = self._requests.post(url, **kwargs)
+            return response
+        except Exception as e:
+            return {"error": str(e)}
+
+_safe_requests = SafeRequests()
+SafeRequestsModule = types.SimpleNamespace(get=_safe_requests.get, post=_safe_requests.post)
+
+def _restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+    root = name.split('.')[0]
+    if root == 'requests':
+        return SafeRequestsModule
+    if root not in _allowed_modules:
+        raise ImportError("模块不允许导入: " + root)
+    return __import__(name, globals, locals, fromlist, level)
+
+# 将受限导入注入内置
+safe_builtins['__import__'] = _restricted_import
+
+# 将安全内置注入执行环境
+safe_globals['__builtins__'] = safe_builtins
+
+# 预加载安全模块到全局（便于直接使用）
 for module_name in SAFE_MODULES:
     try:
         if '.' in module_name:
@@ -448,57 +493,8 @@ for module_name in SAFE_MODULES:
     except ImportError:
         pass
 
-# 创建有限的请求功能
-class SafeRequests:
-    def __init__(self):
-        try:
-            import requests
-            self._requests = requests
-        except ImportError:
-            self._requests = None
-
-    def get(self, url, **kwargs):
-        if not self._requests:
-            return {"error": "requests模块不可用"}
-        try:
-            # 只允许GET请求访问特定的API
-            allowed_domains = ['api.openweathermap.org', 'api.openrouter.ai', 'picsum.photos']
-            from urllib.parse import urlparse
-            domain = urlparse(url).netloc
-            if not any(allowed_domain in domain for allowed_domain in allowed_domains):
-                return {"error": "不允许访问域名: " + domain}
-            
-            # 设置超时，防止长时间阻塞
-            if 'timeout' not in kwargs:
-                kwargs['timeout'] = 3
-                
-            response = self._requests.get(url, **kwargs)
-            return response
-        except Exception as e:
-            return {"error": str(e)}
-            
-    def post(self, url, **kwargs):
-        if not self._requests:
-            return {"error": "requests模块不可用"}
-        try:
-            # 只允许POST请求访问特定的API
-            allowed_domains = ['api.openrouter.ai']
-            from urllib.parse import urlparse
-            domain = urlparse(url).netloc
-            if not any(allowed_domain in domain for allowed_domain in allowed_domains):
-                return {"error": "不允许访问域名: " + domain}
-            
-            # 设置超时，防止长时间阻塞
-            if 'timeout' not in kwargs:
-                kwargs['timeout'] = 3
-                
-            response = self._requests.post(url, **kwargs)
-            return response
-        except Exception as e:
-            return {"error": str(e)}
-
-# 添加安全的请求模块
-safe_globals['requests'] = SafeRequests()
+# 也提供一个 requests 变量（非必需，import 更常见）
+safe_globals['requests'] = _safe_requests
 
 # 执行插件代码
 try:
@@ -518,8 +514,10 @@ try:
     else:
         print("错误: 插件未定义'result'变量")
 except Exception as e:
-    error_msg = "插件执行错误: " + str(e) + "\\n" + traceback.format_exc()
+    # 只输出安全的错误信息，不包含堆栈跟踪
+    error_msg = "插件执行错误: " + str(type(e).__name__)
     print(error_msg)
+    sys.exit(1)
 """
             
             # 替换临时文件路径，避免使用format和特殊字符
@@ -531,7 +529,7 @@ except Exception as e:
                 f.write(wrapper_code)
             
             # 准备运行参数
-            run_args = ['python', wrapper_path]
+            run_args = [sys.executable, wrapper_path]
             
             # 添加参数到命令行
             if 'prompt' in params:
@@ -554,16 +552,21 @@ except Exception as e:
                 pass
             
             if result.returncode != 0:
-                # 记录错误信息以便调试
-                error_detail = """
-插件运行失败! 错误信息:
-""" + result.stderr + """
-
-返回码: """ + str(result.returncode)
+                # 错误处理
+                from src.lat_lab.utils.security import SecurityError
+                SecurityError.log_error_safe(
+                    Exception(f"插件运行失败，返回码: {result.returncode}"),
+                    "plugin_subprocess_execution",
+                    {
+                        "plugin_id": plugin_id,
+                        "return_code": result.returncode,
+                        "stderr_length": len(result.stderr) if result.stderr else 0
+                    }
+                )
                 
                 raise HTTPException(
                     status_code=500,
-                    detail=error_detail
+                    detail="插件运行失败"
                 )
             
             output = result.stdout
@@ -629,19 +632,17 @@ except Exception as e:
             detail="插件执行超时（" + str(settings.PLUGIN_TIMEOUT_SECONDS) + "秒）"
         )
     except Exception as e:
-        # 增加更详细的错误信息
-        error_detail = """
-插件执行错误: """ + str(e) + """
-
-堆栈跟踪:
-""" + traceback.format_exc() + """
-
-插件ID: """ + str(plugin_id) + """
-参数: """ + str(params)
-        
-        raise HTTPException(
+        # 错误处理
+        from src.lat_lab.utils.security import SecurityError
+        SecurityError.log_and_raise_safe_error(
+            error=e,
+            user_message="插件执行失败",
             status_code=500,
-            detail=error_detail
+            context={
+                "plugin_id": plugin_id,
+                "params_keys": list(params.keys()) if params else [],
+                "operation": "plugin_execution"
+            }
         )
     finally:
         # 清理临时文件
@@ -689,7 +690,7 @@ def get_marketplace_info(
         from src.lat_lab.services.marketplace import marketplace_service
         return marketplace_service.get_marketplace_info()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取插件市场信息失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件市场信息失败")
 
 @router.get("/marketplace/categories", response_model=List[Dict[str, Any]])
 def get_marketplace_categories(
@@ -700,7 +701,7 @@ def get_marketplace_categories(
         from src.lat_lab.services.marketplace import marketplace_service
         return marketplace_service.get_categories()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取插件市场分类失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件市场分类失败")
 
 @router.get("/marketplace/tags", response_model=List[str])
 def get_marketplace_tags(
@@ -711,7 +712,7 @@ def get_marketplace_tags(
         from src.lat_lab.services.marketplace import marketplace_service
         return marketplace_service.get_tags()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取插件市场标签失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件市场标签失败")
 
 @router.get("/marketplace/plugins", response_model=List[Dict[str, Any]])
 def get_marketplace_plugins(
@@ -744,7 +745,7 @@ def get_marketplace_plugins(
         
         return plugins
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取插件市场插件列表失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件市场插件列表失败")
 
 @router.get("/marketplace/plugins/{plugin_id}", response_model=Dict[str, Any])
 def get_marketplace_plugin(
@@ -763,7 +764,7 @@ def get_marketplace_plugin(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取插件市场插件详情失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取插件市场插件详情失败")
 
 @router.post("/marketplace/plugins/{plugin_id}/download", response_model=Dict[str, Any])
 def download_marketplace_plugin(
@@ -810,7 +811,7 @@ def download_marketplace_plugin(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"下载/安装插件失败: {str(e)}") 
+        raise HTTPException(status_code=500, detail="下载/安装插件失败") 
 
 @router.get("/marketplace/source", response_model=Dict[str, Any])
 def get_marketplace_source(
@@ -820,13 +821,13 @@ def get_marketplace_source(
     """获取插件市场数据源设置（仅管理员）"""
     try:
         return {
-            "source": "local",
+            "source": settings.PLUGIN_MARKETPLACE_SOURCE,
             "local_path": str(settings.PLUGIN_MARKETPLACE_LOCAL_PATH),
             "git_repo": settings.PLUGIN_MARKETPLACE_GIT_REPO,
             "git_branch": settings.PLUGIN_MARKETPLACE_GIT_BRANCH
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取数据源信息失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="获取数据源信息失败")
 
 @router.post("/marketplace/source", response_model=Dict[str, Any])
 def update_marketplace_source(
@@ -864,7 +865,7 @@ def update_marketplace_source(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"更新数据源设置失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="更新数据源设置失败")
 
 @router.post("/marketplace/refresh", response_model=Dict[str, Any])
 def refresh_marketplace(
@@ -899,4 +900,4 @@ def refresh_marketplace(
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"刷新插件市场数据失败: {str(e)}") 
+        raise HTTPException(status_code=500, detail="刷新插件市场数据失败") 

@@ -13,7 +13,7 @@ ENV VITE_UPLOAD_URL=$VITE_UPLOAD_URL
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npm run build:prod
 
 # 生产阶段
 FROM nginx:stable-alpine as production-stage

@@ -22,6 +22,20 @@ article_likes = Table(
     Column("created_at", DateTime(timezone=True), server_default=func.now())
 )
 
+# 文章浏览记录表
+class ArticleView(Base):
+    __tablename__ = "article_views"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    article_id = Column(Integer, ForeignKey("articles.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # nullable=True for anonymous users
+    ip_address = Column(String(45), nullable=False)  # 支持IPv6地址
+    viewed_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # 关联关系
+    article = relationship("Article", back_populates="views")
+    user = relationship("User")
+
 class Article(Base):
     __tablename__ = "articles"
 
@@ -48,6 +62,7 @@ class Article(Base):
     category = relationship("Category", back_populates="articles")
     tags = relationship("Tag", secondary="article_tags", back_populates="articles")
     comments = relationship("Comment", back_populates="article", cascade="all, delete-orphan")
+    views = relationship("ArticleView", back_populates="article", cascade="all, delete-orphan")
     
     # 添加点赞关联
     liked_by = relationship("User", secondary=article_likes, backref="liked_articles") 

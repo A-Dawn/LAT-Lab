@@ -1,19 +1,6 @@
-// 安全加密工具库
-// 提供密码派生函数和安全存储功能
-
-/**
- * 这个文件提供安全的加密和哈希功能，用于前端数据存储
- * 使用PBKDF2算法进行密码派生，提高计算成本和安全性
- */
-
-// 派生密钥所需的迭代次数
 const PBKDF2_ITERATIONS = 10000;
-// 派生密钥长度
 const KEY_LENGTH = 256;
-// 哈希算法
 const HASH_ALGORITHM = 'SHA-256';
-
-// 会话随机盐值 - 每次页面加载生成新的随机值
 const SESSION_ID = generateRandomString(32);
 
 /**

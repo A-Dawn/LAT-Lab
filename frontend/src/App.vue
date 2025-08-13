@@ -8,18 +8,15 @@ const store = useStore()
 const router = useRouter()
 const isDropdownOpen = ref(false)
 
-// 获取用户认证状态
 const isAuthenticated = computed(() => store.getters.isAuthenticated)
 const currentUser = computed(() => store.getters.currentUser)
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
-// 在组件挂载时获取用户信息
 onMounted(async () => {
   if (localStorage.getItem('token')) {
     await store.dispatch('fetchCurrentUser')
   }
   
-  // 加载插件扩展，所有用户都需要
   try {
     await store.dispatch('loadPluginExtensions')
   } catch (error) {
@@ -27,36 +24,29 @@ onMounted(async () => {
   }
 })
 
-// 监听路由变化，确保用户信息是最新的
 watch(() => router.currentRoute.value.path, async (newPath) => {
   if (localStorage.getItem('token') && !currentUser.value) {
     await store.dispatch('fetchCurrentUser')
   }
 })
 
-// 切换下拉菜单
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value
 }
 
-// 关闭下拉菜单
 const closeDropdown = () => {
   isDropdownOpen.value = false
 }
 
-// 退出登录
 const logout = () => {
   store.dispatch('logout')
   router.push('/login')
   closeDropdown()
 }
 
-// 获取头像完整URL
 const getAvatarUrl = (path) => {
   if (!path) return null
-  // 如果已经是完整URL，则直接返回
   if (path.startsWith('http')) return path
-  // 添加完整的后端服务器URL
   return `http://localhost:8000${path}`
 }
 </script>
@@ -327,7 +317,7 @@ button {
 .user-actions {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
 }
 
 .login-button,

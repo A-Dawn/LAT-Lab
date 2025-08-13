@@ -166,14 +166,13 @@
 
 <script>
 import { pluginApi } from '../../services/api'
-import { ref, onMounted } from 'vue'
-import AdminPluginMarketplace from './AdminPluginMarketplace.vue'
+import { ref, onMounted, defineAsyncComponent } from 'vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 
 export default {
   name: 'AdminPlugins',
   components: {
-    AdminPluginMarketplace,
+    AdminPluginMarketplace: defineAsyncComponent(() => import('./AdminPluginMarketplace.vue')),
     ConfirmDialog
   },
   setup() {
@@ -203,7 +202,7 @@ export default {
         console.log('获取到插件列表:', plugins.value.length, '个插件')
       } catch (error) {
         console.error('获取插件列表失败:', error)
-        alert('获取插件列表失败')
+        toast.error('获取插件列表失败')
       }
     }
 
@@ -271,7 +270,7 @@ export default {
         loadPlugins()
       } catch (error) {
         console.error('保存插件失败:', error)
-        alert('保存插件失败: ' + (error.response?.data?.detail || error.message))
+        toast.error('保存插件失败: ' + (error.response?.data?.detail || error.message))
       }
     }
     
@@ -301,7 +300,7 @@ export default {
         closeDeleteConfirm()
       } catch (error) {
         console.error('删除插件失败:', error)
-        alert('删除插件失败: ' + (error.response?.data?.detail || error.message))
+        toast.error('删除插件失败: ' + (error.response?.data?.detail || error.message))
       }
     }
 
@@ -314,7 +313,7 @@ export default {
         loadPlugins()
       } catch (error) {
         console.error('切换插件状态失败:', error)
-        alert('切换插件状态失败: ' + (error.response?.data?.detail || error.message))
+        toast.error('切换插件状态失败: ' + (error.response?.data?.detail || error.message))
       }
     }
 
@@ -335,7 +334,7 @@ export default {
         showRunResultDialog.value = true
       } catch (error) {
         console.error('运行插件失败:', error)
-        alert('运行插件失败: ' + (error.response?.data?.detail || error.message))
+        toast.error('运行插件失败: ' + (error.response?.data?.detail || error.message))
       }
     }
 
@@ -348,7 +347,7 @@ export default {
         
         // 如果没有示例插件，提示用户
         if (!examples || examples.length === 0) {
-          alert('没有可用的示例插件')
+          toast.warning('没有可用的示例插件')
           return
         }
         
@@ -365,7 +364,7 @@ export default {
         // 验证用户输入
         const index = parseInt(selection) - 1
         if (isNaN(index) || index < 0 || index >= examples.length) {
-          alert('无效的选择')
+          toast.error('无效的选择')
           return
         }
         
@@ -393,7 +392,7 @@ export default {
         }
       } catch (error) {
         console.error('加载示例插件失败:', error)
-        alert('加载示例插件失败: ' + (error.response?.data?.detail || error.message))
+        toast.error('加载示例插件失败: ' + (error.response?.data?.detail || error.message))
       }
     }
 
@@ -403,7 +402,7 @@ export default {
         const openRouterPlugin = await pluginApi.getExamplePlugin("openrouter_llm")
         
         if (!openRouterPlugin || !openRouterPlugin.code) {
-          alert("找不到 OpenRouter 插件示例")
+          toast.error("找不到 OpenRouter 插件示例")
           return
         }
         
@@ -416,12 +415,12 @@ export default {
         
         if (confirm("是否创建 OpenRouter LLM API 插件？\n\n此插件将允许您在博客中集成多种 AI 大语言模型。")) {
           await pluginApi.createPlugin(currentPlugin.value)
-          alert("OpenRouter 插件创建成功！\n\n请配置您的 API Key，然后激活插件。")
+          toast.success("OpenRouter 插件创建成功！请配置您的 API Key，然后激活插件。")
           loadPlugins()
         }
       } catch (error) {
         console.error('加载 OpenRouter 插件失败:', error)
-        alert('加载 OpenRouter 插件失败: ' + (error.response?.data?.detail || error.message))
+        toast.error('加载 OpenRouter 插件失败: ' + (error.response?.data?.detail || error.message))
       }
     }
 
@@ -440,7 +439,7 @@ export default {
       // 重新加载插件列表
       loadPlugins()
       // 显示成功提示
-      alert('插件已成功安装！')
+      toast.success('插件已成功安装！')
     }
 
     onMounted(() => {
@@ -534,12 +533,12 @@ export default {
 }
 
 .status-active {
-  color: #28a745;
+  color: var(--success-color);
   font-weight: 500;
 }
 
 .status-inactive {
-  color: #dc3545;
+  color: var(--error-color);
   font-weight: 500;
 }
 
@@ -556,7 +555,7 @@ export default {
 .no-data {
   text-align: center;
   padding: 15px;
-  color: #666;
+  color: var(--text-tertiary);
   font-style: italic;
 }
 

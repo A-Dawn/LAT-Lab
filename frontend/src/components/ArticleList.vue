@@ -7,7 +7,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { articleApi } from '../services/api'
 
-// 定义props
 const props = defineProps({
   articles: {
     type: Array,
@@ -39,29 +38,21 @@ const props = defineProps({
   }
 })
 
-// 定义事件
 const emit = defineEmits(['retry', 'page-change'])
-
-// 路由
 const router = useRouter()
-
-// 保存已点赞的文章ID
 const likedArticles = ref(new Set())
 
-// 计算总页数
 const totalPages = computed(() => {
   return Math.max(1, Math.ceil(props.totalArticles / props.pageSize))
 })
 
-// 计算分页显示范围
 const pageRange = computed(() => {
   const range = []
-  const delta = 2 // 当前页前后显示的页数
+  const delta = 2
   
   let start = Math.max(1, props.currentPage - delta)
   let end = Math.min(totalPages.value, props.currentPage + delta)
   
-  // 调整以确保显示足够的页码
   if (end - start < 2 * delta) {
     if (start === 1) {
       end = Math.min(start + 2 * delta, totalPages.value)
@@ -70,7 +61,6 @@ const pageRange = computed(() => {
     }
   }
   
-  // 生成页码
   for (let i = start; i <= end; i++) {
     range.push(i)
   }
@@ -78,31 +68,26 @@ const pageRange = computed(() => {
   return range
 })
 
-// 处理页面变化
 const handlePageChange = (page) => {
   if (page < 1 || page > totalPages.value || page === props.currentPage) return
   emit('page-change', page)
   
-  // 滚动到页面顶部
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
   })
 }
 
-// 处理文章点击
 const handleArticleClick = (articleId) => {
   router.push(`/article/${articleId}`)
 }
 
-// 处理重试
 const handleRetry = () => {
   emit('retry')
 }
 
-// 处理点赞
 const handleLike = async (articleId, event) => {
-  event.stopPropagation() // 阻止事件冒泡，避免触发文章点击
+  event.stopPropagation()
   
   if (!props.isAuthenticated) {
     router.push('/login')
@@ -110,15 +95,12 @@ const handleLike = async (articleId, event) => {
   }
   
   try {
-    // 找到当前文章
     const article = props.articles.find(a => a.id === articleId)
     if (!article) return
     
-    // 判断是点赞还是取消点赞
     const isLiked = likedArticles.value.has(articleId)
     const action = isLiked ? 'unlike' : 'like'
     
-    // 乐观更新UI
     if (isLiked) {
       article.likes_count = Math.max(0, (article.likes_count || 0) - 1)
       likedArticles.value.delete(articleId)
@@ -127,10 +109,8 @@ const handleLike = async (articleId, event) => {
       likedArticles.value.add(articleId)
     }
     
-    // 调用API
     const response = await articleApi.likeArticle(articleId, action)
     
-    // 如果API返回了结果，用实际结果更新UI
     if (response && response.success) {
       article.likes_count = response.likes_count || article.likes_count
       
@@ -145,22 +125,18 @@ const handleLike = async (articleId, event) => {
   }
 }
 
-// 处理标签点击
 const handleTagClick = (tagName, event) => {
-  event.stopPropagation() // 阻止事件冒泡，避免触发文章点击
+  event.stopPropagation()
   
-  // 使用路由导航到带有标签筛选的首页
   router.push({
     path: '/',
     query: { tag: tagName }
   })
 }
 
-// 处理分类点击
 const handleCategoryClick = (categoryId, event) => {
-  event.stopPropagation() // 阻止事件冒泡，避免触发文章点击
+  event.stopPropagation()
   
-  // 使用路由导航到带有分类筛选的首页
   router.push({
     path: '/',
     query: { category: categoryId }

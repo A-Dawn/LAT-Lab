@@ -14,7 +14,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.lat_lab.core.database import SessionLocal, engine, Base
 from src.lat_lab.core.security import get_password_hash
-from src.lat_lab.models import user, article, category, comment, tag, plugin
+from src.lat_lab.models import user, article, category, comment, tag, plugin, system
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

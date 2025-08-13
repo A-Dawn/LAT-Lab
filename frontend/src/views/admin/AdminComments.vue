@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { commentApi } from '../../services/api'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import toast from '../../utils/toast'
 
 const router = useRouter()
 const comments = ref([])
@@ -12,22 +13,18 @@ const isLoading = ref(true)
 const error = ref(null)
 const activeTab = ref('pending')
 
-// 删除确认对话框状态
 const confirmDialogVisible = ref(false)
 const commentToDelete = ref(null)
 
-// 获取所有评论
 const fetchComments = async () => {
   try {
     isLoading.value = true
     error.value = null
     
-    // 调用API获取所有评论
     const response = await commentApi.getAllComments()
     
     comments.value = response || []
     
-    // 分类评论
     pendingComments.value = comments.value.filter(comment => !comment.is_approved)
     approvedComments.value = comments.value.filter(comment => comment.is_approved)
   } catch (err) {
@@ -38,66 +35,59 @@ const fetchComments = async () => {
   }
 }
 
-// 审核评论
 const approveComment = async (commentId) => {
   try {
     await commentApi.updateComment(commentId, {
       is_approved: true
     })
     
-    // 更新本地评论列表
     const comment = comments.value.find(c => c.id === commentId)
     if (comment) {
       comment.is_approved = true
       
-      // 更新分类列表
       pendingComments.value = pendingComments.value.filter(c => c.id !== commentId)
       approvedComments.value.push(comment)
     }
+    
+    toast.success('评论审核成功')
   } catch (err) {
     console.error('审核评论失败:', err)
-    alert('审核评论失败')
+    toast.error('审核评论失败')
   }
 }
 
-// 打开删除确认对话框
 const openDeleteConfirm = (comment) => {
   commentToDelete.value = comment
   confirmDialogVisible.value = true
 }
-
-// 关闭删除确认对话框
 const closeDeleteConfirm = () => {
   confirmDialogVisible.value = false
   commentToDelete.value = null
 }
 
-// 删除评论
 const deleteComment = async () => {
   if (!commentToDelete.value) return
   
   try {
     await commentApi.deleteComment(commentToDelete.value.id)
     
-    // 从列表中移除已删除的评论
     comments.value = comments.value.filter(c => c.id !== commentToDelete.value.id)
     pendingComments.value = pendingComments.value.filter(c => c.id !== commentToDelete.value.id)
     approvedComments.value = approvedComments.value.filter(c => c.id !== commentToDelete.value.id)
     
-    // 关闭对话框
     closeDeleteConfirm()
+    
+    toast.success('评论删除成功')
   } catch (err) {
     console.error('删除评论失败:', err)
-    alert('删除评论失败')
+    toast.error('删除评论失败')
   }
 }
 
-// 查看文章
 const viewArticle = (articleId) => {
   router.push(`/article/${articleId}`)
 }
 
-// 格式化日期
 const formatDate = (dateString) => {
   if (!dateString) return ''
   
@@ -111,7 +101,6 @@ const formatDate = (dateString) => {
   })
 }
 
-// 切换标签页
 const switchTab = (tab) => {
   activeTab.value = tab
 }
@@ -319,13 +308,13 @@ onMounted(fetchComments)
 
 .page-header h2 {
   margin: 0;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .tabs {
   display: flex;
   margin-bottom: 20px;
-  border-bottom: 1px solid #dcdfe6;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tab-button {
@@ -334,18 +323,18 @@ onMounted(fetchComments)
   border: none;
   cursor: pointer;
   font-size: 1rem;
-  color: #606266;
+  color: var(--text-secondary);
   border-bottom: 2px solid transparent;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
 .tab-button:hover {
-  color: #4c84ff;
+  color: var(--primary-color);
 }
 
 .tab-button.active {
-  color: #4c84ff;
-  border-bottom-color: #4c84ff;
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
 }
 
 .loading-state, .error-state {
@@ -354,14 +343,15 @@ onMounted(fetchComments)
   align-items: center;
   justify-content: center;
   padding: 40px 0;
+  color: var(--text-secondary);
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(76, 132, 255, 0.2);
+  border: 3px solid var(--border-color);
   border-radius: 50%;
-  border-top-color: #4c84ff;
+  border-top-color: var(--primary-color);
   animation: spin 1s ease-in-out infinite;
   margin-bottom: 10px;
 }
@@ -371,17 +361,25 @@ onMounted(fetchComments)
 }
 
 .retry-button {
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
   margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.retry-button:hover {
+  background-color: var(--secondary-color);
 }
 
 .comments-table-container {
   overflow-x: auto;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
 }
 
 .comments-table {
@@ -392,13 +390,24 @@ onMounted(fetchComments)
 .comments-table th, .comments-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .comments-table th {
-  background-color: #f5f7fa;
-  color: #606266;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
   font-weight: 500;
+  position: sticky;
+  top: 0;
+}
+
+.comments-table tr:hover {
+  background-color: var(--hover-color);
+}
+
+.comments-table tr:last-child td {
+  border-bottom: none;
 }
 
 .content-cell {
@@ -416,12 +425,14 @@ onMounted(fetchComments)
 }
 
 .article-link {
-  color: #4c84ff;
+  color: var(--primary-color);
   cursor: pointer;
+  transition: color 0.3s ease;
 }
 
 .article-link:hover {
   text-decoration: underline;
+  color: var(--secondary-color);
 }
 
 .status-badge {
@@ -429,16 +440,19 @@ onMounted(fetchComments)
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .status-badge.approved {
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: rgba(var(--success-color), 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(var(--success-color), 0.2);
 }
 
 .status-badge.pending {
-  background-color: #fdf6ec;
-  color: #e6a23c;
+  background-color: rgba(var(--warning-color), 0.1);
+  color: var(--warning-color);
+  border: 1px solid rgba(var(--warning-color), 0.2);
 }
 
 .actions-cell {
@@ -452,21 +466,66 @@ onMounted(fetchComments)
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
+  transition: all 0.3s ease;
 }
 
 .action-button.approve {
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: rgba(var(--success-color), 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(var(--success-color), 0.2);
+}
+
+.action-button.approve:hover {
+  background-color: rgba(var(--success-color), 0.2);
 }
 
 .action-button.delete {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--error-color), 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(var(--error-color), 0.2);
+}
+
+.action-button.delete:hover {
+  background-color: rgba(var(--error-color), 0.2);
 }
 
 .empty-message {
   text-align: center;
-  color: #909399;
+  color: var(--text-tertiary);
   padding: 20px 0;
+  font-style: italic;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .tabs {
+    flex-wrap: wrap;
+  }
+  
+  .tab-button {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .comments-table th,
+  .comments-table td {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+  
+  .content-cell,
+  .article-cell {
+    max-width: 150px;
+  }
+  
+  .actions-cell {
+    flex-direction: column;
+    gap: 3px;
+  }
+  
+  .action-button {
+    width: 100%;
+    text-align: center;
+  }
 }
 </style> 

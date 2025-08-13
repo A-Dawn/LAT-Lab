@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -46,7 +46,7 @@ class ArticleBase(BaseModel):
     status: Optional[ArticleStatus] = ArticleStatus.published
     published_at: Optional[datetime] = None
     visibility: Optional[ArticleVisibility] = ArticleVisibility.public
-    password: Optional[str] = None
+    password: Optional[str] = Field(None, exclude=True)
 
 class ArticleCreate(ArticleBase):
     tags: Optional[List[str]] = []
@@ -81,9 +81,10 @@ class ArticleDetail(Article):
 
     class Config:
         from_attributes = True
-        
-        @classmethod
-        def from_orm(cls, obj):
+    
+    @classmethod
+    def model_validate(cls, obj, from_attributes: bool = False):
+        if from_attributes:
             try:
                 # 创建原始数据的副本
                 data = {}
@@ -123,11 +124,12 @@ class ArticleDetail(Article):
                     # 如果没有作者信息，提供默认值
                     data['author'] = {"id": 0, "username": "匿名"}
                 
-                # 创建临时对象并使用父类方法处理
-                temp_obj = type('TempObj', (object,), data)
-                return super().from_orm(temp_obj)
+                # 直接使用数据创建实例
+                return cls(**data)
                 
             except Exception as e:
                 print(f"文章详情转换错误: {str(e)}")
                 # 发生错误时，尝试基本转换
-                return super().from_orm(obj) 
+                return super().model_validate(obj, from_attributes=True)
+        else:
+            return super().model_validate(obj) 

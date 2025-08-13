@@ -5,13 +5,9 @@ import { useStore } from 'vuex'
 import { articleApi, commentApi } from '../services/api'
 import CommentItem from '../components/CommentItem.vue'
 import { marked } from 'marked'
-import hljs from 'highlight.js'
-// 使用主题变量控制代码高亮样式
+import hljs from '../utils/highlight.js'
 import 'highlight.js/styles/github.css'
-// 以后可以根据主题切换添加暗色样式
-// import 'highlight.js/styles/github-dark.css'
 import { sanitizeMarkdown } from '../utils/sanitize'
-import { secureStorage } from '../utils/crypto'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,13 +23,10 @@ const likeCount = ref(0)
 const isLiked = ref(false)
 const isLiking = ref(false)
 
-// 密码保护相关
 const isPasswordProtected = ref(false)
 const articlePassword = ref('')
 const isCheckingPassword = ref(false)
 const passwordError = ref('')
-
-// 配置marked解析器
 marked.setOptions({
   highlight: function(code, language) {
     const validLanguage = hljs.getLanguage(language) ? language : 'plaintext';
@@ -43,23 +36,17 @@ marked.setOptions({
   gfm: true
 })
 
-// 监听主题变化
 const currentTheme = computed(() => store.state.theme)
 
-// 获取认证状态
 const isAuthenticated = computed(() => store.getters.isAuthenticated)
 const currentUser = computed(() => store.getters.currentUser)
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
 const isAuthor = computed(() => currentUser.value?.id === article.value?.author_id)
 
-// 渲染Markdown内容
 const renderedContent = computed(() => {
   if (!article.value) return ''
-  // 使用marked渲染Markdown，然后通过sanitizeMarkdown净化防止XSS攻击
   return sanitizeMarkdown(marked.parse(article.value.content || ''))
 })
-
-// 初始化文章点赞状态
 const fetchArticleLikeStatus = async () => {
   if (!article.value) return
   
@@ -103,11 +90,9 @@ const fetchArticle = async (password = null) => {
       return
     }
     
-    // 安全处理文章数据
     if (password) {
-      // 如果是密码保护的文章，使用安全存储
       const cacheKey = `article_${articleId}_${currentUser.value?.id || 'guest'}`
-      // 存储文章数据时使用安全机制
+      const { secureStorage } = await import('../utils/crypto.js')
       await secureStorage.setItem(cacheKey, data)
     }
     
@@ -125,13 +110,11 @@ const fetchArticle = async (password = null) => {
     // 获取文章评论
     await fetchComments()
     
-    // 获取文章点赞状态
     await fetchArticleLikeStatus()
   } catch (e) {
     console.error('获取文章失败, 详细错误:', e)
     if (e.response) {
       if (e.response.status === 403 && e.response.data?.detail?.includes('密码')) {
-        // 密码错误
         passwordError.value = '密码错误，请重试'
         isPasswordProtected.value = true
       } else {
@@ -148,7 +131,6 @@ const fetchArticle = async (password = null) => {
   }
 }
 
-// 提交密码
 const submitPassword = async () => {
   if (!articlePassword.value.trim()) {
     passwordError.value = '请输入密码'
@@ -159,7 +141,6 @@ const submitPassword = async () => {
   await fetchArticle(articlePassword.value)
 }
 
-// 获取文章评论
 const fetchComments = async () => {
   if (!article.value) return
   
@@ -171,10 +152,9 @@ const fetchComments = async () => {
   }
 }
 
-// 提交评论
 const submitComment = async () => {
   if (!isAuthenticated.value) {
-    alert('请先登录后再发表评论')
+    toast.warning('请先登录后再发表评论')
     router.push('/login')
     return
   }
@@ -192,10 +172,8 @@ const submitComment = async () => {
       content: commentContent.value
     })
     
-    // 提交成功后刷新评论
     await fetchComments()
     
-    // 清空评论框
     commentContent.value = ''
   } catch (e) {
     console.error('提交评论失败:', e)
@@ -204,12 +182,10 @@ const submitComment = async () => {
     isSubmittingComment.value = false
   }
 }
-
-// 点赞文章
 const likeArticle = async () => {
   if (!article.value || !isAuthenticated.value) {
     if (!isAuthenticated.value) {
-      alert('请先登录后再点赞')
+      toast.warning('请先登录后再点赞')
       router.push('/login?redirect=' + route.fullPath)
     }
     return
@@ -274,7 +250,7 @@ const shareArticle = async () => {
   // 回退：复制链接到剪贴板
   try {
     await navigator.clipboard.writeText(window.location.href)
-    alert('链接已复制到剪贴板')
+    toast.success('链接已复制到剪贴板')
   } catch (e) {
     console.error('复制链接失败:', e)
     // 最后的回退方案：提示用户手动复制
@@ -955,7 +931,7 @@ html[data-theme="neon"] .hljs-attr {
   justify-content: center;
   width: 80px;
   height: 80px;
-  background-color: #f56c6c;
+  background-color: var(--error-color);
   color: white;
   font-size: 40px;
   font-weight: bold;
@@ -1064,12 +1040,12 @@ html[data-theme="neon"] .hljs-attr {
 }
 
 .like-button {
-  background-color: var(--hover-color, #fef0f0);
-  color: #f56c6c;
+  background-color: rgba(var(--error-color-rgb), 0.1);
+  color: var(--error-color);
 }
 
 .like-button:hover, .like-button.liked {
-  background-color: #f56c6c;
+  background-color: var(--error-color);
   color: white;
 }
 
@@ -1125,8 +1101,8 @@ html[data-theme="neon"] .hljs-attr {
 }
 
 .comment-error {
-  background-color: var(--hover-color, #fef0f0);
-  color: #f56c6c;
+  background-color: rgba(var(--error-color-rgb), 0.1);
+  color: var(--error-color);
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 15px;
@@ -1256,7 +1232,7 @@ html[data-theme="neon"] .hljs-attr {
 }
 
 .password-error {
-  color: #f56c6c;
+  color: var(--error-color);
   margin-top: 15px;
 }
 
@@ -1270,27 +1246,27 @@ html[data-theme="neon"] .hljs-attr {
 }
 
 .article-status-banner.draft {
-  background-color: var(--hover-color, rgba(144, 147, 153, 0.1));
-  border-left: 4px solid #909399;
-  color: var(--text-secondary, #606266);
+  background-color: rgba(var(--text-tertiary-rgb), 0.1);
+  border-left: 4px solid var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .article-status-banner.private {
-  background-color: rgba(245, 108, 108, 0.1);
-  border-left: 4px solid #f56c6c;
-  color: #f56c6c;
+  background-color: rgba(var(--error-color-rgb), 0.1);
+  border-left: 4px solid var(--error-color);
+  color: var(--error-color);
 }
 
 .article-status-banner.password {
-  background-color: rgba(230, 162, 60, 0.1);
-  border-left: 4px solid #e6a23c;
-  color: #e6a23c;
+  background-color: rgba(var(--warning-color-rgb), 0.1);
+  border-left: 4px solid var(--warning-color);
+  color: var(--warning-color);
 }
 
 .article-status-banner.scheduled {
-  background-color: rgba(103, 194, 58, 0.1);
-  border-left: 4px solid #67c23a;
-  color: #67c23a;
+  background-color: rgba(var(--success-color-rgb), 0.1);
+  border-left: 4px solid var(--success-color);
+  color: var(--success-color);
 }
 
 .status-icon {

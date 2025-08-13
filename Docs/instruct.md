@@ -67,8 +67,8 @@ LAT-LAB 博客系统是一个基于FastAPI和Vue.js的现代博客平台，支�
    # 开发环境: 启动开发服务器
    npm run dev
    
-   # 生产环境: 构建前端项目
-   npm run build
+   # 生产环境: 构建前端项目（安全构建，移除开发工具）
+   npm run build:prod
    # 构建完成后，dist目录包含所有静态文件，可部署到任何静态文件服务器
    ```
 

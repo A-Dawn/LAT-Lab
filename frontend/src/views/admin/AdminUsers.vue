@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { userApi } from '../../services/api'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import toast from '../../utils/toast'
 
 const store = useStore()
 const users = ref([])
@@ -54,16 +55,18 @@ const changeUserRole = async (userId, newRole) => {
     if (userIndex !== -1) {
       users.value[userIndex].role = newRole
     }
+    
+    toast.success('用户角色修改成功')
   } catch (err) {
     console.error('修改用户角色失败:', err)
-    alert('修改用户角色失败')
+    toast.error('修改用户角色失败')
   }
 }
 
 // 打开删除确认对话框
 const openDeleteConfirm = (user) => {
   if (user.id === currentUser.value?.id) {
-    alert('不能删除自己的账号')
+    toast.error('不能删除自己的账号')
     return
   }
   userToDelete.value = user
@@ -88,9 +91,11 @@ const deleteUser = async () => {
     
     // 关闭对话框
     closeDeleteConfirm()
+    
+    toast.success('用户删除成功')
   } catch (err) {
     console.error('删除用户失败:', err)
-    alert('删除用户失败')
+    toast.error('删除用户失败')
   }
 }
 
@@ -158,10 +163,10 @@ const formatDate = (dateString) => {
 const copyToClipboard = async (text) => {
   try {
     await navigator.clipboard.writeText(text)
-    alert('密码已复制到剪贴板')
+    toast.success('密码已复制到剪贴板')
   } catch (err) {
     console.error('复制失败:', err)
-    alert('复制失败，请手动复制')
+    toast.error('复制失败，请手动复制')
   }
 }
 
@@ -313,8 +318,9 @@ onMounted(fetchUsers)
 </template>
 
 <style scoped>
+/* 基础样式 */
 .admin-users {
-  height: 100%;
+  width: 100%;
 }
 
 .page-header {
@@ -326,7 +332,7 @@ onMounted(fetchUsers)
 
 .page-header h2 {
   margin: 0;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .loading-state, .error-state {
@@ -335,14 +341,15 @@ onMounted(fetchUsers)
   align-items: center;
   justify-content: center;
   padding: 40px 0;
+  color: var(--text-secondary);
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(76, 132, 255, 0.2);
+  border: 3px solid var(--border-color);
   border-radius: 50%;
-  border-top-color: #4c84ff;
+  border-top-color: var(--primary-color);
   animation: spin 1s ease-in-out infinite;
   margin-bottom: 10px;
 }
@@ -352,17 +359,26 @@ onMounted(fetchUsers)
 }
 
 .retry-button {
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
   margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.retry-button:hover {
+  background-color: var(--secondary-color);
 }
 
 .users-table-container {
   overflow-x: auto;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
 }
 
 .users-table {
@@ -373,13 +389,18 @@ onMounted(fetchUsers)
 .users-table th, .users-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .users-table th {
-  background-color: #f5f7fa;
-  color: #606266;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
   font-weight: 500;
+}
+
+.users-table tbody tr:hover {
+  background-color: var(--hover-color);
 }
 
 .role-badge {
@@ -390,12 +411,12 @@ onMounted(fetchUsers)
 }
 
 .role-badge.admin {
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
 }
 
 .role-badge.user {
-  background-color: #67c23a;
+  background-color: var(--success-color);
   color: white;
 }
 
@@ -408,10 +429,16 @@ onMounted(fetchUsers)
 
 .role-select {
   padding: 4px 8px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: white;
-  color: #606266;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
 }
 
 .action-button {
@@ -421,20 +448,31 @@ onMounted(fetchUsers)
   cursor: pointer;
   font-size: 0.85rem;
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
 .action-button.delete {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--accent-rgb), 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+}
+
+.action-button.delete:hover {
+  background-color: rgba(var(--accent-rgb), 0.2);
 }
 
 .action-button.reset {
-  background-color: #ecf5ff;
-  color: #409eff;
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+
+.action-button.reset:hover {
+  background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .current-user-badge {
-  background-color: #909399;
+  background-color: var(--text-tertiary);
   color: white;
   padding: 2px 8px;
   border-radius: 4px;
@@ -443,7 +481,7 @@ onMounted(fetchUsers)
 
 .empty-message {
   text-align: center;
-  color: #909399;
+  color: var(--text-tertiary);
   padding: 20px 0;
 }
 
@@ -470,6 +508,7 @@ onMounted(fetchUsers)
   max-width: 450px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   animation: slide-up 0.3s ease;
+  border: 1px solid var(--border-color);
 }
 
 .reset-password-dialog h3 {
@@ -500,15 +539,28 @@ onMounted(fetchUsers)
   border-radius: 4px;
   font-family: monospace;
   font-size: 1rem;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.password-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
 }
 
 .regenerate-button {
-  background-color: #ecf5ff;
-  color: #409eff;
-  border: 1px solid #d9ecff;
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
   border-radius: 4px;
   padding: 0 12px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.regenerate-button:hover {
+  background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .dialog-actions {
@@ -528,12 +580,12 @@ onMounted(fetchUsers)
 }
 
 .reset-button {
-  background-color: #409eff;
+  background-color: var(--primary-color);
   color: white;
 }
 
 .reset-button:hover {
-  background-color: #66b1ff;
+  background-color: var(--secondary-color);
 }
 
 .cancel-button {
@@ -543,28 +595,30 @@ onMounted(fetchUsers)
 }
 
 .cancel-button:hover {
-  background-color: var(--bg-hover);
+  background-color: var(--hover-color);
 }
 
 .success-message {
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: rgba(var(--success-color), 0.1);
+  color: var(--success-color);
   padding: 15px;
   border-radius: 4px;
   margin: 15px 0;
+  border: 1px solid rgba(var(--success-color), 0.2);
 }
 
 .error-message {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--error-color), 0.1);
+  color: var(--error-color);
   padding: 10px;
   border-radius: 4px;
   margin: 10px 0;
+  border: 1px solid rgba(var(--error-color), 0.2);
 }
 
 .password-display {
-  background-color: white;
-  border: 1px solid #e1f3d8;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   padding: 10px;
   border-radius: 4px;
   display: flex;
@@ -576,21 +630,27 @@ onMounted(fetchUsers)
 .password-display span {
   font-family: monospace;
   font-size: 1.1rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .copy-button {
-  background-color: #67c23a;
+  background-color: var(--success-color);
   color: white;
   border: none;
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.copy-button:hover {
+  filter: brightness(1.1);
 }
 
 .tip {
   font-size: 0.9rem;
   margin: 10px 0 0 0;
+  color: var(--text-tertiary);
 }
 
 @keyframes fade-in {

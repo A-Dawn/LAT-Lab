@@ -1,39 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 import os
 import shutil
 import uuid
-import re
 from src.lat_lab.core.deps import get_db, get_current_user
+from src.lat_lab.core.rate_limiter import create_rate_limit_dependency
+from src.lat_lab.core.config import settings
 from src.lat_lab.models.user import User
-
-# 添加安全的路径验证函数
-def secure_filename(filename):
-    """安全地验证文件名，防止路径遍历攻击
-    
-    Args:
-        filename (str): 要验证的文件名
-        
-    Returns:
-        str: 安全的文件名（移除路径分隔符和特殊字符）
-    """
-    # 仅保留文件名，移除任何路径信息
-    basename = os.path.basename(filename)
-    
-    # 移除可能导致问题的特殊字符
-    basename = re.sub(r'[^a-zA-Z0-9_.-]', '', basename)
-    
-    # 确保不以点或破折号开头
-    if basename.startswith(('.', '-')):
-        basename = 'x' + basename
-        
-    # 确保不为空
-    if not basename:
-        basename = 'untitled'
-        
-    return basename
+from src.lat_lab.utils.security import secure_filename
 
 # 创建上传目录
 UPLOAD_DIR = "uploads"
@@ -42,11 +18,19 @@ if not os.path.exists(UPLOAD_DIR):
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
+# 上传速率限制依赖
+upload_rate_limit = create_rate_limit_dependency(
+    "upload_image", 
+    settings.RATE_LIMIT_UPLOAD_REQUESTS, 
+    settings.RATE_LIMIT_UPLOAD_WINDOW
+)
+
 @router.post("/image", status_code=status.HTTP_201_CREATED)
 async def upload_image(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _rate_limit: bool = Depends(upload_rate_limit)
 ):
     """上传图片（需要登录）"""
     # 检查文件类型
@@ -74,9 +58,11 @@ async def upload_image(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     except Exception as e:
+        from src.lat_lab.utils.security import SecurityError
+        SecurityError.log_error_safe(e, "文件上传", {"filename": secure_filename})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"上传失败: {str(e)}"
+            detail="文件上传失败"
         )
     finally:
         file.file.close()

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from src.lat_lab.api import user, auth, article, category, comment, plugin, rss, upload, tag, marketplace
+from src.lat_lab.api import user, auth, article, category, comment, plugin, rss, upload, tag, marketplace, admin
 
 api_router = APIRouter()
 
@@ -15,4 +15,6 @@ api_router.include_router(rss.router, tags=["RSS"])
 api_router.include_router(upload.router, tags=["文件上传"])
 api_router.include_router(tag.router, tags=["标签"])
 api_router.include_router(tag.public_router, tags=["公共标签"])
-api_router.include_router(marketplace.router, tags=["插件市场"]) 
+api_router.include_router(marketplace.router, tags=["插件市场"])
+api_router.include_router(admin.router, tags=["管理员"])
+api_router.include_router(admin.public_router, tags=["公共配置"]) 

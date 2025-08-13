@@ -227,15 +227,15 @@ export default {
 
 /* 添加各个主题的独特样式 */
 .theme-option .light-icon {
-  color: #ffa000;
+  color: #ffa000; /* 保持固定的主题识别颜色 */
 }
 
 .theme-option .dark-icon {
-  color: #5870cb;
+  color: #5870cb; /* 保持固定的主题识别颜色 */
 }
 
 .theme-option .neon-icon {
-  color: #f900e3;
+  color: #f900e3; /* 保持固定的主题识别颜色 */
 }
 
 /* 响应式调整 */

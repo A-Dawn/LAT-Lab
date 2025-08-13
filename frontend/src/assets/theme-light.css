@@ -2,8 +2,11 @@
 :root[data-theme="light"] {
   /* 主色调 - 更改为更柔和的蓝色和紫色调 */
   --primary-color: #4361ee;
+  --primary-color-rgb: 67, 97, 238;
   --secondary-color: #7e57c2;
+  --secondary-color-rgb: 126, 87, 194;
   --accent-color: #f77f7f;
+  --accent-color-rgb: 247, 127, 127;
   
   /* 背景色 - 更加柔和的灰蓝色背景 */
   --bg-primary: #f8f9fc;
@@ -12,8 +15,11 @@
   
   /* 文本色 - 保持高对比度但更柔和 */
   --text-primary: #2d3748;
+  --text-primary-rgb: 45, 55, 72;
   --text-secondary: #4a5568;
+  --text-secondary-rgb: 74, 85, 104;
   --text-tertiary: #718096;
+  --text-tertiary-rgb: 113, 128, 150;
   
   /* 边框和分隔线 - 轻微调整 */
   --border-color: #e2e8f0;
@@ -31,9 +37,13 @@
   
   /* 状态颜色 - 更柔和 */
   --success-color: #48bb78;
+  --success-color-rgb: 72, 187, 120;
   --warning-color: #ed8936;
+  --warning-color-rgb: 237, 137, 54;
   --error-color: #e53e3e;
+  --error-color-rgb: 229, 62, 62;
   --info-color: #4299e1;
+  --info-color-rgb: 66, 153, 225;
   
   /* 悬浮颜色 */
   --hover-color: rgba(67, 97, 238, 0.06);
@@ -322,4 +332,6 @@ html[data-theme="light"] .page-content {
 
 html[data-theme="light"] .markdown-body * {
   text-align: left !important;
-} 
+}
+
+ 

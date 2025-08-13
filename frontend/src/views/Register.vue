@@ -19,10 +19,8 @@ const resendStatus = ref('')
 const resendMessage = ref('')
 
 const register = async () => {
-  // 清除之前的错误信息
   errorMsg.value = ''
   
-  // 表单验证
   if (!username.value || !email.value || !password.value || !confirmPassword.value) {
     errorMsg.value = '请填写所有字段'
     return
@@ -33,35 +31,28 @@ const register = async () => {
     return
   }
   
-  // 设置加载状态
   isLoading.value = true
   
   try {
-    // 发送注册请求
     const response = await axios.post('http://localhost:8000/api/auth/register', {
       username: username.value,
       email: email.value,
       password: password.value
     })
     
-    // 注册成功
     isRegistered.value = true
     registeredEmail.value = email.value
     
   } catch (error) {
-    // 处理错误
     if (error.response && error.response.data) {
       errorMsg.value = error.response.data.detail || '注册失败，请稍后再试'
     } else {
       errorMsg.value = '网络错误，请检查您的连接'
     }
   } finally {
-    // 取消加载状态
     isLoading.value = false
   }
 }
-
-// 重新发送验证邮件
 const handleResendVerification = async () => {
   isResending.value = true
   resendStatus.value = ''
@@ -196,7 +187,7 @@ const handleResendVerification = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #4c84ff 0%, #2861ff 100%);
+  background: var(--hero-gradient);
 }
 
 .register-container {
@@ -206,9 +197,9 @@ const handleResendVerification = async () => {
 }
 
 .register-box {
-  background-color: #fff;
+  background-color: var(--card-bg);
   border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow);
   padding: 30px;
 }
 
@@ -219,18 +210,18 @@ const handleResendVerification = async () => {
 
 .register-header h2 {
   font-size: 2rem;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 10px;
 }
 
 .register-header p {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 1rem;
 }
 
 .error-message {
-  background-color: #fef0f0;
-  color: #f56c6c;
+  background-color: rgba(var(--error-color-rgb, 245, 108, 108), 0.1);
+  color: var(--error-color);
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 20px;
@@ -249,53 +240,57 @@ const handleResendVerification = async () => {
 .form-group label {
   display: block;
   margin-bottom: 5px;
-  color: #606266;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .form-group input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #409eff;
+  border-color: var(--primary-color);
 }
 
 .register-button {
   width: 100%;
   padding: 12px 0;
   font-size: 1rem;
-  background-color: #409eff;
-  color: #fff;
+  background-color: var(--primary-color);
+  color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
 }
 
 .register-button:hover {
-  background-color: #66b1ff;
+  background-color: var(--primary-color);
+  filter: brightness(1.1);
 }
 
 .register-button:disabled {
-  background-color: #a0cfff;
+  background-color: var(--primary-color);
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .login-link {
   text-align: center;
   margin-top: 20px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .login-link a {
-  color: #409eff;
+  color: var(--primary-color);
   text-decoration: none;
   font-weight: 500;
 }
@@ -313,7 +308,7 @@ const handleResendVerification = async () => {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background-color: #4cd964;
+  background-color: var(--success-color);
   color: white;
   font-size: 30px;
   line-height: 60px;
@@ -323,24 +318,24 @@ const handleResendVerification = async () => {
 .success-message h3 {
   font-size: 22px;
   margin-bottom: 15px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .success-message p {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 
 .success-message .note {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 20px 0;
 }
 
 .login-link-button {
   display: inline-block;
   padding: 10px 20px;
-  background-color: #409eff;
+  background-color: var(--primary-color);
   color: white;
   border-radius: 4px;
   text-decoration: none;
@@ -349,12 +344,12 @@ const handleResendVerification = async () => {
 }
 
 .login-link-button:hover {
-  background-color: #66b1ff;
+  background-color: var(--primary-hover);
 }
 
 .warning-note {
-  background-color: #fff8e1;
-  border-left: 4px solid #ffc107;
+  background-color: rgba(var(--warning-color-rgb), 0.1);
+  border-left: 4px solid var(--warning-color);
   padding: 15px;
   margin: 20px 0;
   border-radius: 4px;
@@ -376,7 +371,7 @@ const handleResendVerification = async () => {
 
 .resend-button {
   padding: 10px 20px;
-  background-color: #4c84ff;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   border-radius: 5px;
@@ -386,21 +381,21 @@ const handleResendVerification = async () => {
 }
 
 .resend-button:hover {
-  background-color: #3a70e0;
+  background-color: var(--primary-hover);
 }
 
 .resend-button:disabled {
-  background-color: #a0c0ff;
+  background-color: rgba(var(--primary-color-rgb), 0.5);
   cursor: not-allowed;
 }
 
 .resend-success {
-  color: #4cd964;
+  color: var(--success-color);
   margin-top: 10px;
 }
 
 .resend-error {
-  color: #ff3b30;
+  color: var(--error-color);
   margin-top: 10px;
 }
 </style> 

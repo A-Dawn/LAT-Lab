@@ -24,5 +24,5 @@ def get_db():
 def create_db_and_tables():
     """创建数据库和表"""
     # 导入所有模型以便创建表
-    from src.lat_lab.models import user, article, category, comment, tag, plugin
+    from src.lat_lab.models import user, article, category, comment, tag, plugin, system
     Base.metadata.create_all(bind=engine) 

@@ -27,8 +27,8 @@ npm install
 # 启动开发服务器
 npm run dev
 
-# 构建生产版本
-npm run build
+# 构建生产版本（安全构建，移除开发工具）
+npm run build:prod
 ```
 
 ## 官方网站
