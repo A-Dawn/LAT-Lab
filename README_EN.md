@@ -16,7 +16,7 @@
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Latest-red.svg)
-![License](https://img.shields.io/badge/License-Proprietary-yellow.svg)
+![License](https://img.shields.io/badge/License-Hybrid-orange.svg)
 
 **A modern personal blog system built with FastAPI + Vue.js**
 
@@ -65,10 +65,11 @@ LAT-Lab is a powerful, modern personal blog system with a front-end and back-end
 
 ### 🔌 Plugin Extension System
 - **Plugin Architecture**: Extensible plugin system
-- **Plugin Marketplace**: Built-in plugin marketplace with one-click installation
+- **Plugin Marketplace**: Built-in plugin marketplace with one-click installation ([LAT-Lab-marketplace](https://github.com/A-Dawn/LAT-Lab-marketplace))
 - **Custom Components**: Support for front-end custom widgets
 - **Dynamic Loading**: Plugin hot-loading without restart
 - **Configuration Management**: Independent plugin configuration system
+- **Open Source Plugins**: Plugin ecosystem uses MIT license, fully open source
 
 ### 🛠️ Development Tools System (v1.0.0 New)
 - **Visual Editing**: Real-time page editing and preview
@@ -686,7 +687,7 @@ export default {
 
 ### Participation in Contribution
 
-⚠️ **Important Notice**: This project uses a proprietary license, code contributions require signing the [Contributor License Agreement](./CONTRIBUTOR_LICENSE_AGREEMENT_EN.md)
+⚠️ **Important Notice**: This project uses a hybrid licensing strategy. Plugins and development tools use MIT license, core code contributions require signing the [Contributor License Agreement](./CONTRIBUTOR_LICENSE_AGREEMENT_EN.md)
 
 We welcome the following forms of contribution:
 
@@ -801,21 +802,43 @@ A: The current version mainly supports Chinese, multi-language support is planne
 
 ## 📜 License
 
-**This project uses a proprietary license, copyright belongs to Dawn_ARC.**
+**This project uses a hybrid licensing strategy with different licenses for different components.** See [LICENSE-MAPPING.md](./LICENSE-MAPPING.md) for detailed mapping.
 
-### 📋 License Description
+### 📋 License Distribution
+
+#### 🔒 **Core Business Code** (Proprietary License)
+- **Backend Core**: User authentication, article management, database models, etc.
+- **Frontend Core**: Admin dashboard, editors, user interfaces, etc.
+- **Configuration Files**: Core configuration and routing system
+
+#### 🆓 **Open Source Components** (MIT License)
+- **Plugin System**: Complete plugin architecture and examples ([LAT-Lab-marketplace](https://github.com/A-Dawn/LAT-Lab-marketplace))
+- **Development Tools**: Visual editors, style debugging tools, etc.
+- **Common Components**: Theme switcher, toast notifications, utility functions, etc.
+- **Deployment Scripts**: Docker configs, installation scripts, environment setup, etc.
+
+### 📋 Usage Terms
 - ✅ **Personal Learning**: Fork allowed for personal learning and research
+- ✅ **Plugin Development**: Free to develop and distribute plugins based on the open source plugin system
+- ✅ **Tool Usage**: Development tools can be freely used and modified
 - ✅ **Bug Reports**: Welcome to report issues and suggestions  
 - ✅ **Security Research**: Support responsible security vulnerability disclosure
-- ❌ **Commercial Use**: Commercial use without authorization is prohibited
-- ❌ **Redistribution**: Redistribution or creation of derivative products is prohibited
-- ❌ **Reverse Engineering**: Reverse engineering or cracking is prohibited
+- ❌ **Core Commercial Use**: Core business code cannot be used commercially without authorization
+- ❌ **Core Distribution**: Cannot redistribute core business code or create complete derivative products
 
-### 🤝 Contribution Requirements
-For code contributions, please see [Contributor License Agreement](./CONTRIBUTOR_LICENSE_AGREEMENT_EN.md).
+### 🤝 Contribution Methods
+
+#### 🔓 **Open Source Component Contributions** (Recommended)
+- **Plugin Development**: Contribute plugins directly to [LAT-Lab-marketplace](https://github.com/A-Dawn/LAT-Lab-marketplace)
+- **Tool Improvements**: Submit improvements to development tools and common components
+- **Documentation**: Help improve documentation for open source components
+
+#### 🔒 **Core Code Contributions**
+- Requires signing the [Contributor License Agreement](./CONTRIBUTOR_LICENSE_AGREEMENT_EN.md)
+- For bug fixes and improvements to core functionality
 
 ### 📞 Commercial Licensing
-For commercial use authorization, please contact: `contact@luminarc.tech`
+For commercial use authorization of core code, please contact: `contact@luminarc.tech`
 
 ---
 
