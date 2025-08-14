@@ -534,13 +534,13 @@ except Exception as e:
             with open(wrapper_path, 'w', encoding='utf-8') as f:
                 f.write(wrapper_code)
             
-            # 准备运行参数 
+            # 准备运行参数 - 移除不安全的命令行参数传递
             run_args = [sys.executable, wrapper_path]
             
-            # 通过环境变量传递prompt参数
+            # 通过环境变量安全传递prompt参数，避免命令行注入
             env = os.environ.copy()
             if 'prompt' in params:
-                # 将prompt参数通过环境变量传递
+                # 将prompt参数通过环境变量传递，避免命令行注入风险
                 env['PLUGIN_PROMPT'] = str(params['prompt'])
             else:
                 # 确保环境变量存在，即使没有prompt参数
