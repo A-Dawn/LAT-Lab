@@ -58,9 +58,6 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
     if "email" in update_data:
         update_data.pop("email")
     
-    if "role" in update_data and db_user.role != RoleEnum.admin:
-        update_data.pop("role")
-    
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     

@@ -29,11 +29,6 @@ def update_current_user(
     db: Session = Depends(get_db)
 ):
     """更新当前用户信息"""
-    # 确保普通用户不能修改自己的角色
-    if hasattr(user_update, "role") and user_update.role is not None:
-        user_update_dict = user_update.dict(exclude_unset=True)
-        user_update_dict.pop("role", None)
-        user_update = UserUpdate(**user_update_dict)
     return update_user(db, current_user.id, user_update)
 
 @router.post("/me/avatar", response_model=dict)
