@@ -1,4 +1,12 @@
-# 📄 许可证映射文件 (License Mapping)
+# 📜 许可证映射
+
+<div align="center">
+
+**🌍 Languages / 语言选择**
+
+[![简体中文](https://img.shields.io/badge/License_Mapping-简体中文-blue.svg)](./LICENSE-MAPPING.md) [![English](https://img.shields.io/badge/License_Mapping-English-red.svg)](./LICENSE-MAPPING_EN.md)
+
+</div>
 
 本文件详细说明了 LAT-Lab 项目中各个组件的许可证分布。
 
@@ -183,7 +191,9 @@ THE SOFTWARE.
 - **商业授权**: contact@luminarc.tech
 - **安全问题**: security@luminarc.tech
 
+**注：A-Dawn以及Dawn_ARC为同一人**
+
 ---
 
-最后更新: 2025-08-14
+最后更新: 2025年8月
 版本: v1.0.0 

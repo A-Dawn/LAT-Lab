@@ -1,6 +1,14 @@
-# 👥 Contributors List
+# 👥 Contributors
 
-Thank you to the following contributors for their support of the LAT-Lab project!
+<div align="center">
+
+**🌍 Languages / 语言选择**
+
+[![简体中文](https://img.shields.io/badge/Contributors-简体中文-blue.svg)](./CONTRIBUTORS.md) [![English](https://img.shields.io/badge/Contributors-English-red.svg)](./CONTRIBUTORS_EN.md)
+
+</div>
+
+We would like to thank all the developers who have contributed to the LAT-Lab project!
 
 ---
 
@@ -33,7 +41,9 @@ Thank you to the following contributors for their support of the LAT-Lab project
 ---
 
 ## 🔒 Security Contributors
-*Security researcher list please see [SECURITY_CONTRIBUTORS.md](./SECURITY_CONTRIBUTORS.md)*
+- **[zyy0808](https://github.com/zyy0808)** - Discovered and reported privilege escalation vulnerability
+
+*For more security researchers list please see [SECURITY_CONTRIBUTORS_EN.md](./SECURITY_CONTRIBUTORS_EN.md)*
 
 ---
 
@@ -96,13 +106,14 @@ Thank you to the following contributors for their support of the LAT-Lab project
 
 | Statistics | Count |
 |------------|-------|
-| Total Contributors | 1 |
+| Total Contributors | 2 |
 | Code Contributors | 0 |
 | Documentation Contributors | 0 |
 | Issue Reporters | 0 |
+| Security Contributors | 1 |
 | Idea Contributors | 0 |
 
-*Data updated: 2025-08-14*
+*Data updated: 2025-08-15*
 
 ---
 
@@ -112,6 +123,8 @@ Want to become a contributor? Contact us:
 - **Project Maintainer**: [https://github.com/A-Dawn]
 - **Technical Discussion**: [GitHub Discussions](https://github.com/A-Dawn/LAT-Lab/discussions)
 - **Email Contact**: contact@luminarc.tech
+
+**Note: A-Dawn and Dawn_ARC refer to the same person.**
 
 ---
 

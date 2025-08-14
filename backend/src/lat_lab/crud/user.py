@@ -58,6 +58,11 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
     if "email" in update_data:
         update_data.pop("email")
     
+    # 额外的安全检查，确保普通用户不能修改自己的角色
+    # 防御性编程措施，在API层已经过滤了role字段并再次加固
+    if "role" in update_data and db_user.role != RoleEnum.admin:
+        update_data.pop("role")
+    
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     

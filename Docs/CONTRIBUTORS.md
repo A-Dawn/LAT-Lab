@@ -1,6 +1,14 @@
-# 👥 贡献者名单 (Contributors)
+# 👥 贡献者名单
 
-感谢以下贡献者对LAT-Lab项目的支持！
+<div align="center">
+
+**🌍 Languages / 语言选择**
+
+[![简体中文](https://img.shields.io/badge/Contributors-简体中文-blue.svg)](./CONTRIBUTORS.md) [![English](https://img.shields.io/badge/Contributors-English-red.svg)](./CONTRIBUTORS_EN.md)
+
+</div>
+
+感谢以下所有为LAT-Lab项目做出贡献的开发者！
 
 ---
 
@@ -33,7 +41,9 @@
 ---
 
 ## 🔒 安全贡献者
-*安全研究员名单请查看 [SECURITY_CONTRIBUTORS.md](./SECURITY_CONTRIBUTORS.md)*
+- **[zyy0808](https://github.com/zyy0808)** - 发现并报告权限提升漏洞
+
+*更多安全研究员名单请查看 [SECURITY_CONTRIBUTORS.md](./SECURITY_CONTRIBUTORS.md)*
 
 ---
 
@@ -96,13 +106,14 @@
 
 | 统计项目 | 数量 |
 |---------|------|
-| 总贡献者 | 1 |
+| 总贡献者 | 2 |
 | 代码贡献者 | 0 |
 | 文档贡献者 | 0 |
 | 问题报告者 | 0 |
+| 安全贡献者 | 1 |
 | 想法贡献者 | 0 |
 
-*数据更新时间: 2025-08-14*
+*数据更新时间: 2025-08-15*
 
 ---
 
@@ -112,6 +123,8 @@
 - **项目维护者**: [https://github.com/A-Dawn]
 - **技术讨论**: [GitHub Discussions](https://github.com/A-Dawn/LAT-Lab/discussions)
 - **邮箱联系**: contact@luminarc.tech
+
+**注：A-Dawn以及Dawn_ARC为同一人**
 
 ---
 

@@ -33,7 +33,7 @@ def send_verification_email(email, username, token):
         message = MIMEMultipart()
         message["From"] = settings.MAIL_FROM
         message["To"] = email
-        message["Subject"] = "验证您的DSBlog账号"
+        message["Subject"] = "验证您的LAT-Lab账号"
         
         # 邮件HTML内容
         html = f"""
@@ -52,22 +52,22 @@ def send_verification_email(email, username, token):
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>DSBlog 邮箱验证</h1>
+                    <h1>LAT-Lab 邮箱验证</h1>
                 </div>
                 <div class="content">
                     <p>尊敬的 {username}，</p>
-                    <p>感谢您注册DSBlog！请点击下面的按钮验证您的邮箱地址：</p>
+                    <p>感谢您注册LAT-Lab！请点击下面的按钮验证您的邮箱地址：</p>
                     <p style="text-align: center;">
                         <a href="{verification_link}" class="button">验证邮箱</a>
                     </p>
                     <p>或者，您可以复制以下链接到浏览器地址栏：</p>
                     <p>{verification_link}</p>
                     <p>此链接将在24小时后过期。</p>
-                    <p>如果您没有注册DSBlog账号，请忽略此邮件。</p>
+                    <p>如果您没有注册LAT-Lab账号，请忽略此邮件。</p>
                 </div>
                 <div class="footer">
                     <p>此邮件由系统自动发送，请勿回复。</p>
-                    <p>&copy; {datetime.now().year} DSBlog. 保留所有权利。</p>
+                    <p>&copy; {datetime.now().year} LAT-Lab. 保留所有权利。</p>
                 </div>
             </div>
         </body>

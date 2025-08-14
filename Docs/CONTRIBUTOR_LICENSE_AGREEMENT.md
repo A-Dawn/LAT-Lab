@@ -1,4 +1,12 @@
-# 📄 贡献者许可协议 (Contributor License Agreement)
+# 📝 贡献者许可协议
+
+<div align="center">
+
+**🌍 Languages / 语言选择**
+
+[![简体中文](https://img.shields.io/badge/CLA-简体中文-blue.svg)](./CONTRIBUTOR_LICENSE_AGREEMENT.md) [![English](https://img.shields.io/badge/CLA-English-red.svg)](./CONTRIBUTOR_LICENSE_AGREEMENT_EN.md)
+
+</div>
 
 ## LAT-Lab 项目贡献者许可协议
 
@@ -88,6 +96,8 @@
 - **法律事务**: contact@luminarc.tech  
 - **技术问题**: contact@luminarc.tech
 - **项目维护者**: [https://github.com/A-Dawn]
+
+**注：A-Dawn以及Dawn_ARC为同一人**
 
 ---
 

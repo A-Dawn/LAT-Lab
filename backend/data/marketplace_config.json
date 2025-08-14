@@ -111,7 +111,7 @@
         "/static/screenshots/ai-assistant-1.jpg",
         "/static/screenshots/ai-assistant-2.jpg"
       ],
-      "readme": "# AI 助手插件\n\n集成OpenAI API，为博客提供智能写作、内容优化和问答功能。\n\n## 功能\n\n- 自动生成文章摘要\n- 提供标题建议\n- 关键词提取\n- AI辅助写作\n\n## 安装\n\n1. 下载插件\n2. 上传到你的DSBlog\n3. 在插件管理页面启用\n\n## 配置\n\n需要设置OpenAI API密钥。"
+      "readme": "# AI 助手插件\n\n集成OpenAI API，为博客提供智能写作、内容优化和问答功能。\n\n## 功能\n\n- 自动生成文章摘要\n- 提供标题建议\n- 关键词提取\n- AI辅助写作\n\n## 安装\n\n1. 下载插件\n2. 上传到LAT-Lab\n3. 在插件管理页面启用\n\n## 配置\n\n需要设置OpenAI API密钥。"
     },
     {
       "id": "code-highlighter",
@@ -139,7 +139,7 @@
         "/static/screenshots/code-highlighter-1.jpg",
         "/static/screenshots/code-highlighter-2.jpg"
       ],
-      "readme": "# 代码高亮增强\n\n为博客文章中的代码块提供语法高亮和格式化功能。\n\n## 功能\n\n- 支持多种编程语言\n- 多种高亮主题\n- 代码复制按钮\n- 行号显示\n\n## 安装\n\n1. 下载插件\n2. 上传到你的DSBlog\n3. 在插件管理页面启用"
+      "readme": "# 代码高亮增强\n\n为博客文章中的代码块提供语法高亮和格式化功能。\n\n## 功能\n\n- 支持多种编程语言\n- 多种高亮主题\n- 代码复制按钮\n- 行号显示\n\n## 安装\n\n1. 下载插件\n2. 上传到你的LAT-Lab\n3. 在插件管理页面启用"
     }
   ]
 } 

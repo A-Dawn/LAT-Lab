@@ -80,14 +80,14 @@
       "featured": true
     },
     {
-      "id": "dsblog_utils",
+      "id": "LAT-Lab_utils",
       "name": "博客工具集",
       "description": "提供一系列实用工具函数，帮助博客系统更好地运行",
       "version": "1.0.0",
       "author": "LAT-Lab Team",
       "category_id": 1,
       "tags": ["工具", "实用工具"],
-      "download_url": "plugin_examples/dsblog_utils.py",
+      "download_url": "plugin_examples/LAT-Lab_utils.py",
       "thumbnail": "https://via.placeholder.com/150",
       "featured": false
     }

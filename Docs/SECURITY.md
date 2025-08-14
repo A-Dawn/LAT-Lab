@@ -1,5 +1,13 @@
 # 🔐 安全政策 (Security Policy)
 
+<div align="center">
+
+**🌍 Languages / 语言选择**
+
+[![简体中文](https://img.shields.io/badge/Security-简体中文-blue.svg)](./SECURITY.md) [![English](https://img.shields.io/badge/Security-English-red.svg)](./SECURITY_EN.md)
+
+</div>
+
 ## 支持的版本 (Supported Versions)
 
 我们目前为以下版本提供安全更新：
@@ -126,6 +134,8 @@
 
 - **安全团队邮箱**: security@luminarc.tech
 - **项目维护者**: [https://github.com/A-Dawn]
+
+**注：A-Dawn以及Dawn_ARC为同一人**
 
 ## 🔄 政策更新
 
