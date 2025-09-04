@@ -73,7 +73,15 @@ export default {
       // 设置 data-theme 属性
       document.documentElement.setAttribute('data-theme', theme);
       
-      // 加载对应的CSS主题文件
+      // 在Docker生产环境中，主题样式已经打包，不需要动态加载CSS文件
+      if (import.meta.env.PROD) {
+        console.log('生产环境：主题样式已打包，无需动态加载');
+        // 触发自定义事件，通知应用主题已更改
+        this.$emit('theme-changed', theme);
+        return;
+      }
+      
+      // 开发环境：动态加载CSS主题文件
       const cssFiles = ['theme-light.css', 'theme-dark.css', 'theme-neon.css'];
       cssFiles.forEach(file => {
         const linkId = `theme-${file.replace('.css', '')}`;
@@ -83,7 +91,9 @@ export default {
           linkElement = document.createElement('link');
           linkElement.id = linkId;
           linkElement.rel = 'stylesheet';
-          linkElement.href = `/src/assets/${file}`;
+          // 修复路径问题：在开发环境中使用正确的路径
+          const basePath = '/src/assets/';
+          linkElement.href = basePath + file;
           document.head.appendChild(linkElement);
         }
         

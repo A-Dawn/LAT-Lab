@@ -1,10 +1,8 @@
 from sqlalchemy import Column, Integer, String, Enum, Text, Boolean, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime
-
-Base = declarative_base()
+from src.lat_lab.core.database import Base
 
 class RoleEnum(str, enum.Enum):
     visitor = "visitor"      # 访客

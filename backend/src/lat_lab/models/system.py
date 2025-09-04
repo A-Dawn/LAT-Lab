@@ -2,11 +2,9 @@
 系统配置相关数据模型
 """
 
+from src.lat_lab.core.database import Base
 from sqlalchemy import Column, Integer, String, Text, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-
-Base = declarative_base()
 
 class SystemConfig(Base):
     """系统配置表"""

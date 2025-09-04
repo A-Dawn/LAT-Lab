@@ -54,6 +54,40 @@ def get_public_about_section(db: Session = Depends(get_db)):
             detail="获取配置失败"
         )
 
+@public_router.get("/blog-owner", response_model=Dict[str, Any])
+def get_public_blog_owner(db: Session = Depends(get_db)):
+    """获取博主信息（第一个用户，公开API，不需要权限）"""
+    try:
+        # 获取第一个用户作为博主
+        first_user = db.query(User).order_by(User.id).first()
+        
+        if first_user:
+            return {
+                "success": True,
+                "data": {
+                    "id": first_user.id,
+                    "username": first_user.username,
+                    "avatar": first_user.avatar,
+                    "bio": first_user.bio
+                }
+            }
+        else:
+            # 如果没有用户，返回默认信息
+            return {
+                "success": True,
+                "data": {
+                    "id": None,
+                    "username": "LAT-Lab",
+                    "avatar": None,
+                    "bio": None
+                }
+            }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取博主信息失败"
+        )
+
 
 @router.get("/rate-limit/stats", response_model=Dict[str, Any])
 def get_rate_limit_stats(
@@ -185,3 +219,128 @@ def update_about_section(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="更新配置失败"
         ) 
+
+
+@router.get("/dev-tools-config", response_model=Dict[str, Any])
+def get_dev_tools_config(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取开发工具配置"""
+    try:
+        # 查询系统配置中的开发工具信息
+        config = db.query(SystemConfig).filter(SystemConfig.key == "dev_tools_config").first()
+        
+        if config:
+            dev_tools_data = json.loads(config.value)
+        else:
+            # 默认配置
+            dev_tools_data = {
+                "styles": [],
+                "texts": [],
+                "layouts": [],
+                "page_data": {},
+                "current_page": "current"
+            }
+        
+        return {
+            "success": True,
+            "data": dev_tools_data
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取开发工具配置失败"
+        )
+
+
+@router.put("/dev-tools-config", response_model=Dict[str, Any])
+def update_dev_tools_config(
+    config_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """更新开发工具配置"""
+    try:
+        # 验证数据格式
+        required_fields = ["styles", "texts", "layouts"]
+        for field in required_fields:
+            if field not in config_data:
+                config_data[field] = []
+        
+        # 添加时间戳
+        config_data["last_updated"] = datetime.utcnow().isoformat()
+        
+        # 查询是否存在配置
+        config = db.query(SystemConfig).filter(SystemConfig.key == "dev_tools_config").first()
+        
+        if config:
+            # 更新现有配置
+            config.value = json.dumps(config_data, ensure_ascii=False)
+            config.updated_at = datetime.utcnow()
+        else:
+            # 创建新配置
+            config = SystemConfig(
+                key="dev_tools_config",
+                value=json.dumps(config_data, ensure_ascii=False),
+                description="开发工具配置"
+            )
+            db.add(config)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "开发工具配置更新成功",
+            "data": config_data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="更新开发工具配置失败"
+        )
+
+
+@router.delete("/dev-tools-config", response_model=Dict[str, Any])
+def clear_dev_tools_config(
+    page: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """清除开发工具配置"""
+    try:
+        config = db.query(SystemConfig).filter(SystemConfig.key == "dev_tools_config").first()
+        
+        if config:
+            if page:
+                # 清除特定页面的配置
+                dev_tools_data = json.loads(config.value)
+                if "page_data" in dev_tools_data and page in dev_tools_data["page_data"]:
+                    del dev_tools_data["page_data"][page]
+                    config.value = json.dumps(dev_tools_data, ensure_ascii=False)
+                    config.updated_at = datetime.utcnow()
+                    db.commit()
+                    message = f"页面 {page} 的配置已清除"
+                else:
+                    message = f"页面 {page} 的配置不存在"
+            else:
+                # 清除所有配置
+                db.delete(config)
+                db.commit()
+                message = "所有开发工具配置已清除"
+        else:
+            message = "配置不存在"
+        
+        return {
+            "success": True,
+            "message": message
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="清除开发工具配置失败"
+        )

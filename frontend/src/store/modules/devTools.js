@@ -1,211 +1,7 @@
 // devTools.js - 开发工具的Vuex模块
-// 仅在开发环境下有效
+// 支持API持久化存储
 
-const state = () => ({
-  isEnabled: import.meta.env.DEV,
-  savedChanges: {
-    styles: [],
-    texts: [],
-    layouts: []
-  },
-  exportedCode: null,
-  pageData: {}, // 存储不同页面的修改数据
-  currentPage: 'current' // 当前编辑的页面
-});
-
-const getters = {
-  isEnabled: state => state.isEnabled,
-  savedChanges: state => state.savedChanges,
-  exportedCode: state => state.exportedCode,
-  pageData: state => state.pageData,
-  currentPage: state => state.currentPage,
-  
-  // 获取特定页面的数据
-  getPageData: (state) => (page) => {
-    return state.pageData[page] || null;
-  }
-};
-
-const mutations = {
-  setSavedChanges(state, changes) {
-    state.savedChanges = changes;
-  },
-  setExportedCode(state, code) {
-    state.exportedCode = code;
-  },
-  clearSavedChanges(state) {
-    state.savedChanges = {
-      styles: [],
-      texts: [],
-      layouts: []
-    };
-    state.exportedCode = null;
-  },
-  setCurrentPage(state, page) {
-    state.currentPage = page;
-  },
-  setPageData(state, { page, data }) {
-    state.pageData = {
-      ...state.pageData,
-      [page]: data
-    };
-  },
-  clearPageData(state, page) {
-    if (page) {
-      const newPageData = { ...state.pageData };
-      delete newPageData[page];
-      state.pageData = newPageData;
-    } else {
-      state.pageData = {};
-    }
-  }
-};
-
-const actions = {
-  // 保存更改
-  async saveChanges({ commit, state }, changes) {
-    try {
-      const page = changes.page || 'current';
-      delete changes.page;
-      
-      // 保存当前页面的更改
-      commit('setSavedChanges', changes);
-      
-      // 同时保存到页面数据中
-      commit('setPageData', { 
-        page, 
-        data: {
-          ...changes,
-          timestamp: new Date().toISOString()
-        }
-      });
-      
-      // 生成可导出的代码
-      const code = generateExportableCode(changes);
-      commit('setExportedCode', code);
-      
-      // 如果是在开发环境中，可以将更改保存到本地存储
-      if (import.meta.env.DEV) {
-        // 保存所有页面的数据
-        localStorage.setItem('dev-tools-saved-changes', JSON.stringify(changes));
-        localStorage.setItem('dev-tools-page-data', JSON.stringify(state.pageData));
-      }
-      
-      return { success: true };
-    } catch (error) {
-      console.error('保存更改失败:', error);
-      return { success: false, error };
-    }
-  },
-  
-  // 加载保存的更改
-  loadSavedChanges({ commit }) {
-    try {
-      // 加载当前页面的更改
-      const savedChanges = localStorage.getItem('dev-tools-saved-changes');
-      if (savedChanges) {
-        const changes = JSON.parse(savedChanges);
-        commit('setSavedChanges', changes);
-      }
-      
-      // 加载所有页面的数据
-      const pageData = localStorage.getItem('dev-tools-page-data');
-      if (pageData) {
-        const pages = JSON.parse(pageData);
-        Object.entries(pages).forEach(([page, data]) => {
-          commit('setPageData', { page, data });
-        });
-      }
-      
-      return { success: true, changes: savedChanges ? JSON.parse(savedChanges) : null };
-    } catch (error) {
-      console.error('加载保存的更改失败:', error);
-      return { success: false, error };
-    }
-  },
-  
-  // 清除保存的更改
-  clearSavedChanges({ commit }, page) {
-    commit('clearSavedChanges');
-    
-    if (page) {
-      commit('clearPageData', page);
-    } else {
-      commit('clearPageData');
-    }
-    
-    localStorage.removeItem('dev-tools-saved-changes');
-    
-    if (page) {
-      // 如果指定了页面，只清除该页面的数据
-      const pageData = localStorage.getItem('dev-tools-page-data');
-      if (pageData) {
-        const pages = JSON.parse(pageData);
-        delete pages[page];
-        localStorage.setItem('dev-tools-page-data', JSON.stringify(pages));
-      }
-    } else {
-      // 否则清除所有页面数据
-      localStorage.removeItem('dev-tools-page-data');
-    }
-    
-    return { success: true };
-  },
-  
-  // 设置当前页面
-  setCurrentPage({ commit }, page) {
-    commit('setCurrentPage', page);
-    return { success: true };
-  },
-  
-  // 导出为文件
-  exportToFile({ state }, { format, fileName }) {
-    try {
-      // 根据格式生成代码
-      let code = '';
-      
-      switch (format) {
-        case 'css':
-          code = generateCssCode(state.savedChanges, state.pageData);
-          break;
-        case 'json':
-          code = generateJsonCode(state.savedChanges, state.pageData);
-          break;
-        case 'js':
-          code = generateJsCode(state.savedChanges, state.pageData);
-          break;
-        default:
-          throw new Error(`不支持的格式: ${format}`);
-      }
-      
-      // 创建Blob
-      const blob = new Blob([code], { type: getMimeType(format) });
-      
-      // 创建下载链接
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      
-      // 触发下载
-      document.body.appendChild(link);
-      link.click();
-      
-      // 清理
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('导出文件失败:', error);
-      return { success: false, error };
-    }
-  }
-};
-
-// 生成可导出的代码（CSS变量、样式修改等）
+// 首先声明所有辅助函数，确保在使用前可用
 const generateExportableCode = (changes) => {
   let code = '';
   
@@ -299,59 +95,34 @@ const generateCssCode = (changes, pageData) => {
     });
   }
   
-  // 处理其他页面的样式修改
-  if (pageData && Object.keys(pageData).length > 0) {
-    Object.entries(pageData).forEach(([page, data]) => {
-      if (page !== 'current' && data.styles && data.styles.length > 0) {
-        code += `/* 页面特定样式: ${page} */\n`;
-        code += `/* 注意: 可能需要添加特定的选择器来限制作用域 */\n`;
-        
-        // 生成特定页面的CSS变量
-        if (data.styles && data.styles.length > 0) {
-          code += `/* 页面 ${page} 的CSS变量 */\n`;
-          code += ':root {\n';
-          data.styles.forEach(style => {
-            code += `  ${style.name}: ${style.value}; /* ${page} */\n`;
-          });
-          code += '}\n\n';
-        }
-        
-        // 生成特定页面的布局修改
-        if (data.layouts && data.layouts.length > 0) {
-          code += `/* 页面 ${page} 的布局修改 */\n`;
-          
-          // 按选择器分组
-          const selectorGroups = {};
-          data.layouts.forEach(layout => {
-            if (!selectorGroups[layout.selector]) {
-              selectorGroups[layout.selector] = [];
-            }
-            selectorGroups[layout.selector].push({
-              property: layout.property,
-              value: layout.currentValue
-            });
-          });
-          
-          // 生成CSS规则
-          Object.keys(selectorGroups).forEach(selector => {
-            code += `${selector} {\n`;
-            selectorGroups[selector].forEach(prop => {
-              code += `  ${prop.property}: ${prop.value};\n`;
-            });
-            code += '}\n\n';
-          });
-        }
-      }
-    });
-  }
-  
-  // 文本修改（作为CSS注释）
+  // 处理文本修改
   if (changes.texts && changes.texts.length > 0) {
-    code += '/* 文本修改 */\n';
+    code += '/* 全局文本修改 */\n';
+    code += '/* 注意：文本修改需要在HTML或组件中手动更新 */\n';
     changes.texts.forEach(text => {
       code += `/* ${text.selector}: "${text.currentValue}" */\n`;
     });
     code += '\n';
+  }
+  
+  // 页面特定的修改
+  if (pageData && Object.keys(pageData).length > 0) {
+    Object.entries(pageData).forEach(([page, data]) => {
+      if (page !== 'current' && (data.styles?.length > 0 || data.layouts?.length > 0 || data.texts?.length > 0)) {
+        code += `/* 页面 ${page} 的特定修改 */\n`;
+        code += `/* 注意：页面特定修改需要在相应页面中手动应用 */\n`;
+        if (data.styles && data.styles.length > 0) {
+          code += `/* CSS变量: ${data.styles.map(s => s.name).join(', ')} */\n`;
+        }
+        if (data.layouts && data.layouts.length > 0) {
+          code += `/* 布局修改: ${data.layouts.map(l => l.property).join(', ')} */\n`;
+        }
+        if (data.texts && data.texts.length > 0) {
+          code += `/* 文本修改: ${data.texts.map(t => t.selector).join(', ')} */\n`;
+        }
+        code += '\n';
+      }
+    });
   }
   
   return code;
@@ -359,69 +130,22 @@ const generateCssCode = (changes, pageData) => {
 
 // 生成JSON代码
 const generateJsonCode = (changes, pageData) => {
-  const jsonData = {
-    metadata: {
-      generatedAt: new Date().toISOString(),
-      format: 'LAT-Lab DevTools Export'
-    },
-    globalChanges: {
-      styles: changes.styles.map(style => ({
-        name: style.name,
-        value: style.value,
-        originalValue: style.originalValue
-      })),
-      texts: changes.texts.map(text => ({
-        selector: text.selector,
-        value: text.currentValue,
-        originalValue: text.originalValue
-      })),
-      layouts: changes.layouts.map(layout => ({
-        selector: layout.selector,
-        property: layout.property,
-        value: layout.currentValue,
-        originalValue: layout.originalValue
-      }))
-    },
-    pageSpecificChanges: {}
+  const exportData = {
+    timestamp: new Date().toISOString(),
+    changes: changes,
+    pageData: pageData
   };
   
-  // 添加页面特定的修改
-  if (pageData && Object.keys(pageData).length > 0) {
-    Object.entries(pageData).forEach(([page, data]) => {
-      if (page !== 'current') {
-        jsonData.pageSpecificChanges[page] = {
-          styles: data.styles?.map(style => ({
-            name: style.name,
-            value: style.value,
-            originalValue: style.originalValue
-          })) || [],
-          texts: data.texts?.map(text => ({
-            selector: text.selector,
-            value: text.currentValue,
-            originalValue: text.originalValue
-          })) || [],
-          layouts: data.layouts?.map(layout => ({
-            selector: layout.selector,
-            property: layout.property,
-            value: layout.currentValue,
-            originalValue: layout.originalValue
-          })) || []
-        };
-      }
-    });
-  }
-  
-  return JSON.stringify(jsonData, null, 2);
+  return JSON.stringify(exportData, null, 2);
 };
 
 // 生成JavaScript代码
 const generateJsCode = (changes, pageData) => {
-  let code = '// 自动生成的样式修改\n';
+  let code = '// 自动生成的JavaScript代码\n';
   code += `// 生成时间: ${new Date().toLocaleString()}\n\n`;
   
-  // CSS变量修改
+  // 全局样式修改函数
   if (changes.styles && changes.styles.length > 0) {
-    code += '// 应用全局CSS变量修改\n';
     code += 'function applyGlobalStyleChanges() {\n';
     changes.styles.forEach(style => {
       code += `  document.documentElement.style.setProperty('${style.name}', '${style.value}');\n`;
@@ -429,25 +153,23 @@ const generateJsCode = (changes, pageData) => {
     code += '}\n\n';
   }
   
-  // 布局修改
+  // 全局布局修改函数
   if (changes.layouts && changes.layouts.length > 0) {
-    code += '// 应用全局布局修改\n';
     code += 'function applyGlobalLayoutChanges() {\n';
     changes.layouts.forEach(layout => {
-      code += `  document.querySelectorAll(${JSON.stringify(layout.selector)}).forEach(el => {\n`;
-      code += `    el.style[${JSON.stringify(layout.property)}] = ${JSON.stringify(layout.currentValue)};\n`;
+      code += `  document.querySelectorAll('${layout.selector}').forEach(el => {\n`;
+      code += `    el.style['${layout.property}'] = '${layout.currentValue}';\n`;
       code += '  });\n';
     });
     code += '}\n\n';
   }
   
-  // 文本修改
+  // 全局文本修改函数
   if (changes.texts && changes.texts.length > 0) {
-    code += '// 应用全局文本修改\n';
     code += 'function applyGlobalTextChanges() {\n';
     changes.texts.forEach(text => {
-      code += `  document.querySelectorAll(${JSON.stringify(text.selector)}).forEach(el => {\n`;
-      code += `    el.textContent = ${JSON.stringify(text.currentValue)};\n`;
+      code += `  document.querySelectorAll('${text.selector}').forEach(el => {\n`;
+      code += `    el.textContent = '${text.currentValue}';\n`;
       code += '  });\n';
     });
     code += '}\n\n';
@@ -473,8 +195,8 @@ const generateJsCode = (changes, pageData) => {
         if (data.layouts && data.layouts.length > 0) {
           code += '  // 布局修改\n';
           data.layouts.forEach(layout => {
-            code += `  document.querySelectorAll(${JSON.stringify(layout.selector)}).forEach(el => {\n`;
-            code += `    el.style[${JSON.stringify(layout.property)}] = ${JSON.stringify(layout.currentValue)};\n`;
+            code += `  document.querySelectorAll('${layout.selector}').forEach(el => {\n`;
+            code += `    el.style['${layout.property}'] = '${layout.currentValue}';\n`;
             code += '  });\n';
           });
           code += '\n';
@@ -484,8 +206,8 @@ const generateJsCode = (changes, pageData) => {
         if (data.texts && data.texts.length > 0) {
           code += '  // 文本修改\n';
           data.texts.forEach(text => {
-            code += `  document.querySelectorAll(${JSON.stringify(text.selector)}).forEach(el => {\n`;
-            code += `    el.textContent = ${JSON.stringify(text.currentValue)};\n`;
+            code += `  document.querySelectorAll('${text.selector}').forEach(el => {\n`;
+            code += `    el.textContent = '${text.currentValue}';\n`;
             code += '  });\n';
           });
         }
@@ -538,6 +260,289 @@ const getMimeType = (format) => {
       return 'application/javascript';
     default:
       return 'text/plain';
+  }
+};
+
+// 导入adminApi
+import { adminApi } from '../../services/api'
+
+// 然后声明state
+const state = () => ({
+  isEnabled: true, // 移除环境限制
+  savedChanges: {
+    styles: [],
+    texts: [],
+    layouts: []
+  },
+  exportedCode: null,
+  pageData: {}, // 存储不同页面的修改数据
+  currentPage: 'current' // 当前编辑的页面
+});
+
+// 声明getters
+const getters = {
+  isEnabled: state => state.isEnabled,
+  savedChanges: state => state.savedChanges,
+  exportedCode: state => state.exportedCode,
+  pageData: state => state.pageData,
+  currentPage: state => state.currentPage,
+  
+  // 获取特定页面的数据
+  getPageData: (state) => (page) => {
+    return state.pageData[page] || null;
+  }
+};
+
+// 声明mutations
+const mutations = {
+  setSavedChanges(state, changes) {
+    state.savedChanges = changes;
+  },
+  setExportedCode(state, code) {
+    state.exportedCode = code;
+  },
+  clearSavedChanges(state) {
+    state.savedChanges = {
+      styles: [],
+      texts: [],
+      layouts: []
+    };
+    state.exportedCode = null;
+  },
+  setCurrentPage(state, page) {
+    state.currentPage = page;
+  },
+  setPageData(state, { page, data }) {
+    state.pageData = {
+      ...state.pageData,
+      [page]: data
+    };
+  },
+  clearPageData(state, page) {
+    if (page) {
+      const newPageData = { ...state.pageData };
+      delete newPageData[page];
+      state.pageData = newPageData;
+    } else {
+      state.pageData = {};
+    }
+  },
+  // 新增：设置页面数据的mutation
+  setPageDataAll(state, pageData) {
+    state.pageData = pageData || {}
+  }
+};
+
+// 声明actions
+const actions = {
+  // 保存更改
+  async saveChanges({ commit, state }, changes) {
+    try {
+      const page = changes.page || 'current';
+      delete changes.page;
+      
+      // 保存当前页面的更改
+      commit('setSavedChanges', changes);
+      
+      // 同时保存到页面数据中
+      commit('setPageData', { 
+        page, 
+        data: {
+          ...changes,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      // 生成可导出的代码
+      const code = generateExportableCode(changes);
+      commit('setExportedCode', code);
+      
+      // 准备API数据
+      const apiData = {
+        styles: state.savedChanges.styles,
+        texts: state.savedChanges.texts,
+        layouts: state.savedChanges.layouts,
+        page_data: state.pageData,
+        current_page: page
+      }
+      
+      // 保存到服务器
+      await adminApi.updateDevToolsConfig(apiData)
+      
+      return { success: true };
+    } catch (error) {
+      console.error('保存更改失败:', error);
+      return { success: false, error };
+    }
+  },
+  
+  // 加载保存的更改
+  async loadSavedChanges({ commit, state }, { force = false } = {}) {
+    try {
+      // 1. 从本地存储加载
+      const savedData = JSON.parse(localStorage.getItem('devToolsPageData') || '{}')
+      const localLastUpdated = savedData.lastUpdated || 0
+      
+      // 2. 如果本地有数据且不强制刷新，则检查更新
+      if (Object.keys(savedData).length > 0 && !force) {
+        try {
+          // 检查服务器是否有更新
+          const serverData = await adminApi.getDevToolsConfig()
+          
+          if (serverData && serverData.lastUpdated > localLastUpdated) {
+            // 服务器有更新，使用服务器数据
+            const dataToSave = {
+              ...serverData,
+              lastUpdated: serverData.lastUpdated || Date.now()
+            }
+            localStorage.setItem('devToolsPageData', JSON.stringify(dataToSave))
+            commit('setPageDataAll', dataToSave)
+            return dataToSave
+          } else {
+            // 使用本地数据
+            commit('setPageDataAll', savedData)
+            return savedData
+          }
+        } catch (e) {
+          // 如果获取服务器数据失败，使用本地数据
+          console.warn('获取服务器数据失败，使用本地缓存', e)
+          commit('setPageDataAll', savedData)
+          return savedData
+        }
+      }
+      
+      // 3. 从后端加载
+      const response = await adminApi.getDevToolsConfig()
+      
+      if (response && response.data) {
+        // 4. 保存到本地存储
+        const dataToSave = {
+          ...response.data,
+          lastUpdated: response.lastUpdated || Date.now()
+        }
+        localStorage.setItem('devToolsPageData', JSON.stringify(dataToSave))
+        
+        // 5. 更新Vuex状态
+        commit('setPageDataAll', dataToSave)
+        
+        return dataToSave
+      } else {
+        // 6. 如果没有数据，清空本地存储和状态
+        localStorage.removeItem('devToolsPageData')
+        commit('setPageDataAll', {})
+        return {}
+      }
+    } catch (error) {
+      console.error('加载保存的更改失败:', error)
+      // 出错时尝试使用本地缓存
+      try {
+        const savedData = JSON.parse(localStorage.getItem('devToolsPageData') || '{}')
+        if (Object.keys(savedData).length > 0) {
+          commit('setPageDataAll', savedData)
+          return savedData
+        }
+      } catch (e) {
+        console.error('加载本地缓存失败:', e)
+      }
+      throw error
+    }
+  },
+  
+  // 新增：按页面保存更改
+  async savePageChanges({ commit, state }, { page, changes }) {
+    try {
+      // 准备要保存的页面数据
+      const pageData = {
+        ...changes,
+        lastUpdated: Date.now()
+      }
+      
+      // 保存到Vuex状态
+      commit('setPageData', { 
+        page, 
+        data: pageData
+      });
+      
+      // 更新本地存储
+      const savedData = JSON.parse(localStorage.getItem('devToolsPageData') || '{}')
+      savedData[page] = pageData
+      savedData.lastUpdated = Date.now()
+      localStorage.setItem('devToolsPageData', JSON.stringify(savedData))
+      
+      // 准备API数据（包含所有页面的数据）
+      const apiData = {
+        styles: [],
+        texts: [],
+        layouts: [],
+        page_data: { ...state.pageData, [page]: pageData },
+        current_page: page,
+        lastUpdated: Date.now()
+      }
+      
+      // 保存到服务器
+      await adminApi.updateDevToolsConfig(apiData)
+      
+      return { success: true };
+    } catch (error) {
+      console.error('保存页面更改失败:', error);
+      return { success: false, error };
+    }
+  },
+  
+  // 新增：获取特定页面的配置
+  getPageConfig({ state }, page) {
+    const currentPage = page || 'current'
+    return state.pageData[currentPage] || {
+      styles: [],
+      texts: [],
+      layouts: []
+    }
+  },
+  
+  // 导出为文件
+  exportToFile({ state }, { format, fileName }) {
+    try {
+      // 根据格式生成代码
+      let code = '';
+      
+      switch (format) {
+        case 'css':
+          code = generateCssCode(state.savedChanges, state.pageData);
+          break;
+        case 'json':
+          code = generateJsonCode(state.savedChanges, state.pageData);
+          break;
+        case 'js':
+          code = generateJsCode(state.savedChanges, state.pageData);
+          break;
+        default:
+          throw new Error(`不支持的格式: ${format}`);
+      }
+      
+      // 创建Blob
+      const blob = new Blob([code], { type: getMimeType(format) });
+      
+      // 创建下载链接
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      
+      // 触发下载
+      document.body.appendChild(link);
+      link.click();
+      
+      // 清理
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('导出文件失败:', error);
+      return { success: false, error };
+    }
   }
 };
 

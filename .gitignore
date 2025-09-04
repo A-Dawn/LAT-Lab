@@ -1,0 +1,244 @@
+﻿# =======================
+# 环境变量和配置文件
+# =======================
+# 环境配置文件（包含敏感信息如API密钥、数据库密码等）
+.env
+
+# =======================
+# Python 相关
+# =======================
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+
+# Python 包管理
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.eggs/
+
+# 测试和覆盖率报告
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# =======================
+# Node.js/前端相关
+# =======================
+# 依赖包
+node_modules/
+
+# 构建产物
+dist/
+dist-ssr/
+build/
+
+# 日志文件
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 前端环境变量
+*.local
+
+# 开发工具备份
+.dev-tools-backup/
+
+# =======================
+# 数据库文件
+# =======================
+# SQLite 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 数据目录中的敏感文件
+backend/data/blog.db
+backend/data/*.log
+
+# =======================
+# 上传文件和用户内容
+# =======================
+# 用户上传的文件（头像等）
+backend/uploads/avatars/*
+!backend/uploads/avatars/.gitkeep
+# 其他上传文件
+backend/uploads/articles/*
+backend/uploads/images/*
+uploads/
+
+# =======================
+# 插件相关
+# =======================
+# 用户安装的插件
+backend/plugins/*
+!backend/plugins/.gitkeep
+plugins/
+
+# =======================
+# IDE 和编辑器文件
+# =======================
+# VSCode
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# IntelliJ IDEA
+.idea/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# Visual Studio
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# =======================
+# 操作系统文件
+# =======================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =======================
+# 临时文件和缓存
+# =======================
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.backup
+*~
+
+# 系统缓存
+.cache/
+*.cache
+
+# =======================
+# 部署和Docker相关
+# =======================
+# Docker构建缓存
+.dockerignore.bak
+
+# 部署脚本生成的文件
+*.pid
+
+# =======================
+# 日志和监控
+# =======================
+# 应用日志
+logs/
+*.log
+
+# 监控和性能分析
+*.prof
+*.heap
+
+# =======================
+# 备份和归档
+# =======================
+# 备份文件
+*.backup
+*.bak
+*.orig
+*.rej
+
+# 压缩包
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# =======================
+# 开发工具
+# =======================
+# 测试覆盖率
+coverage/
+.nyc_output
+
+# 性能分析
+.clinic/
+.0x/
+
+# =======================
+# 项目特定忽略
+# =======================
+# 博客系统特定的敏感文件
+backend/data/lat_lab.log
+backend/data/marketplace_config.json
+
+# 开发时的测试文件
+test_*.py
+*_test.py
+test_*
+*_test

@@ -47,6 +47,7 @@
   
   /* 悬浮颜色 */
   --hover-color: rgba(67, 97, 238, 0.06);
+  --bg-hover: rgba(67, 97, 238, 0.06);
   
   /* 英雄区域背景 - 更渐变更平滑 */
   --hero-gradient: linear-gradient(135deg, #4361ee 0%, #3f51b5 100%);

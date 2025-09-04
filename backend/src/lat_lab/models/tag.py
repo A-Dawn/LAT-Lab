@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import relationship
-from .user import Base
+from src.lat_lab.core.database import Base
 
 # 文章和标签之间的多对多关系关联表
 article_tags = Table(

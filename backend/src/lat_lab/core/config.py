@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     DB_TYPE: str = os.getenv("DB_TYPE", "sqlite")  # "sqlite" 或 "mysql"
     MYSQL_USER: str = os.getenv("MYSQL_USER", "root")
     MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "password")
-    MYSQL_HOST: str = os.getenv("MYSQL_HOST", "localhost")
+    MYSQL_HOST: str = os.getenv("MYSQL_HOST", "db")
     MYSQL_PORT: int = int(os.getenv("MYSQL_PORT", 3306))
     MYSQL_DB: str = os.getenv("MYSQL_DB", "blog_db")
     
@@ -45,14 +45,14 @@ class Settings(BaseSettings):
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "your-email@example.com")  
     MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "your-password")  
     MAIL_FROM: str = os.getenv("MAIL_FROM", "your-email@example.com")  
-    MAIL_TLS: bool = True
-    MAIL_SSL: bool = False
+    MAIL_TLS: bool = os.getenv("MAIL_TLS", "true").lower() == "true"
+    MAIL_SSL: bool = os.getenv("MAIL_SSL", "false").lower() == "true"
     
     # 验证令牌设置
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24  # 验证令牌24小时过期
     
     # 网站基础URL
-    BASE_URL: str = os.getenv("BASE_URL", "http://localhost:5173")
+    BASE_URL: str = os.getenv("BASE_URL", "http://localhost")
     
     # CORS设置
     CORS_ORIGINS: List[str] = ["*"]
@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     AVATARS_DIR: Path = UPLOADS_DIR / "avatars"
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
 
-    # 速率限制配置 - 调整为开发友好的默认值
+    # 速率限制配置
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_LOGIN_REQUESTS: int = 50   # 登录每分钟最多50次（从10次增加）
     RATE_LIMIT_LOGIN_WINDOW: int = 60     # 时间窗口60秒
@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_UPLOAD_WINDOW: int = 60    # 时间窗口60秒
     RATE_LIMIT_PLUGIN_REQUESTS: int = 100 # 插件运行每分钟最多100次（从20次增加）
     RATE_LIMIT_PLUGIN_WINDOW: int = 60    # 时间窗口60秒
+    RATE_LIMIT_RESEND_VERIFICATION_REQUESTS: int = 1  # 验证邮件重发每180秒最多1次
+    RATE_LIMIT_RESEND_VERIFICATION_WINDOW: int = 180  # 时间窗口180秒
 
     # 插件市场配置
     PLUGIN_MARKETPLACE_SOURCE: str = "local"  # local 或 git

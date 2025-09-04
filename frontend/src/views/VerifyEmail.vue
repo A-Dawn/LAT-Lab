@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { verifyEmail } from '../services/api'
 
@@ -10,6 +10,7 @@ const status = ref('verifying') // verifying, success, error
 const message = ref('')
 const countdown = ref(5)
 const token = ref('')
+let countdownTimer = null
 
 onMounted(async () => {
   // 从URL获取验证令牌，并进行基本验证
@@ -40,11 +41,14 @@ onMounted(async () => {
     // 设置刚刚验证成功的标记
     localStorage.setItem('just_verified', 'true')
     
+    // 清除可能存在的token，确保用户重新登录
+    localStorage.removeItem('token')
+    
     // 倒计时后跳转到登录页
-    const timer = setInterval(() => {
+    countdownTimer = setInterval(() => {
       countdown.value--
       if (countdown.value <= 0) {
-        clearInterval(timer)
+        clearInterval(countdownTimer)
         router.push('/login?verified=true')
       }
     }, 1000)
@@ -53,10 +57,25 @@ onMounted(async () => {
     // 验证失败
     console.error('验证失败:', error)
     status.value = 'error'
-    message.value = error.response?.data?.detail || '验证失败，请重试'
+    
+    // 根据错误类型提供更具体的错误信息
+    if (error.response?.status === 400) {
+      message.value = '验证令牌无效或已过期，请重新申请验证邮件'
+    } else if (error.response?.status === 409) {
+      message.value = '邮箱已验证，无需重复验证'
+    } else {
+      message.value = error.response?.data?.detail || '验证失败，请重试'
+    }
     
     // 存储错误状态到本地存储
     localStorage.setItem('verification_error', 'true')
+  }
+})
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
   }
 })
 </script>

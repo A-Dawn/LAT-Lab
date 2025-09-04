@@ -1,12 +1,12 @@
 /* 霓虹主题 - 科幻风格 */
 :root[data-theme="neon"] {
-  /* 主色调 - 更鲜艳的霓虹色调 */
-  --primary-color: #00dfff;
-  --secondary-color: #fc28fb;
-  --accent-color: #ffec44;
-  --primary-rgb: 0, 223, 255;
-  --secondary-rgb: 252, 40, 251;
-  --accent-rgb: 255, 236, 68;
+  /* 主色调 - 霓虹色彩 */
+  --primary-color: #00ffff;
+  --secondary-color: #ff00ff;
+  --accent-color: #ffff00;
+  --primary-color-rgb: 0, 255, 255;
+  --secondary-color-rgb: 255, 0, 255;
+  --accent-color-rgb: 255, 255, 0;
   
   /* 背景色 - 更深邃的暗色背景 */
   --bg-primary: #08091b;
@@ -50,7 +50,8 @@
   --info-color-rgb: 0, 179, 255;
   
   /* 悬浮颜色 */
-  --hover-color: rgba(0, 223, 255, 0.08);
+  --hover-color: rgba(0, 255, 255, 0.15);
+  --bg-hover: rgba(0, 255, 255, 0.15);
   
   /* 霓虹发光效果 - 更加微妙 */
   --glow-primary: 0 0 10px rgba(0, 223, 255, 0.3), 0 0 15px rgba(0, 223, 255, 0.1);

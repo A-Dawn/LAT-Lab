@@ -1,55 +1,145 @@
+version: '3.8'
+
 services:
   db:
     image: mysql:8.0
-    restart: always
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '${DB_CPU_LIMIT:-1}'
+          memory: ${DB_MEMORY_LIMIT:-512M}
+        reservations:
+          memory: ${DB_MEMORY_RESERVATION:-384M}
     environment:
-      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-your_root_password}"
-      MYSQL_DATABASE: "${MYSQL_DATABASE:-lat_lab_db}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root_password_123}"
+      MYSQL_DATABASE: "${MYSQL_DB:-lat_lab_db}"
       MYSQL_USER: "${MYSQL_USER:-lat_lab_user}"
       MYSQL_PASSWORD: "${MYSQL_PASSWORD:-your_db_password}"
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3307}:3306"
     volumes:
       - db_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password
+      - ./backend/scripts/init-db-mysql.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password_123}"]
+      timeout: ${DB_HEALTH_TIMEOUT:-20s}
+      retries: ${DB_HEALTH_RETRIES:-10}
+      interval: ${DB_HEALTH_INTERVAL:-30s}
+      start_period: ${DB_HEALTH_START_PERIOD:-40s}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILES:-3}"
 
   backend:
-    build: ./backend
-    # 修改为新的入口点路径
-    command: ["python", "-m", "src.lat_lab.main"]
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '${BACKEND_CPU_LIMIT:-1}'
+          memory: ${BACKEND_MEMORY_LIMIT:-384M}
+        reservations:
+          memory: ${BACKEND_MEMORY_RESERVATION:-256M}
+    command: ["/app/start.sh"]
     volumes:
-      - ./backend/src:/app/src
-      - ./backend/data:/app/data
+      - ./backend/src:/app/src:ro
+      - ./backend/data:/app/data:ro
       - ./backend/uploads:/app/uploads
-      - ./backend/plugins:/app/plugins
+      - ./backend/plugins:/app/plugins:ro
+    env_file:
+      - .env
     environment:
-      DB_TYPE: "${DB_TYPE:-mysql}"
-      MYSQL_USER: "${MYSQL_USER:-lat_lab_user}"
-      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-your_db_password}"
-      MYSQL_HOST: "db"
-      MYSQL_PORT: "3306"
-      MYSQL_DB: "${MYSQL_DATABASE:-lat_lab_db}"
-      SECRET_KEY: "${SECRET_KEY:-}"
-      DEBUG: "${DEBUG:-False}"
-      BASE_URL: "${BASE_URL:-http://localhost:5173}"
+      - DB_TYPE=${DB_TYPE:-mysql}
+      - MYSQL_USER=${MYSQL_USER:-lat_lab_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-your_db_password}
+      - MYSQL_HOST=${MYSQL_HOST:-db}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_DB=${MYSQL_DB:-lat_lab_db}
+      - SECRET_KEY=${SECRET_KEY:-your_very_long_and_secure_secret_key_here_minimum_32_chars_for_development}
+      - DEBUG=${DEBUG:-False}
+      - BASE_URL=${BASE_URL:-http://localhost}
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=${PORT:-8000}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      - VERIFICATION_TOKEN_EXPIRE_HOURS=${VERIFICATION_TOKEN_EXPIRE_HOURS:-24}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
+      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE:-5242880}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-True}
+      - RATE_LIMIT_LOGIN_REQUESTS=${RATE_LIMIT_LOGIN_REQUESTS:-50}
+      - RATE_LIMIT_LOGIN_WINDOW=${RATE_LIMIT_LOGIN_WINDOW:-60}
+      - RATE_LIMIT_API_REQUESTS=${RATE_LIMIT_API_REQUESTS:-1000}
+      - RATE_LIMIT_API_WINDOW=${RATE_LIMIT_API_WINDOW:-60}
+      - RATE_LIMIT_UPLOAD_REQUESTS=${RATE_LIMIT_UPLOAD_REQUESTS:-50}
+      - RATE_LIMIT_UPLOAD_WINDOW=${RATE_LIMIT_UPLOAD_WINDOW:-60}
+      - RATE_LIMIT_PLUGIN_REQUESTS=${RATE_LIMIT_PLUGIN_REQUESTS:-100}
+      - RATE_LIMIT_PLUGIN_WINDOW=${RATE_LIMIT_PLUGIN_WINDOW:-60}
+      - PLUGIN_SANDBOX_ENABLED=${PLUGIN_SANDBOX_ENABLED:-True}
+      - PLUGIN_TIMEOUT_SECONDS=${PLUGIN_TIMEOUT_SECONDS:-5}
+      - PLUGIN_MARKETPLACE_SOURCE=${PLUGIN_MARKETPLACE_SOURCE:-local}
+      - PLUGIN_MARKETPLACE_GIT_REPO=${PLUGIN_MARKETPLACE_GIT_REPO:-}
+      - PLUGIN_MARKETPLACE_GIT_BRANCH=${PLUGIN_MARKETPLACE_GIT_BRANCH:-main}
+      - PLUGIN_MARKETPLACE_GIT_PATH=${PLUGIN_MARKETPLACE_GIT_PATH:-marketplace_config.json}
+      - PLUGIN_MARKETPLACE_GIT_TOKEN=${PLUGIN_MARKETPLACE_GIT_TOKEN:-}
+      - PLUGIN_MARKETPLACE_CACHE_TTL=${PLUGIN_MARKETPLACE_CACHE_TTL:-3600}
     ports:
-      - "45609:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://0.0.0.0:8000/health')"]
+      timeout: ${BACKEND_HEALTH_TIMEOUT:-30s}
+      retries: ${BACKEND_HEALTH_RETRIES:-10}
+      interval: ${BACKEND_HEALTH_INTERVAL:-30s}
+      start_period: ${BACKEND_HEALTH_START_PERIOD:-120s}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILES:-3}"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=/api
-        - VITE_UPLOAD_URL=/uploads
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
+        - VITE_UPLOAD_URL=${VITE_UPLOAD_URL:-/uploads}
+        - VITE_ENABLE_DEV_TOOLS=${VITE_ENABLE_DEV_TOOLS:-false}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '${FRONTEND_CPU_LIMIT:-0.5}'
+          memory: ${FRONTEND_MEMORY_LIMIT:-192M}
+        reservations:
+          memory: ${FRONTEND_MEMORY_RESERVATION:-128M}
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
     volumes:
-      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./frontend/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./backend/uploads:/app/uploads:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      timeout: ${FRONTEND_HEALTH_TIMEOUT:-10s}
+      retries: ${FRONTEND_HEALTH_RETRIES:-5}
+      interval: ${FRONTEND_HEALTH_INTERVAL:-30s}
+      start_period: ${FRONTEND_HEALTH_START_PERIOD:-40s}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILES:-3}"
 
 volumes:
-  db_data: 
+  db_data:
+    driver: local 

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .user import Base
+from src.lat_lab.core.database import Base
 import enum
 
 class ArticleStatus(str, enum.Enum):
@@ -46,6 +46,7 @@ class Article(Base):
     is_pinned = Column(Boolean, default=False)
     view_count = Column(Integer, default=0)
     likes_count = Column(Integer, default=0)
+    is_approved = Column(Boolean, default=False)  # 添加审核字段
     status = Column(Enum(ArticleStatus), default=ArticleStatus.published, nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True)
     visibility = Column(Enum(ArticleVisibility), default=ArticleVisibility.public, nullable=False)

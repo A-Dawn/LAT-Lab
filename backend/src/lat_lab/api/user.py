@@ -9,6 +9,8 @@ from src.lat_lab.core.deps import get_db, get_current_user, get_current_admin_us
 from src.lat_lab.models.user import User
 from src.lat_lab.core.security import get_password_hash
 from src.lat_lab.utils.security import secure_filename
+from src.lat_lab.utils.username_validator import validate_username
+from src.lat_lab.models.user import RoleEnum
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -34,7 +36,68 @@ def update_current_user(
         user_update_dict = user_update.dict(exclude_unset=True)
         user_update_dict.pop("role", None)
         user_update = UserUpdate(**user_update_dict)
-    return update_user(db, current_user.id, user_update)
+    
+    # 如果更新用户名，进行验证
+    if user_update.username is not None:
+        # 管理员可以绕过保留用户名限制
+        allow_reserved = current_user.role == RoleEnum.admin
+        is_valid, error_message = validate_username(user_update.username, allow_reserved=allow_reserved)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_message
+            )
+    
+    try:
+        return update_user(db, current_user.id, user_update)
+    except ValueError as e:
+        # 处理用户名重复错误
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.put("/me/username", response_model=UserOut)
+def update_username(
+    username_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    修改用户名
+    
+    注意：由于系统现在使用邮箱作为主要登录标识符，
+    修改用户名不会影响JWT token的有效性。
+    """
+    new_username = username_data.get("username")
+    if not new_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="用户名不能为空"
+        )
+    
+    # 使用用户名验证工具进行验证
+    is_valid, error_message = validate_username(new_username, allow_reserved=current_user.role == RoleEnum.admin)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message
+        )
+    
+    try:
+        user_update = UserUpdate(username=new_username)
+        updated_user = update_user(db, current_user.id, user_update)
+        
+        # 返回更新后的用户信息，包含提示信息
+        return {
+            **updated_user.__dict__,
+            "message": "用户名修改成功！由于系统使用邮箱作为登录标识符，您的登录状态不会受到影响。"
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.post("/me/avatar", response_model=dict)
 async def upload_avatar(
@@ -117,7 +180,25 @@ def update_user_by_admin(
             detail="邮箱作为身份标识符不允许修改"
         )
     
-    return update_user(db, user_id, user_update)
+    # 如果更新用户名，进行验证
+    if user_update.username is not None:
+        # 管理员可以绕过保留用户名限制
+        allow_reserved = current_user.role == RoleEnum.admin
+        is_valid, error_message = validate_username(user_update.username, allow_reserved=allow_reserved)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_message
+            )
+    
+    try:
+        return update_user(db, user_id, user_update)
+    except ValueError as e:
+        # 处理用户名重复错误
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.post("/{user_id}/reset-password", response_model=dict)
 def reset_user_password(

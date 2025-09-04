@@ -50,6 +50,7 @@ def get_articles(
     current_user_id: Optional[int] = None,
     include_drafts: bool = False,
     include_future: bool = False,
+    include_pending: bool = False,  # 新增参数：是否包含待审核文章
 ):
     """
     获取文章列表，添加权限控制和草稿状态过滤
@@ -78,6 +79,21 @@ def get_articles(
             (Article.content.like(search_term)) |
             (Article.summary.like(search_term))
         )
+    
+    # 审核状态处理
+    if not include_pending:
+        # 仅显示已审核文章，除非是作者查看自己的文章
+        if current_user_id:
+            # 当前用户可以看到自己的待审核文章
+            query = query.filter(
+                or_(
+                    Article.is_approved == True,
+                    Article.author_id == current_user_id
+                )
+            )
+        else:
+            # 未登录用户只能看到已审核的文章
+            query = query.filter(Article.is_approved == True)
     
     # 草稿文章处理
     if not include_drafts:
@@ -149,7 +165,7 @@ def get_articles(
     
     return articles
 
-def create_article(db: Session, article: ArticleCreate, author_id: int):
+def create_article(db: Session, article: ArticleCreate, author_id: int, auto_approve: bool = False):
     # 处理发布时间逻辑
     published_at = None
     if article.status == ArticleStatus.published:
@@ -170,7 +186,8 @@ def create_article(db: Session, article: ArticleCreate, author_id: int):
         status=article.status,
         published_at=published_at,
         visibility=article.visibility,
-        password=article.password
+        password=article.password,
+        is_approved=auto_approve  # 根据auto_approve参数设置审核状态
     )
     db.add(db_article)
     db.commit()

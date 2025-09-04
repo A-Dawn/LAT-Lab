@@ -88,7 +88,8 @@ const fetchArticles = async () => {
     
     const params = {
       skip: (currentPage.value - 1) * pageSize.value,
-      limit: pageSize.value
+      limit: pageSize.value,
+      include_pending: false  // 只获取已审核的文章
     }
     
     if (selectedCategory.value) {

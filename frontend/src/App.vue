@@ -3,16 +3,28 @@ import { computed, ref, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import ThemeSwitch from './components/ThemeSwitch.vue'
+import DevToolsStyleApplier from './components/DevToolsStyleApplier.vue'
+import PageTransition from './components/PageTransition.vue'
+import { usePageTransition } from './composables/usePageTransition'
+import toast from './utils/toast'
 
 const store = useStore()
 const router = useRouter()
+const { currentTransition, transitionDuration } = usePageTransition()
 const isDropdownOpen = ref(false)
 
 const isAuthenticated = computed(() => store.getters.isAuthenticated)
 const currentUser = computed(() => store.getters.currentUser)
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const isGuestMode = computed(() => store.getters.isGuestMode)
 
 onMounted(async () => {
+  // 检查访客模式状态
+  const guestMode = localStorage.getItem('guest_mode') === 'true'
+  if (guestMode) {
+    store.commit('setGuestMode', true)
+  }
+  
   if (localStorage.getItem('token')) {
     await store.dispatch('fetchCurrentUser')
   }
@@ -44,80 +56,144 @@ const logout = () => {
   closeDropdown()
 }
 
+const exitGuestMode = () => {
+  store.dispatch('exitGuestMode')
+  router.push('/login')
+  closeDropdown()
+}
+
+const handleWriteArticleClick = () => {
+  if (isGuestMode.value) {
+    toast.warning('访问受限制，需要登录后才能写文章')
+  } else if (isAuthenticated.value) {
+    router.push('/article/new')
+  } else {
+    router.push('/login')
+  }
+}
+
 const getAvatarUrl = (path) => {
   if (!path) return null
+  // 如果已经是完整URL，则直接返回
   if (path.startsWith('http')) return path
-  return `http://localhost:8000${path}`
+  // 确保路径以斜杠开头
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  // 如果路径已经包含/uploads，则直接返回，避免重复
+  if (cleanPath.includes('/uploads/')) return cleanPath
+  // 否则添加基础路径，但要避免重复的/uploads
+  const baseUrl = (import.meta.env.VITE_UPLOAD_URL || '').replace(/\/?$/, '')
+  // 如果基础URL和路径都以/uploads开头，则只使用路径
+  if (baseUrl.endsWith('/uploads') && cleanPath.startsWith('/uploads/')) {
+    return cleanPath
+  }
+  return `${baseUrl}${cleanPath}`
 }
 </script>
 
 <template>
   <div class="app-container" @click="closeDropdown">
-    <!-- 全局导航栏 -->
-    <header class="app-header">
-      <div class="header-container">
-        <div class="logo">
-          <router-link to="/">
-            <span class="logo-text">LAT-Lab</span>
-            <span class="logo-dot">.</span>
-          </router-link>
-        </div>
-        
-        <nav class="main-nav">
-          <ul class="nav-list">
-            <li class="nav-item">
-              <router-link to="/" class="nav-link">首页</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/article/new" class="nav-link">写文章</router-link>
-            </li>
-          </ul>
-        </nav>
-        
-        <div class="user-actions">
-          <!-- 主题切换 -->
-          <ThemeSwitch @theme-changed="theme => $forceUpdate()" />
-          
-          <template v-if="isAuthenticated">
-            <div class="user-dropdown">
-              <div class="user-info" @click.stop="toggleDropdown">
-                <div v-if="currentUser.avatar" class="avatar">
-                  <img :src="getAvatarUrl(currentUser.avatar)" :alt="`${currentUser.username}的头像`" class="avatar-img" />
-                </div>
-                <div v-else class="avatar">{{ currentUser.username ? currentUser.username.charAt(0).toUpperCase() : '?' }}</div>
-                <span class="username">{{ currentUser.username }}</span>
-                <span class="dropdown-arrow">▼</span>
-              </div>
-              
-              <div class="dropdown-menu" v-show="isDropdownOpen" @click.stop>
-                <router-link to="/profile" class="dropdown-item" @click="closeDropdown">
-                  <span class="dropdown-icon">👤</span>
-                  个人中心
-                </router-link>
-                <router-link v-if="isAdmin" to="/admin" class="dropdown-item" @click="closeDropdown">
-                  <span class="dropdown-icon">⚙️</span>
-                  管理员面板
-                </router-link>
-                <button @click="logout" class="dropdown-item">
-                  <span class="dropdown-icon">🚪</span>
-                  退出登录
-                </button>
-              </div>
-            </div>
-          </template>
-          
-          <template v-else>
-            <router-link to="/login" class="login-button">登录</router-link>
-            <router-link to="/register" class="register-button">注册</router-link>
-          </template>
-        </div>
-      </div>
-    </header>
     
-    <!-- 主要内容 -->
-    <main class="app-main">
-      <router-view />
-    </main>
+    <DevToolsStyleApplier>
+      <!-- 全局导航栏 -->
+      <header class="app-header">
+        <div class="header-container">
+          <div class="logo">
+            <router-link to="/">
+              <span class="logo-text">LAT-Lab</span>
+              <span class="logo-dot">.</span>
+            </router-link>
+          </div>
+          
+          <nav class="main-nav">
+            <ul class="nav-list">
+              <li class="nav-item">
+                <router-link to="/" class="nav-link">首页</router-link>
+              </li>
+              <li class="nav-item">
+                <a 
+                  href="#" 
+                  class="nav-link" 
+                  @click.prevent="handleWriteArticleClick"
+                >
+                  写文章
+                </a>
+              </li>
+            </ul>
+          </nav>
+          
+          <div class="user-actions">
+            <!-- 主题切换 -->
+            <ThemeSwitch @theme-changed="theme => $forceUpdate()" />
+            
+            <template v-if="isAuthenticated">
+              <div class="user-dropdown">
+                <div class="user-info" @click.stop="toggleDropdown">
+                  <div v-if="currentUser.avatar" class="avatar">
+                    <img :src="getAvatarUrl(currentUser.avatar)" :alt="`${currentUser.username}的头像`" class="avatar-img" />
+                  </div>
+                  <div v-else class="avatar">{{ currentUser.username ? currentUser.username.charAt(0).toUpperCase() : '?' }}</div>
+                  <span class="username">{{ currentUser.username }}</span>
+                  <span class="dropdown-arrow">▼</span>
+                </div>
+                
+                <div class="dropdown-menu" v-show="isDropdownOpen" @click.stop>
+                  <router-link to="/profile" class="dropdown-item" @click="closeDropdown">
+                    <span class="dropdown-icon">👤</span>
+                    个人中心
+                  </router-link>
+                  <router-link v-if="isAdmin" to="/admin" class="dropdown-item" @click="closeDropdown">
+                    <span class="dropdown-icon">⚙️</span>
+                    管理员面板
+                  </router-link>
+                  <button @click="logout" class="dropdown-item">
+                    <span class="dropdown-icon">🚪</span>
+                    退出登录
+                  </button>
+                </div>
+              </div>
+            </template>
+            
+            <template v-else-if="isGuestMode">
+              <div class="user-dropdown">
+                <div class="user-info" @click.stop="toggleDropdown">
+                  <div class="avatar guest-avatar">🚶</div>
+                  <span class="username">访客模式</span>
+                  <span class="dropdown-arrow">▼</span>
+                </div>
+                
+                <div class="dropdown-menu" v-show="isDropdownOpen" @click.stop>
+                  <div class="dropdown-item guest-info">
+                    <span class="dropdown-icon">ℹ️</span>
+                    访客模式 - 仅可浏览内容
+                  </div>
+                  <button @click="exitGuestMode" class="dropdown-item">
+                    <span class="dropdown-icon">🚪</span>
+                    退出访客模式
+                  </button>
+                </div>
+              </div>
+            </template>
+            
+            <template v-else>
+              <router-link to="/login" class="login-button">登录</router-link>
+              <router-link to="/register" class="register-button">注册</router-link>
+            </template>
+          </div>
+        </div>
+      </header>
+      
+      <!-- 主要内容 -->
+      <main class="app-main">
+        <router-view v-slot="{ Component, route }">
+          <PageTransition 
+            :transition-type="currentTransition" 
+            :duration="transitionDuration"
+          >
+            <component :is="Component" :key="route.path" class="page-view" />
+          </PageTransition>
+        </router-view>
+      </main>
+    </DevToolsStyleApplier>
     
     <!-- 页脚 -->
     <footer class="app-footer">
@@ -135,9 +211,15 @@ const getAvatarUrl = (path) => {
           <div class="footer-section">
             <h4 class="footer-heading">导航</h4>
             <router-link to="/" class="footer-link">首页</router-link>
-            <router-link to="/article/new" class="footer-link">写文章</router-link>
+            <a 
+              href="#" 
+              class="footer-link" 
+              @click.prevent="handleWriteArticleClick"
+            >
+              写文章
+            </a>
             <router-link to="/profile" class="footer-link">个人中心</router-link>
-            <a href="http://localhost:8000/api/rss/feed" target="_blank" class="footer-link rss-link">
+            <a href="/api/rss/feed" target="_blank" class="footer-link rss-link">
               <span class="footer-icon">📡</span> RSS订阅
             </a>
           </div>
@@ -159,6 +241,105 @@ const getAvatarUrl = (path) => {
 </template>
 
 <style>
+/* Page transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+  position: absolute;
+  width: 100%;
+}
+
+.slide-enter-from {
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+.slide-leave-to {
+  transform: translateX(-30px);
+  opacity: 0;
+}
+
+.page-view {
+  min-height: 60vh;
+  position: relative;
+}
+
+/* Page transition effects */
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.3s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Fade transition for content */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Slide transition for pages */
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.3s ease;
+  position: absolute;
+  width: 100%;
+}
+
+.slide-left-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-left-leave-to {
+  transform: translateX(-30%);
+  opacity: 0;
+}
+
+.slide-right-enter-from {
+  transform: translateX(-30%);
+  opacity: 0;
+}
+
+.slide-right-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+/* Route view container */
+.route-view {
+  position: relative;
+  min-height: 60vh; /* Ensure content doesn't jump during transitions */
+  overflow-x: hidden;
+}
+
+/* Ensure proper stacking context */
+.app-main {
+  position: relative;
+  z-index: 1;
+}
+
 /* 全局样式，会应用到所有页面 */
 * {
   margin: 0;
@@ -691,5 +872,21 @@ button {
     width: 100%;
     text-align: center;
   }
+}
+
+.guest-avatar {
+  background-color: var(--primary-color, #409eff);
+  color: white;
+  font-size: 1.2rem;
+}
+
+.guest-info {
+  color: var(--text-secondary);
+  cursor: default;
+  background-color: var(--bg-elevated, #f5f5f5);
+}
+
+.guest-info:hover {
+  background-color: var(--bg-elevated, #f5f5f5);
 }
 </style>

@@ -1,49 +1,41 @@
-# 用户管理脚本
+# LAT-Lab 数据库脚本说明
 
-这个目录包含了系统管理脚本，用于数据库管理、用户创建等操作。
+本目录包含LAT-Lab项目的数据库初始化和管理脚本。
 
-## create_user.py
+## 📁 脚本文件说明
 
-此脚本用于在数据库中创建新用户，支持创建管理员或普通用户。
+### Docker部署专用脚本
+- **`init-db-mysql.sql`** - MySQL数据库初始化SQL脚本，用于Docker容器首次启动
+- **`init-db-mysql.py`** - MySQL数据库初始化Python脚本，用于Docker部署后的数据初始化
 
-### 用法
+### 传统安装专用脚本
+- **`init-db-sqlite.py`** - SQLite数据库初始化脚本，用于传统安装方式
+- **`run_migrations.py`** - 数据库迁移脚本，适用于所有数据库类型
 
-```bash
-python scripts/create_user.py [参数]
-```
+### 通用脚本
+- **`init_db.py`** - 通用数据库初始化脚本（已废弃，建议使用专用脚本）
+- **`create_user.py`** - 用户创建脚本
+- **`setup_env.py`** - 环境设置脚本
 
-#### 可选参数
+## 🚀 使用方法
 
-- `-u, --username`: 用户名
-- `-e, --email`: 邮箱地址
-- `-p, --password`: 密码（不推荐通过命令行传递，留空将安全提示输入）
-- `-a, --admin`: 创建管理员用户（默认为普通用户）
-- `--not-verified`: 标记用户为未验证状态（默认为已验证）
+### Docker部署
+1. MySQL容器启动时会自动执行 `init-db-mysql.sql`
+2. 容器启动后，可手动运行 `init-db-mysql.py` 初始化示例数据
 
-#### 示例
+### 传统安装
+1. 运行 `setup_env.py` 设置环境
+2. 运行 `init-db-sqlite.py` 初始化SQLite数据库
 
-1. 交互式创建用户（推荐方式）：
+## ⚠️ 注意事项
 
-```bash
-python scripts/create_user.py
-```
+- **不要混用脚本**：Docker部署使用MySQL脚本，传统安装使用SQLite脚本
+- **环境变量**：确保使用正确的环境配置文件（`docker.env.example` 或 `env.traditional.example`）
+- **数据库类型**：脚本会根据 `DB_TYPE` 环境变量自动选择正确的数据库类型
 
-2. 创建管理员用户：
+## 🔧 故障排除
 
-```bash
-python scripts/create_user.py -a -u admin -e admin@example.com
-```
-
-3. 创建未验证的普通用户：
-
-```bash
-python scripts/create_user.py --not-verified -u testuser -e test@example.com
-```
-
-### 注意事项
-
-- 如果数据库中没有任何用户，脚本会提醒您创建管理员账户
-- 用户名至少需要3个字符
-- 密码至少需要6个字符
-- 脚本会检查用户名和邮箱是否已存在
-- 默认创建的用户状态为"已验证"（可以直接登录） 
+如果遇到数据库初始化问题：
+1. 检查环境变量配置
+2. 确认数据库服务是否正常运行
+3. 查看日志输出获取详细错误信息 

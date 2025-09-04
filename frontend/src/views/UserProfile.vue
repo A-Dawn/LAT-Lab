@@ -1,13 +1,15 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
-import { userApi, articleApi } from '../services/api'
+import { useRouter, useRoute } from 'vue-router'
+import { userApi, articleApi, resendVerificationEmail } from '../services/api'
+import ResendVerificationButton from '../components/ResendVerificationButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import toast from '../utils/toast'
 
 const store = useStore()
 const router = useRouter()
+const route = useRoute()
 
 // 加载状态
 const isLoading = ref(true)
@@ -18,6 +20,15 @@ const error = ref(null)
 
 // 获取当前用户信息
 const currentUser = computed(() => store.getters.currentUser)
+
+// 检查用户是否已认证
+const isAuthenticated = computed(() => store.getters.isAuthenticated)
+
+// 检查是否为访客模式
+const isGuestMode = computed(() => store.getters.isGuestMode)
+
+// 检查是否可以访问内容（已认证用户或访客模式）
+const canAccessContent = computed(() => store.getters.canAccessContent)
 
 // 用户文章列表
 const userArticles = ref([])
@@ -53,6 +64,14 @@ const editForm = ref({
   bio: ''
 })
 
+// 用户名修改
+const isUsernameEditMode = ref(false)
+const usernameForm = ref({
+  newUsername: ''
+})
+const usernameError = ref('')
+const usernameSuccess = ref('')
+
 // 密码修改
 const passwordForm = ref({
   oldPassword: '',
@@ -72,8 +91,7 @@ const passwordStrengthText = computed(() => {
 })
 const passwordStrengthClass = computed(() => {
   if (passwordStrength.value === 0) return ''
-  if (passwordStrength.value < 30) return 'weak'
-  if (passwordStrength.value < 60) return 'medium'
+  if (passwordStrength.value < 30) return 'medium'
   return 'strong'
 })
 
@@ -81,6 +99,12 @@ const passwordStrengthClass = computed(() => {
 const avatarFile = ref(null)
 const avatarPreview = ref('')
 const fileInputRef = ref(null)
+
+// 检查用户是否已验证
+const isUserVerified = computed(() => currentUser.value?.is_verified)
+
+// 处理URL查询参数中的消息
+const urlMessage = computed(() => route.query.message || '')
 
 // 切换标签页
 const switchTab = (tab) => {
@@ -292,6 +316,55 @@ const saveUserProfile = async () => {
   }
 }
 
+// 修改用户名
+const changeUsername = async () => {
+  // 表单验证
+  if (!usernameForm.value.newUsername.trim()) {
+    usernameError.value = '新用户名不能为空'
+    return
+  }
+  
+  if (usernameForm.value.newUsername === currentUser.value?.username) {
+    usernameError.value = '新用户名不能与当前用户名相同'
+    return
+  }
+  
+  try {
+    usernameError.value = ''
+    usernameSuccess.value = ''
+    
+    // 调用API修改用户名
+    await userApi.updateUsername(usernameForm.value.newUsername)
+    
+    // 更新Vuex中的用户信息
+    await store.dispatch('fetchCurrentUser')
+    
+    // 清空表单
+    usernameForm.value.newUsername = ''
+    
+    // 退出编辑模式
+    isUsernameEditMode.value = false
+    
+    usernameSuccess.value = '用户名修改成功！由于系统使用邮箱作为登录标识符，您的登录状态不会受到影响。'
+    
+    // 3秒后清除成功消息
+    setTimeout(() => {
+      usernameSuccess.value = ''
+    }, 3000)
+  } catch (err) {
+    console.error('修改用户名失败:', err)
+    usernameError.value = err.response?.data?.detail || '修改用户名失败'
+  }
+}
+
+// 取消用户名编辑
+const cancelUsernameEdit = () => {
+  isUsernameEditMode.value = false
+  usernameForm.value.newUsername = ''
+  usernameError.value = ''
+  usernameSuccess.value = ''
+}
+
 // 修改密码
 const changePassword = async () => {
   // 表单验证
@@ -356,8 +429,17 @@ const getAvatarUrl = (path) => {
   if (!path) return null
   // 如果已经是完整URL，则直接返回
   if (path.startsWith('http')) return path
-  // 添加完整的后端服务器URL
-  return `http://localhost:8000${path}`
+  // 确保路径以斜杠开头
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  // 如果路径已经包含/uploads，则直接返回，避免重复
+  if (cleanPath.includes('/uploads/')) return cleanPath
+  // 否则添加基础路径，但要避免重复的/uploads
+  const baseUrl = (import.meta.env.VITE_UPLOAD_URL || '').replace(/\/?$/, '')
+  // 如果基础URL和路径都以/uploads开头，则只使用路径
+  if (baseUrl.endsWith('/uploads') && cleanPath.startsWith('/uploads/')) {
+    return cleanPath
+  }
+  return `${baseUrl}${cleanPath}`
 }
 
 // 打开删除确认对话框
@@ -390,22 +472,35 @@ const deleteArticle = async () => {
   }
 }
 
+// 退出访客模式
+const exitGuestMode = () => {
+  store.dispatch('exitGuestMode')
+  toast.success('已退出访客模式')
+  router.push('/') // 跳转到首页
+}
+
 // 初始化
 onMounted(async () => {
   try {
     isLoading.value = true
     error.value = null
     
-    // 如果没有用户信息，获取当前用户信息
-    if (!currentUser.value) {
-      await store.dispatch('fetchCurrentUser')
+    // 如果是访客模式，直接显示访客界面
+    if (isGuestMode.value) {
+      isLoading.value = false
+      return
     }
     
-    // 获取用户文章
-    await fetchUserArticles()
+    // 如果是已认证用户，获取用户信息
+    if (isAuthenticated.value && currentUser.value) {
+      await fetchUserArticles()
+    } else {
+      // 未认证用户，显示提示信息
+      error.value = '请先登录以查看个人资料'
+    }
   } catch (err) {
     console.error('初始化失败:', err)
-    error.value = '获取用户信息失败'
+    error.value = '加载个人资料失败'
   } finally {
     isLoading.value = false
   }
@@ -466,41 +561,49 @@ onMounted(async () => {
           </div>
           
           <div class="profile-info">
-            <div v-if="!isEditMode" class="info-display">
-              <h1>{{ currentUser?.username }}</h1>
-              <p class="bio">{{ currentUser?.bio || '这个人很懒，还没有填写个人简介' }}</p>
-              <p class="join-date">加入于 {{ formatDate(currentUser?.created_at) }}</p>
-              
-              <div class="stats">
-                <div class="stat-item">
-                  <span class="stat-value">{{ userArticles.length }}</span>
-                  <span class="stat-label">文章</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value">{{ userStats.totalViews }}</span>
-                  <span class="stat-label">阅读</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value">{{ userStats.totalLikes }}</span>
-                  <span class="stat-label">点赞</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value">{{ userStats.totalComments }}</span>
-                  <span class="stat-label">评论</span>
-                </div>
+            <!-- 访客模式显示 -->
+            <div v-if="isGuestMode" class="guest-mode-notice">
+              <div class="guest-icon">🚶</div>
+              <h1>访客模式</h1>
+              <p class="guest-description">您正在以访客身份浏览网站</p>
+              <p class="guest-limitations">访客模式功能限制：</p>
+              <ul class="guest-limitations-list">
+                <li>✅ 可以浏览首页和文章内容</li>
+                <li>✅ 可以查看个人中心</li>
+                <li>❌ 无法发布、编辑或删除文章</li>
+                <li>❌ 无法发表评论</li>
+                <li>❌ 无法修改个人资料</li>
+              </ul>
+              <div class="guest-actions">
+                <router-link to="/login" class="guest-action-button primary">
+                  🔐 登录账号
+                </router-link>
+                <button @click="exitGuestMode" class="guest-action-button secondary">
+                  🚪 退出访客模式
+                </button>
               </div>
+            </div>
+            
+            <!-- 正常用户资料显示 -->
+            <div v-else-if="currentUser" class="info-display">
+              <h1>{{ currentUser.username }}</h1>
+              <p class="bio">{{ currentUser.bio || '这个人很懒，还没有填写个人简介' }}</p>
+              <p class="join-date">加入于 {{ formatDate(currentUser.created_at) }}</p>
               
-              <div class="user-activity">
-                <p class="activity-info">最近活动: {{ userStats.lastActive }}</p>
-              </div>
-              
+              <!-- 只有已认证用户才能编辑个人资料 -->
               <button 
+                v-if="isAuthenticated"
                 @click="toggleEditMode" 
                 class="edit-button"
                 aria-label="编辑个人资料"
               >
                 编辑个人资料
               </button>
+              
+              <!-- 未认证用户显示提示 -->
+              <div v-else class="verification-notice">
+                <p>请先验证您的邮箱以解锁更多功能</p>
+              </div>
             </div>
             
             <div v-else class="edit-form">
@@ -563,6 +666,44 @@ onMounted(async () => {
           </div>
         </div>
         
+        <!-- 用户统计信息区域 -->
+        <div v-if="currentUser && !isGuestMode" class="profile-stats-section">
+          <h2 class="stats-section-title">数据统计</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📝</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ userArticles.length }}</span>
+                <span class="stat-label">文章</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👁️</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ userStats.totalViews }}</span>
+                <span class="stat-label">阅读</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👍</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ userStats.totalLikes }}</span>
+                <span class="stat-label">点赞</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">💬</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ userStats.totalComments }}</span>
+                <span class="stat-label">评论</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-info">
+            <p>最近活动: {{ userStats.lastActive }}</p>
+          </div>
+        </div>
+        
         <div class="profile-content">
           <div class="tabs" role="tablist">
             <button 
@@ -603,13 +744,18 @@ onMounted(async () => {
             <div v-else-if="userArticles.length === 0" class="empty-state">
               <div class="empty-icon" aria-hidden="true">📝</div>
               <h3>还没有发布任何文章</h3>
-              <p>写下你的第一篇文章，分享你的知识和经验</p>
+              <p v-if="isAuthenticated">写下你的第一篇文章，分享你的知识和经验</p>
+              <p v-else>请先验证您的邮箱以解锁写文章功能</p>
               <button 
+                v-if="isAuthenticated"
                 @click="$router.push('/article/new')" 
                 class="action-button"
               >
                 写文章
               </button>
+              <div v-else class="verification-notice">
+                <p>验证邮箱后即可开始创作</p>
+              </div>
             </div>
             
             <div v-else class="article-list">
@@ -633,14 +779,24 @@ onMounted(async () => {
                   </span>
                 </div>
                 <div class="article-actions">
-                  <router-link :to="`/article/${article.id}/edit`" class="action-link">编辑</router-link>
+                  <router-link 
+                    v-if="isAuthenticated"
+                    :to="`/article/${article.id}/edit`" 
+                    class="action-link"
+                  >
+                    编辑
+                  </router-link>
                   <button 
+                    v-if="isAuthenticated"
                     @click="openDeleteConfirm(article.id)" 
                     class="action-link danger"
                     aria-label="删除文章"
                   >
                     删除
                   </button>
+                  <div v-else class="verification-notice">
+                    <p>验证邮箱后即可管理文章</p>
+                  </div>
                 </div>
               </div>
               
@@ -675,7 +831,59 @@ onMounted(async () => {
             id="settings-tab"
             aria-labelledby="tab-settings"
           >
-            <div class="settings-section">
+            <!-- 只有已认证用户才能修改用户名 -->
+            <div v-if="isAuthenticated" class="settings-section">
+              <h3>修改用户名</h3>
+              
+              <div v-if="usernameError" class="form-error" role="alert">{{ usernameError }}</div>
+              <div v-if="usernameSuccess" class="form-success" role="status">{{ usernameSuccess }}</div>
+              
+              <div v-if="!isUsernameEditMode" class="username-display">
+                <p>当前用户名: <strong>{{ currentUser?.username }}</strong></p>
+                <button 
+                  @click="isUsernameEditMode = true" 
+                  class="action-button"
+                  aria-label="修改用户名"
+                >
+                  修改用户名
+                </button>
+              </div>
+              
+              <div v-else class="username-edit-form">
+                <div class="form-group">
+                  <label for="new-username">新用户名</label>
+                  <input 
+                    id="new-username"
+                    v-model="usernameForm.newUsername"
+                    type="text"
+                    placeholder="输入新用户名"
+                    aria-required="true"
+                    maxlength="32"
+                  />
+                  <small class="field-info">用户名长度3-32个字符，只能包含字母、数字和下划线</small>
+                </div>
+                
+                <div class="form-actions">
+                  <button 
+                    @click="changeUsername" 
+                    class="save-button"
+                    aria-label="保存新用户名"
+                  >
+                    保存
+                  </button>
+                  <button 
+                    @click="cancelUsernameEdit" 
+                    class="cancel-button"
+                    aria-label="取消修改"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 只有已认证用户才能修改密码 -->
+            <div v-if="isAuthenticated" class="settings-section">
               <h3>修改密码</h3>
               
               <div v-if="passwordError" class="form-error" role="alert">{{ passwordError }}</div>
@@ -742,6 +950,36 @@ onMounted(async () => {
                 <span v-if="isLoading">更新中...</span>
                 <span v-else>更新密码</span>
               </button>
+            </div>
+
+            <!-- 邮箱验证部分 - 所有用户都可以访问 -->
+            <div class="settings-section">
+              <h3>邮箱验证</h3>
+              
+              <!-- 显示URL查询参数中的消息 -->
+              <div v-if="urlMessage" class="form-error" role="alert">
+                {{ urlMessage }}
+              </div>
+              
+              <p v-if="isUserVerified">您的邮箱已验证，无需重复验证。</p>
+              <p v-else>您的邮箱未验证，请点击下方按钮重新发送验证邮件。</p>
+              <ResendVerificationButton 
+                v-if="!isUserVerified && currentUser?.email"
+                :email="currentUser.email"
+                button-text="重新发送验证邮件"
+              />
+            </div>
+            
+            <!-- 未认证用户提示 -->
+            <div v-if="!isAuthenticated" class="verification-notice">
+              <h3>功能限制</h3>
+              <p>由于您的邮箱尚未验证，以下功能暂时不可用：</p>
+              <ul>
+                <li>发布和编辑文章</li>
+                <li>修改密码</li>
+                <li>编辑个人资料</li>
+              </ul>
+              <p>请先验证您的邮箱以解锁所有功能。</p>
             </div>
           </div>
         </div>
@@ -915,6 +1153,105 @@ onMounted(async () => {
 
 .profile-info {
   flex: 1;
+}
+
+/* 访客模式显示 */
+.guest-mode-notice {
+  text-align: center;
+  padding: 40px 0;
+  background-color: var(--bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.guest-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  color: var(--warning-color);
+}
+
+.guest-mode-notice h1 {
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+}
+
+.guest-description {
+  color: var(--text-secondary);
+  margin: 0 0 15px;
+  line-height: 1.5;
+}
+
+.guest-limitations {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0 0 15px;
+  font-weight: 500;
+}
+
+.guest-limitations-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+
+.guest-limitations-list li {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.guest-limitations-list li i {
+  margin-right: 8px;
+  color: var(--success-color);
+}
+
+.guest-limitations-list li.negative i {
+  color: var(--error-color);
+}
+
+.guest-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.guest-action-button {
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  white-space: nowrap;
+}
+
+.guest-action-button.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.guest-action-button.primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.guest-action-button.secondary {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.guest-action-button.secondary:hover {
+  background-color: var(--bg-elevated);
+}
+
+.guest-action-button:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .info-display h1 {
@@ -1376,7 +1713,7 @@ onMounted(async () => {
   cursor: not-allowed;
   opacity: 0.8;
   border: 1px solid var(--border-color);
-  }
+}
   
 .field-info {
   display: block;
@@ -1384,5 +1721,227 @@ onMounted(async () => {
   font-size: 0.85rem;
   color: var(--text-tertiary);
   font-style: italic;
+}
+
+/* 用户名修改样式 */
+.username-display {
+  margin-bottom: 15px;
+}
+
+.username-display p {
+  margin: 0 0 15px 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.username-display strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.username-edit-form {
+  background-color: var(--bg-elevated);
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* 邮箱验证样式 */
+.settings-section {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.settings-section h3 {
+  margin: 0 0 15px 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.settings-section p {
+  margin: 0 0 15px 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.settings-section .action-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settings-section .action-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.settings-section .action-button:disabled {
+  background-color: rgba(var(--primary-color-rgb), 0.5);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.settings-section .action-button:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* 新增样式 */
+.verification-notice {
+  background-color: rgba(var(--warning-color-rgb), 0.1);
+  color: var(--warning-color);
+  padding: 12px;
+  border-radius: 4px;
+  margin-top: 20px;
+  border: 1px solid rgba(var(--warning-color-rgb), 0.2);
+  border-left: 4px solid var(--warning-color);
+}
+
+.verification-notice p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.verification-notice h3 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  color: var(--warning-color);
+}
+
+.verification-notice ul {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.verification-notice li {
+  margin: 5px 0;
+  font-size: 0.9rem;
+}
+
+/* 统计信息区域样式 */
+.profile-stats-section {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  padding: 25px;
+  margin-bottom: 30px;
+}
+
+.stats-section-title {
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background-color: var(--bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  font-size: 2rem;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.stat-label {
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.activity-info {
+  text-align: center;
+  padding: 15px;
+  background-color: var(--bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.activity-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  .stat-card {
+    padding: 15px;
+  }
+  
+  .stat-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-card {
+    padding: 12px;
+  }
 }
 </style>

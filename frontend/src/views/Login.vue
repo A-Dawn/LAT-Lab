@@ -2,9 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
-import { resendVerificationEmail } from '../services/api'
 
-const username = ref('')
+const loginIdentifier = ref('')  // 支持邮箱或用户名登录
 const password = ref('')
 const rememberMe = ref(false)
 const isLoading = ref(false)
@@ -14,12 +13,6 @@ const successMsg = ref('')
 const router = useRouter()
 const route = useRoute()
 const store = useStore()
-
-const showResendForm = ref(false)
-const resendEmail = ref('')
-const resendStatus = ref('')
-const resendMessage = ref('')
-const isResending = ref(false)
 
 onMounted(() => {
   if (route.query.message) {
@@ -51,8 +44,8 @@ onMounted(() => {
 })
 
 const handleSubmit = async () => {
-  if (!username.value || !password.value) {
-    errorMsg.value = '请输入用户名和密码'
+  if (!loginIdentifier.value || !password.value) {
+    errorMsg.value = '请输入邮箱/用户名和密码'
     return
   }
   
@@ -61,8 +54,8 @@ const handleSubmit = async () => {
     errorMsg.value = ''
     successMsg.value = ''
     
-    await store.dispatch('login', {
-      username: username.value,
+    const loginResult = await store.dispatch('login', {
+      username: loginIdentifier.value,
       password: password.value
     })
     
@@ -70,75 +63,48 @@ const handleSubmit = async () => {
       localStorage.setItem('remember', 'true')
     }
     
-    let redirectPath = '/';
-    
-    if (route.query.redirect && typeof route.query.redirect === 'string') {
-      const redirectQuery = route.query.redirect;
+    // 检查用户是否已验证邮箱
+    if (loginResult && !loginResult.is_verified) {
+      // 用户登录成功但邮箱未验证，显示提示信息
+      needVerification.value = true
+      successMsg.value = '登录成功！但您的邮箱尚未验证，部分功能将受限。'
       
-      if (redirectQuery.startsWith('/') && 
-          !redirectQuery.includes('://') &&
-          !redirectQuery.includes('javascript:')) {
-        redirectPath = redirectQuery;
-      } else {
-        console.warn('重定向参数可能不安全，已忽略:', redirectQuery);
+      // 延迟跳转，让用户看到提示信息
+      setTimeout(() => {
+        router.push('/profile')
+      }, 2000)
+    } else {
+      // 正常登录流程
+      let redirectPath = '/';
+      
+      if (route.query.redirect && typeof route.query.redirect === 'string') {
+        const redirectQuery = route.query.redirect;
+        
+        if (redirectQuery.startsWith('/') && 
+            !redirectQuery.includes('://') &&
+            !redirectQuery.includes('javascript:')) {
+          redirectPath = redirectQuery;
+        } else {
+          console.warn('重定向参数可能不安全，已忽略:', redirectQuery);
+        }
       }
+      
+      router.push(redirectPath)
     }
-    
-    router.push(redirectPath)
   } catch (error) {
     console.error('登录失败:', error)
-    
-    // 检查是否是邮箱未验证错误
-    if (error.response && error.response.status === 403 && 
-        error.response.data.detail && error.response.data.detail.includes('验证您的邮箱')) {
-      needVerification.value = true
-      errorMsg.value = '请先验证您的邮箱后再登录'
-      // 自动填充邮箱地址到重发验证邮件表单
-      showResendForm.value = true
-      // 尝试从用户名中提取邮箱
-      if (username.value.includes('@')) {
-        resendEmail.value = username.value
-      }
-    } else {
-      needVerification.value = false
-      errorMsg.value = error.response?.data?.detail || '登录失败，请检查用户名和密码'
-    }
+    needVerification.value = false
+    errorMsg.value = error.response?.data?.detail || '登录失败，请检查邮箱/用户名和密码'
   } finally {
     isLoading.value = false
   }
 }
 
-// 重新发送验证邮件
-const handleResendVerification = async () => {
-  if (!resendEmail.value) {
-    resendStatus.value = 'error'
-    resendMessage.value = '请输入邮箱地址'
-    return
-  }
-  
-  isResending.value = true
-  resendStatus.value = ''
-  
-  try {
-    await resendVerificationEmail(resendEmail.value)
-    resendStatus.value = 'success'
-    resendMessage.value = '验证邮件已重新发送，请查收'
-  } catch (error) {
-    resendStatus.value = 'error'
-    resendMessage.value = error.response?.data?.detail || '发送失败，请稍后重试'
-  } finally {
-    isResending.value = false
-  }
-}
-
-// 切换重新发送表单的显示状态
-const toggleResendForm = () => {
-  showResendForm.value = !showResendForm.value
-  if (!showResendForm.value) {
-    resendEmail.value = ''
-    resendStatus.value = ''
-    resendMessage.value = ''
-  }
+const enterGuestMode = () => {
+  // 调用store的访客模式action
+  store.dispatch('enterGuestMode')
+  // 跳转到首页
+  router.push('/')
 }
 </script>
 
@@ -161,12 +127,12 @@ const toggleResendForm = () => {
           </div>
           
           <div class="form-group">
-            <label for="username">用户名</label>
+            <label for="loginIdentifier">邮箱或用户名</label>
             <input 
-              id="username"
-              v-model="username"
+              id="loginIdentifier"
+              v-model="loginIdentifier"
               type="text"
-              placeholder="请输入用户名"
+              placeholder="请输入邮箱或用户名"
               required
             />
           </div>
@@ -196,62 +162,36 @@ const toggleResendForm = () => {
           >
             {{ isLoading ? '登录中...' : '登录' }}
           </button>
+          
+          <!-- 访客模式按钮 -->
+          <div class="guest-mode-section">
+            <div class="divider">
+              <span>或者</span>
+            </div>
+            <button 
+              type="button"
+              @click="enterGuestMode"
+              class="guest-button"
+            >
+              🚶 访客模式
+            </button>
+            <p class="guest-tip">以访客身份浏览网站，无需登录</p>
+          </div>
         </form>
         
         <!-- 验证提醒区域优化 -->
         <div v-if="needVerification" class="verification-reminder">
-          <div class="reminder-icon">!</div>
+          <div class="reminder-icon">✓</div>
           <div class="reminder-content">
-            <h3>邮箱未验证</h3>
-            <p>您的邮箱尚未验证，请先验证邮箱后再登录。</p>
-            <button @click="toggleResendForm" class="resend-button">
-              {{ showResendForm ? '取消' : '重新发送验证邮件' }}
-            </button>
+            <h3>登录成功！</h3>
+            <p>您的邮箱尚未验证，部分功能将受限。正在跳转到个人中心...</p>
+            <p class="verification-tip">您可以在个人中心重新发送验证邮件。</p>
           </div>
-        </div>
-        
-        <!-- 重新发送验证邮件表单优化 -->
-        <div v-if="showResendForm" class="resend-form">
-          <div class="form-group">
-            <label for="resendEmail">邮箱地址</label>
-            <input
-              type="email"
-              id="resendEmail"
-              v-model="resendEmail"
-              placeholder="请输入您注册时使用的邮箱"
-              required
-            />
-          </div>
-          
-          <div v-if="resendStatus === 'success'" class="resend-success">
-            <div class="status-icon">✓</div>
-            <p>{{ resendMessage }}</p>
-          </div>
-          
-          <div v-if="resendStatus === 'error'" class="resend-error">
-            <div class="status-icon">✗</div>
-            <p>{{ resendMessage }}</p>
-          </div>
-          
-          <button
-            @click="handleResendVerification"
-            :disabled="isResending"
-            class="resend-button full-width"
-          >
-            {{ isResending ? '发送中...' : '重新发送验证邮件' }}
-          </button>
         </div>
         
         <!-- 底部链接区域 -->
         <div class="register-link">
           <p>还没有账号? <router-link to="/register">立即注册</router-link></p>
-        </div>
-        
-        <!-- 重新发送验证邮件链接 -->
-        <div v-if="!needVerification && !showResendForm" class="resend-verification">
-          <a href="#" @click.prevent="toggleResendForm">
-            没有收到验证邮件？点击重新发送
-          </a>
         </div>
       </div>
     </div>
@@ -446,8 +386,8 @@ const toggleResendForm = () => {
 }
 
 .verification-reminder {
-  background-color: rgba(var(--warning-color-rgb), 0.1);
-  border-left: 4px solid var(--warning-color);
+  background-color: rgba(76, 217, 100, 0.1);
+  border-left: 4px solid var(--success-color, #4cd964);
   padding: 15px;
   margin: 20px 0;
   border-radius: 4px;
@@ -459,7 +399,7 @@ const toggleResendForm = () => {
 .reminder-icon {
   width: 24px;
   height: 24px;
-  background-color: var(--warning-color);
+  background-color: var(--success-color, #4cd964);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -484,94 +424,66 @@ const toggleResendForm = () => {
   color: var(--text-secondary);
 }
 
-.resend-button {
+.verification-tip {
+  font-size: 0.9rem;
+  color: var(--primary-color, #409eff);
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.guest-mode-section {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.divider {
+  position: relative;
+  margin: 15px 0;
+  text-align: center;
+}
+
+.divider span {
+  display: inline-block;
+  position: relative;
+  padding: 0 10px;
+  background-color: var(--card-bg, #fff);
+  color: var(--text-secondary);
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--border-color, rgba(0, 0, 0, 0.08));
+  z-index: -1;
+}
+
+.guest-button {
+  width: 100%;
+  padding: 10px 0;
+  font-size: 1rem;
   background-color: var(--primary-color, #409eff);
   color: white;
   border: none;
-  padding: 10px 15px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s, transform 0.2s;
+  transition: background-color 0.3s, transform 0.3s;
+  margin-top: 10px;
 }
 
-.resend-button:hover {
+.guest-button:hover {
   background-color: var(--secondary-color, #66b1ff);
   transform: translateY(-2px);
 }
 
-.resend-button:disabled {
-  background-color: rgba(var(--primary-color-rgb), 0.5);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.full-width {
-  width: 100%;
-}
-
-/* 重新发送验证邮件相关样式 */
-.resend-verification {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 14px;
-}
-
-.resend-verification a {
-  color: var(--primary-color, #409eff);
-  text-decoration: none;
-}
-
-.resend-verification a:hover {
-  text-decoration: underline;
-}
-
-.resend-form {
-  background-color: rgba(0, 0, 0, 0.02);
-  padding: 20px;
-  border-radius: 8px;
-  margin: 20px 0;
-  border: 1px solid var(--border-color, #ebeef5);
-}
-
-.resend-success,
-.resend-error {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 15px;
-}
-
-.resend-success {
-  background-color: rgba(var(--success-color-rgb), 0.1);
-  color: var(--success-color);
-}
-
-.resend-error {
-  background-color: rgba(var(--error-color-rgb), 0.1);
-  color: var(--error-color);
-}
-
-.status-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-.resend-success .status-icon {
-  background-color: var(--success-color);
-  color: white;
-}
-
-.resend-error .status-icon {
-  background-color: var(--error-color);
-  color: white;
+.guest-tip {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
 }
 </style> 

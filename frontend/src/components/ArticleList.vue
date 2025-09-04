@@ -224,7 +224,11 @@ const fetchArticlesLikeStatus = async (articles) => {
         <!-- 文章标题和置顶标记 -->
         <div class="article-header">
           <h2 class="article-title">{{ article.title }}</h2>
-          <span v-if="article.is_pinned" class="pin-badge">置顶</span>
+          <div class="article-badges">
+            <span v-if="article.is_pinned" class="pin-badge">置顶</span>
+            <span v-if="!article.is_approved" class="approval-badge pending">待审核</span>
+            <span v-else class="approval-badge approved">已审核</span>
+          </div>
         </div>
         
         <!-- 文章摘要 -->
@@ -380,6 +384,30 @@ const fetchArticlesLikeStatus = async (articles) => {
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.8rem;
+}
+
+/* 审核状态徽章 */
+.article-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.approval-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.approval-badge.pending {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.approval-badge.approved {
+  background-color: var(--success-color);
+  color: white;
 }
 
 /* 文章摘要 */

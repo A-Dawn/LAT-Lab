@@ -4,9 +4,9 @@
   --primary-color: #60a5fa;
   --secondary-color: #a78bfa;
   --accent-color: #fc8181;
-  --primary-rgb: 96, 165, 250;
-  --secondary-rgb: 167, 139, 250;
-  --accent-rgb: 252, 129, 129;
+  --primary-color-rgb: 96, 165, 250;
+  --secondary-color-rgb: 167, 139, 250;
+  --accent-color-rgb: 252, 129, 129;
   
   /* 背景色 - 更深沉的黑蓝色调 */
   --bg-primary: #111827;
@@ -51,6 +51,7 @@
   
   /* 悬浮颜色 */
   --hover-color: rgba(96, 165, 250, 0.15);
+  --bg-hover: rgba(96, 165, 250, 0.15);
   
   /* 英雄区域背景 */
   --hero-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -264,7 +265,7 @@ html[data-theme="dark"] select:focus,
 .theme-dark textarea:focus,
 .theme-dark select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.3);
 }
 
 /* 深色主题的页脚 */
@@ -332,7 +333,7 @@ html[data-theme="dark"] .card:hover,
 .theme-dark .card:hover {
   transform: translateY(-5px);
   box-shadow: var(--card-shadow-hover);
-  border-color: rgba(var(--primary-rgb), 0.3);
+  border-color: rgba(var(--primary-color-rgb), 0.3);
 }
 
 /* 代码块和预格式化文本 */
@@ -357,7 +358,7 @@ html[data-theme="dark"] .tag,
 .theme-dark .tag {
   background-color: var(--hover-color);
   color: var(--primary-color);
-  border: 1px solid rgba(var(--primary-rgb), 0.3);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.3);
 }
 
 html[data-theme="dark"] .tag:hover,
@@ -379,7 +380,7 @@ html[data-theme="dark"] .article-meta,
 html[data-theme="dark"] .hero-section .search-input,
 .theme-dark .hero-section .search-input {
   background-color: rgba(31, 41, 55, 0.5);
-  border-color: rgba(var(--primary-rgb), 0.2);
+  border-color: rgba(var(--primary-color-rgb), 0.2);
 }
 
 html[data-theme="dark"] .hero-section .search-input::placeholder,

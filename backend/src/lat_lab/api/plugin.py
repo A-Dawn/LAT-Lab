@@ -13,7 +13,7 @@ from src.lat_lab.crud.plugin import (
     get_plugin, get_plugin_by_name, get_plugins, get_plugin_detail,
     create_plugin, update_plugin, delete_plugin, activate_plugin
 )
-from src.lat_lab.core.deps import get_db, get_current_admin_user, get_current_user
+from src.lat_lab.core.deps import get_db, get_current_admin_user, get_current_user, get_optional_user
 from src.lat_lab.core.rate_limiter import create_rate_limit_dependency
 from src.lat_lab.models.user import User
 from src.lat_lab.core.config import settings
@@ -224,15 +224,16 @@ def get_example_plugin(
 
 @router.get("/", response_model=List[Plugin])
 async def read_plugins(
+    request: Request,
     skip: int = 0,
     limit: int = 100,
     active_only: bool = False,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """获取所有插件（仅管理员）或获取激活的插件（所有用户）"""
     # 如果不是请求激活的插件，检查用户是否为管理员
-    if not active_only and current_user.role != 'admin':
+    if not active_only and (not current_user or current_user.role != 'admin'):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="只有管理员可以查看所有插件"
@@ -916,4 +917,49 @@ def refresh_marketplace(
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail="刷新插件市场数据失败") 
+        raise HTTPException(status_code=500, detail="刷新插件市场数据失败")
+
+# 前端扩展和小部件API - 支持访客模式
+@router.get("/frontend-extensions")
+def get_frontend_extensions(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """获取前端扩展列表 - 支持访客模式"""
+    try:
+        # 获取所有激活的插件
+        active_plugins = get_plugins(db, active_only=True)
+        
+        extensions = []
+        for plugin in active_plugins:
+            # 检查插件是否有前端扩展配置
+            # 这里需要根据插件的具体实现来判断
+            # 目前返回空数组作为兼容
+            pass
+        
+        return extensions
+    except Exception as e:
+        # 访客模式下出错时返回空数组而不是抛出异常
+        return []
+
+@router.get("/home-widgets")  
+def get_home_widgets(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """获取首页小部件列表 - 支持访客模式"""
+    try:
+        # 获取所有激活的插件
+        active_plugins = get_plugins(db, active_only=True)
+        
+        widgets = []
+        for plugin in active_plugins:
+            # 检查插件是否有首页小部件配置
+            # 这里需要根据插件的具体实现来判断
+            # 目前返回空数组作为兼容
+            pass
+        
+        return widgets
+    except Exception as e:
+        # 访客模式下出错时返回空数组而不是抛出异常
+        return [] 

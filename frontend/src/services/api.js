@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -9,10 +9,15 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(
-  config => {
+config => {
     const token = localStorage.getItem('token')
+    const guestMode = localStorage.getItem('guest_mode') === 'true'
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else if (guestMode) {
+      // 为访客模式添加标识头
+      config.headers['X-Guest-Mode'] = 'true'
     }
     return config
   },
@@ -25,23 +30,8 @@ api.interceptors.response.use(
   response => {
     return response.data
   },
-  async error => {
-    const isPluginRequest = error.config && error.config.url && error.config.url.includes('/plugins/')
-    
-    if (error.response && (error.response.status === 401 || (error.response.status === 403 && !isPluginRequest))) {
-      if (isPluginRequest) {
-        console.warn('插件请求失败，但不重定向:', error.config.url)
-        return Promise.reject(error)
-      }
-      
-      localStorage.removeItem('token')
-
-      if (window.location.pathname !== '/login') {
-        const currentPath = window.location.pathname + window.location.search
-        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`
-      }
-    }
-    
+  error => {
+    // 完全移除所有401-403重定向逻辑，直接返回错误
     return Promise.reject(error)
   }
 )
@@ -71,6 +61,10 @@ export const userApi = {
   
   updateProfile(userData) {
     return api.put('/users/me', userData)
+  },
+  
+  updateUsername(username) {
+    return api.put('/users/me/username', { username })
   },
   
   changePassword(passwordData) {
@@ -175,6 +169,23 @@ export const articleApi = {
         console.warn('获取点赞状态失败', error);
         return { likes_count: 0, is_liked: false };
       });
+  },
+  
+  // 文章审核相关API
+  getPendingArticles(params = {}) {
+    return api.get('/articles/pending', { params })
+  },
+  
+  approveArticle(id) {
+    return api.put(`/articles/${id}/approve`)
+  },
+  
+  rejectArticle(id, reason) {
+    return api.put(`/articles/${id}/reject`, { reason })
+  },
+  
+  getApprovalStats() {
+    return api.get('/articles/stats/approval')
   },
   
   // 发送LLM查询
@@ -571,6 +582,24 @@ export const pluginApi = {
   reviewPlugin(pluginId, reviewData) {
     console.warn('基于文件的插件市场不支持评论功能')
     return Promise.resolve({ success: false, message: '基于文件的插件市场不支持评论功能' })
+  },
+  
+  // 获取前端扩展
+  getFrontendExtensions() {
+    return api.get('/plugins/frontend-extensions')
+      .catch(error => {
+        console.warn('获取前端扩展失败，返回空数组:', error)
+        return []
+      })
+  },
+  
+  // 获取首页小部件
+  getHomeWidgets() {
+    return api.get('/plugins/home-widgets')
+      .catch(error => {
+        console.warn('获取首页小部件失败，返回空数组:', error)
+        return []
+      })
   }
 }
 export const verifyEmail = (token) => {
@@ -579,7 +608,7 @@ export const verifyEmail = (token) => {
 };
 
 export const resendVerificationEmail = (email) => {
-  return api.post('/auth/resend-verification', { email });
+  return api.post(`/auth/resend-verification?email=${encodeURIComponent(email)}`);
 };
 
 export const testEmailSending = (email) => {
@@ -658,6 +687,22 @@ export const adminApi = {
     return api.put('/admin/about-section', aboutData)
   },
   
+  // 获取开发工具配置
+  getDevToolsConfig() {
+    return api.get('/admin/dev-tools-config')
+  },
+  
+  // 更新开发工具配置
+  updateDevToolsConfig(configData) {
+    return api.put('/admin/dev-tools-config', configData)
+  },
+  
+  // 清除开发工具配置
+  clearDevToolsConfig(page = null) {
+    const params = page ? { params: { page } } : {}
+    return api.delete('/admin/dev-tools-config', params)
+  },
+  
   // 获取速率限制统计
   getRateLimitStats() {
     return api.get('/admin/rate-limit/stats')
@@ -674,6 +719,11 @@ export const publicApi = {
   // 获取关于博主配置（公开接口）
   getAboutSection() {
     return api.get('/public/about-section')
+  },
+  
+  // 获取博主信息（公开接口）
+  getBlogOwner() {
+    return api.get('/public/blog-owner')
   }
 }
 

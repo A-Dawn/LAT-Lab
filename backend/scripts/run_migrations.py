@@ -5,82 +5,42 @@ LAT-LAB 数据库迁移脚本
 """
 import os
 import sys
-import subprocess
+import logging
 from pathlib import Path
 
-# 项目根目录
+# 添加项目根目录到Python路径
 PROJECT_ROOT = Path(__file__).parent.parent.absolute()
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.lat_lab.core.database import engine, Base
+from src.lat_lab.models import user, article, category, comment, tag, plugin, system
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-def run_command(command, check=True):
-    """运行shell命令"""
-    print(f"执行: {' '.join(command)}")
-    return subprocess.run(command, check=check)
-
-
-def setup_alembic():
-    """设置Alembic"""
-    alembic_ini = PROJECT_ROOT / "alembic.ini"
-    migrations_dir = PROJECT_ROOT / "migrations"
-    
-    # 检查alembic配置是否存在
-    if not alembic_ini.exists():
-        print("创建alembic.ini配置文件...")
-        run_command(["alembic", "init", "migrations"])
-        
-        # 修改alembic.ini文件
-        with open(alembic_ini, "r") as f:
-            content = f.read()
-        
-        # 更新数据库URL
-        content = content.replace(
-            "sqlalchemy.url = driver://user:pass@localhost/dbname",
-            "sqlalchemy.url = sqlite:///./data/blog.db"
-        )
-        
-        with open(alembic_ini, "w") as f:
-            f.write(content)
-    
-    # 检查migrations目录
-    if not migrations_dir.exists():
-        os.makedirs(migrations_dir)
-    
-    return alembic_ini
-
-
-def create_migration(message=None):
-    """创建新的数据库迁移"""
-    setup_alembic()
-    
-    cmd = ["alembic", "revision", "--autogenerate"]
-    if message:
-        cmd.extend(["-m", message])
-    
-    run_command(cmd)
-    print("已创建数据库迁移文件")
-
-
-def run_migrations():
-    """运行数据库迁移"""
-    setup_alembic()
-    run_command(["alembic", "upgrade", "head"])
-    print("数据库迁移完成")
+def create_tables():
+    """创建所有数据库表"""
+    logger.info("创建数据库表...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("数据库表创建完成")
+        return True
+    except Exception as e:
+        logger.error(f"创建数据库表失败: {e}")
+        return False
 
 
 def main():
     """主函数"""
-    import argparse
+    logger.info("开始数据库迁移...")
     
-    parser = argparse.ArgumentParser(description="LAT-LAB 数据库迁移工具")
-    parser.add_argument("action", choices=["create", "run"], help="创建迁移或运行迁移")
-    parser.add_argument("-m", "--message", help="迁移消息")
-    
-    args = parser.parse_args()
-    
-    if args.action == "create":
-        create_migration(args.message)
-    elif args.action == "run":
-        run_migrations()
+    if create_tables():
+        logger.info("数据库迁移成功完成")
+    else:
+        logger.error("数据库迁移失败")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

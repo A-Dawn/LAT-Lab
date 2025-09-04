@@ -23,6 +23,14 @@ const isResetting = ref(false)
 const resetSuccess = ref(false)
 const resetError = ref('')
 
+// 修改用户名对话框状态
+const editUsernameDialogVisible = ref(false)
+const userToEdit = ref(null)
+const newUsername = ref('')
+const isEditing = ref(false)
+const editSuccess = ref(false)
+const editError = ref('')
+
 // 获取所有用户
 const fetchUsers = async () => {
   try {
@@ -147,6 +155,51 @@ const generateRandomPassword = () => {
   return password
 }
 
+// 打开修改用户名对话框
+const openEditUsername = (user) => {
+  userToEdit.value = user
+  newUsername.value = user.username
+  editUsernameDialogVisible.value = true
+  editSuccess.value = false
+  editError.value = ''
+}
+
+// 关闭修改用户名对话框
+const closeEditUsernameDialog = () => {
+  editUsernameDialogVisible.value = false
+  userToEdit.value = null
+  newUsername.value = ''
+  isEditing.value = false
+  editSuccess.value = false
+  editError.value = ''
+}
+
+// 修改用户名
+const editUserUsername = async () => {
+  if (!userToEdit.value) return
+  
+  try {
+    isEditing.value = true
+    editError.value = ''
+    
+    await userApi.updateUser(userToEdit.value.id, { username: newUsername.value })
+    
+    // 更新本地用户列表
+    const userIndex = users.value.findIndex(user => user.id === userToEdit.value.id)
+    if (userIndex !== -1) {
+      users.value[userIndex].username = newUsername.value
+    }
+    
+    editSuccess.value = true
+  } catch (err) {
+    console.error('修改用户名失败:', err)
+    editError.value = err.response?.data?.detail || '修改用户名失败'
+    editSuccess.value = false
+  } finally {
+    isEditing.value = false
+  }
+}
+
 // 格式化日期
 const formatDate = (dateString) => {
   if (!dateString) return ''
@@ -197,6 +250,7 @@ onMounted(fetchUsers)
             <th>用户名</th>
             <th>邮箱</th>
             <th>角色</th>
+            <th>认证状态</th>
             <th>注册日期</th>
             <th>操作</th>
           </tr>
@@ -211,6 +265,11 @@ onMounted(fetchUsers)
                 {{ user.role === 'admin' ? '管理员' : '普通用户' }}
               </span>
             </td>
+            <td>
+              <span :class="['verification-badge', user.is_verified ? 'verified' : 'unverified']">
+                {{ user.is_verified ? '已验证' : '未验证' }}
+              </span>
+            </td>
             <td>{{ formatDate(user.created_at) }}</td>
             <td class="actions-cell">
               <select 
@@ -222,6 +281,13 @@ onMounted(fetchUsers)
                 <option value="user">普通用户</option>
                 <option value="admin">管理员</option>
               </select>
+              <button 
+                @click="openEditUsername(user)" 
+                class="action-button edit"
+                title="修改用户名"
+              >
+                修改用户名
+              </button>
               <button 
                 @click="openResetPassword(user)" 
                 class="action-button reset"
@@ -240,7 +306,7 @@ onMounted(fetchUsers)
             </td>
           </tr>
           <tr v-if="users.length === 0">
-            <td colspan="6" class="empty-message">暂无用户</td>
+            <td colspan="7" class="empty-message">暂无用户</td>
           </tr>
         </tbody>
       </table>
@@ -310,6 +376,54 @@ onMounted(fetchUsers)
             class="dialog-button cancel-button"
           >
             {{ resetSuccess ? '关闭' : '取消' }}
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 修改用户名对话框 -->
+    <div v-if="editUsernameDialogVisible" class="modal-overlay" @click.self="closeEditUsernameDialog">
+      <div class="edit-username-dialog" @click.stop>
+        <h3>修改用户名</h3>
+        <p v-if="userToEdit">您正在修改用户 <strong>{{ userToEdit.username }}</strong> 的用户名</p>
+        
+        <div v-if="editSuccess" class="success-message">
+          <p>用户名修改成功！由于系统使用邮箱作为登录标识符，用户的登录状态不会受到影响。</p>
+          <p>新用户名为：<strong>{{ newUsername }}</strong></p>
+        </div>
+        
+        <div v-else class="username-form">
+          <div class="form-group">
+            <label for="new-username">新用户名</label>
+            <input 
+              id="new-username" 
+              v-model="newUsername" 
+              type="text" 
+              class="username-input"
+              :disabled="isEditing"
+              maxlength="32"
+              placeholder="输入新用户名"
+            />
+            <small class="field-info">用户名长度3-32个字符，只能包含字母、数字和下划线</small>
+          </div>
+          
+          <div v-if="editError" class="error-message">{{ editError }}</div>
+        </div>
+        
+        <div class="dialog-actions">
+          <button 
+            v-if="!editSuccess"
+            @click="editUserUsername" 
+            class="dialog-button edit-button"
+            :disabled="isEditing || !newUsername || newUsername === userToEdit?.username"
+          >
+            {{ isEditing ? '修改中...' : '确认修改' }}
+          </button>
+          <button 
+            @click="closeEditUsernameDialog" 
+            class="dialog-button cancel-button"
+          >
+            {{ editSuccess ? '关闭' : '取消' }}
           </button>
         </div>
       </div>
@@ -420,6 +534,23 @@ onMounted(fetchUsers)
   color: white;
 }
 
+.verification-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.verification-badge.verified {
+  background-color: var(--success-color, #67c23a);
+  color: white;
+}
+
+.verification-badge.unverified {
+  background-color: var(--warning-color, #e6a23c);
+  color: white;
+}
+
 .actions-cell {
   display: flex;
   gap: 10px;
@@ -461,6 +592,16 @@ onMounted(fetchUsers)
   background-color: rgba(var(--accent-rgb), 0.2);
 }
 
+.action-button.edit {
+  background-color: rgba(var(--success-rgb), 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(var(--success-rgb), 0.2);
+}
+
+.action-button.edit:hover {
+  background-color: rgba(var(--success-rgb), 0.2);
+}
+
 .action-button.reset {
   background-color: rgba(var(--primary-rgb), 0.1);
   color: var(--primary-color);
@@ -500,7 +641,8 @@ onMounted(fetchUsers)
   animation: fade-in 0.2s ease;
 }
 
-.reset-password-dialog {
+.reset-password-dialog,
+.edit-username-dialog {
   background-color: var(--card-bg);
   border-radius: 8px;
   padding: 20px;
@@ -532,19 +674,24 @@ onMounted(fetchUsers)
   gap: 10px;
 }
 
-.password-input {
+.password-input,
+.username-input {
   flex: 1;
   padding: 8px 12px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  font-family: monospace;
   font-size: 1rem;
   background-color: var(--input-bg);
   color: var(--text-primary);
   transition: border-color 0.3s ease;
 }
 
-.password-input:focus {
+.password-input {
+  font-family: monospace;
+}
+
+.password-input:focus,
+.username-input:focus {
   outline: none;
   border-color: var(--primary-color);
 }
@@ -577,6 +724,15 @@ onMounted(fetchUsers)
   cursor: pointer;
   transition: all 0.3s;
   border: none;
+}
+
+.edit-button {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.edit-button:hover {
+  filter: brightness(1.1);
 }
 
 .reset-button {
@@ -651,6 +807,18 @@ onMounted(fetchUsers)
   font-size: 0.9rem;
   margin: 10px 0 0 0;
   color: var(--text-tertiary);
+}
+
+.username-form {
+  margin: 15px 0;
+}
+
+.field-info {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  font-style: italic;
 }
 
 @keyframes fade-in {

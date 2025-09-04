@@ -178,10 +178,12 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, defineAsyncComponent } from 'vue'
 import { marketplaceApi } from '../../services/api'
-import MarkdownEditor from '../../components/MarkdownEditor.vue'
-import MarketplaceSettings from '../../components/MarketplaceSettings.vue'
+
+// 异步导入组件，避免循环依赖
+const MarkdownEditor = defineAsyncComponent(() => import('../../components/MarkdownEditor.vue'))
+const MarketplaceSettings = defineAsyncComponent(() => import('../../components/MarketplaceSettings.vue'))
 
 export default {
   name: 'AdminPluginMarketplace',

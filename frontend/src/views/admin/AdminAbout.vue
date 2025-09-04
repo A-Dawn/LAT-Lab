@@ -216,11 +216,11 @@ onMounted(() => {
 
     <div class="admin-about-content">
       <!-- 配置表单 -->
-      <div class="config-section">
-        <h3>配置信息</h3>
+      <div class="admin-about-section">
+        <h2>配置信息</h2>
         <form @submit.prevent="handleSubmit" class="config-form">
           <div class="form-group">
-            <label for="title">标题 <span class="required">*</span></label>
+            <label for="title" class="form-label">标题 <span class="required">*</span></label>
             <input 
               type="text" 
               id="title"
@@ -234,7 +234,7 @@ onMounted(() => {
           </div>
 
           <div class="form-group">
-            <label for="description">描述</label>
+            <label for="description" class="form-label">描述</label>
             <textarea 
               id="description"
               v-model.trim="formData.description" 
@@ -247,7 +247,7 @@ onMounted(() => {
           </div>
 
           <div class="form-group">
-            <label>社交链接</label>
+            <label class="form-label">社交链接</label>
             <div class="social-links">
               <div 
                 v-for="(link, index) in formData.social_links" 
@@ -297,8 +297,8 @@ onMounted(() => {
       </div>
 
       <!-- 预览区域 -->
-      <div class="preview-section">
-        <h3>预览效果</h3>
+      <div class="admin-about-section">
+        <h2>预览效果</h2>
         <div class="preview-container">
           <div class="sidebar-preview">
             <div class="sidebar-section-preview">
@@ -336,47 +336,27 @@ onMounted(() => {
 <style scoped>
 .admin-about {
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
 }
 
 .admin-about-header {
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .admin-about-header h2 {
   margin: 0 0 10px 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 24px;
 }
 
 .admin-about-header p {
   margin: 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
-}
-
-.admin-about-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-}
-
-.config-section,
-.preview-section {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.config-section h3,
-.preview-section h3 {
-  margin: 0 0 20px 0;
-  color: #333;
-  font-size: 18px;
 }
 
 .config-form {
@@ -385,36 +365,62 @@ onMounted(() => {
   gap: 20px;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.admin-about-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.form-group label {
+.admin-about-section {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+}
+
+.admin-about-section h2 {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 10px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-primary);
   font-weight: 500;
-  color: #333;
-  font-size: 14px;
 }
 
 .required {
-  color: #dc3545;
+  color: var(--error-color);
 }
 
 .form-input,
 .form-textarea {
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 14px;
   transition: border-color 0.2s;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  width: 100%;
 }
 
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.25);
 }
 
 .form-textarea {
@@ -423,7 +429,7 @@ onMounted(() => {
 }
 
 .form-hint {
-  color: #6c757d;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -461,35 +467,36 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: var(--primary-color);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--secondary-color);
 }
 
 .btn-primary:disabled {
-  background-color: #6c757d;
+  background-color: var(--text-tertiary);
   cursor: not-allowed;
 }
 
 .btn-secondary {
-  background-color: #6c757d;
+  background-color: var(--text-tertiary);
   color: white;
 }
 
 .btn-secondary:hover {
-  background-color: #545b62;
+  background-color: var(--text-secondary);
 }
 
 .btn-danger {
-  background-color: #dc3545;
+  background-color: var(--error-color);
   color: white;
 }
 
 .btn-danger:hover {
-  background-color: #c82333;
+  background-color: var(--error-color);
+  filter: brightness(0.9);
 }
 
 .btn-sm {
@@ -504,7 +511,7 @@ onMounted(() => {
 }
 
 .preview-container {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 4px;
   padding: 20px;
 }
@@ -515,22 +522,23 @@ onMounted(() => {
 }
 
 .sidebar-section-preview {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
 }
 
 .sidebar-title {
   margin: 0 0 15px 0;
   font-size: 18px;
-  color: #333;
-  border-bottom: 2px solid #007bff;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--primary-color);
   padding-bottom: 8px;
 }
 
 .sidebar-content {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .sidebar-description {
@@ -548,7 +556,7 @@ onMounted(() => {
 .social-item a {
   display: inline-block;
   padding: 6px 12px;
-  background: #007bff;
+  background: var(--primary-color);
   color: white;
   text-decoration: none;
   border-radius: 4px;
@@ -557,7 +565,7 @@ onMounted(() => {
 }
 
 .social-item a:hover {
-  background: #0056b3;
+  background: var(--secondary-color);
 }
 
 .message {
@@ -573,15 +581,15 @@ onMounted(() => {
 }
 
 .message.success {
-  background-color: #28a745;
+  background-color: var(--success-color);
 }
 
 .message.error {
-  background-color: #dc3545;
+  background-color: var(--error-color);
 }
 
 .message.info {
-  background-color: #17a2b8;
+  background-color: var(--info-color);
 }
 
 @keyframes slideIn {

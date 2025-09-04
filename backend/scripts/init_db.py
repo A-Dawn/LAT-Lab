@@ -7,25 +7,93 @@ import os
 import sys
 import logging
 from pathlib import Path
+from sqlalchemy import text
 
 # 添加项目根目录到Python路径
 PROJECT_ROOT = Path(__file__).parent.parent.absolute()
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.lat_lab.core.database import SessionLocal, engine, Base
-from src.lat_lab.core.security import get_password_hash
-from src.lat_lab.models import user, article, category, comment, tag, plugin, system
-
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+from src.lat_lab.core.database import SessionLocal, engine, Base
+from src.lat_lab.core.security import get_password_hash
+
+# 导入所有模型以确保它们被注册到Base.metadata
+from src.lat_lab.models import user, article, category, comment, tag, plugin, system
+
+# 确保所有模型都被导入
+logger.info("已导入的模型:")
+logger.info(f"  - user: {user}")
+logger.info(f"  - article: {article}")
+logger.info(f"  - category: {category}")
+logger.info(f"  - comment: {comment}")
+logger.info(f"  - tag: {tag}")
+logger.info(f"  - plugin: {plugin}")
+logger.info(f"  - system: {system}")
 
 
 def create_tables():
     """创建所有数据库表"""
     logger.info("创建数据库表...")
-    Base.metadata.create_all(bind=engine)
-    logger.info("数据库表创建完成")
+    try:
+        # 检查数据库连接
+        logger.info(f"数据库引擎: {engine}")
+        logger.info(f"数据库URL: {engine.url}")
+        
+        # 检查Base.metadata中的表
+        logger.info(f"Base.metadata中的表: {list(Base.metadata.tables.keys())}")
+        
+        # 使用engine直接创建表
+        Base.metadata.create_all(bind=engine)
+        logger.info("数据库表创建完成")
+        
+        # 验证表是否真的创建成功
+        with engine.connect() as conn:
+            # 检查关键表是否存在
+            result = conn.execute(text("SHOW TABLES"))
+            tables = [row[0] for row in result]
+            logger.info(f"已创建的表: {tables}")
+            
+            if 'users' in tables and 'categories' in tables:
+                logger.info("关键表创建成功")
+                return True
+            else:
+                logger.error("关键表创建失败")
+                return False
+                
+    except Exception as e:
+        logger.error(f"创建数据库表失败: {e}")
+        import traceback
+        logger.error(f"详细错误信息: {traceback.format_exc()}")
+        return False
+
+
+def wait_for_tables():
+    """等待表创建完成"""
+    logger.info("等待表创建完成...")
+    import time
+    max_attempts = 15
+    attempt = 1
+    
+    while attempt <= max_attempts:
+        try:
+            with engine.connect() as conn:
+                # 尝试查询一个简单的表
+                result = conn.execute(text("SELECT COUNT(*) FROM users"))
+                count = result.scalar()
+                logger.info(f"表创建完成，users表中有 {count} 条记录")
+                return True
+        except Exception as e:
+            if attempt == max_attempts:
+                logger.error(f"等待表创建超时: {e}")
+                return False
+            logger.info(f"表尚未就绪，等待 2 秒后重试... (第 {attempt} 次)")
+            time.sleep(2)
+            attempt += 1
+    
+    return False
 
 
 def create_admin_user():
@@ -43,7 +111,7 @@ def create_admin_user():
             username="admin",
             email="admin@example.com",
             hashed_password=get_password_hash("admin123"),
-            role="admin",
+            role=user.RoleEnum.admin,
             is_verified=True,
             bio="系统管理员",
         )
@@ -123,17 +191,25 @@ def create_example_tags():
 
 def main():
     """主函数"""
-    logger.info("开始初始化数据库...")
+    logger.info("开始数据库初始化...")
     
-    # 创建数据库表
-    create_tables()
+    # 创建表
+    if not create_tables():
+        logger.error("创建数据库表失败")
+        sys.exit(1)
     
-    # 创建管理员用户
+    # 等待表创建完成
+    if not wait_for_tables():
+        logger.error("等待表创建超时")
+        sys.exit(1)
+    
+    # 初始化数据
     create_admin_user()
-    
-    # 创建示例数据
     create_example_categories()
     create_example_tags()
+    # create_example_articles()  # 暂时注释掉，避免错误
+    # create_example_comments()  # 暂时注释掉，避免错误
+    # create_example_plugins()   # 暂时注释掉，避免错误
     
     logger.info("数据库初始化完成")
 

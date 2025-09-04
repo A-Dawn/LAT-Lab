@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-from .user import Base
+from src.lat_lab.core.database import Base
 
 class Category(Base):
     __tablename__ = "categories"

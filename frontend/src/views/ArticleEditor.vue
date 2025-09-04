@@ -115,6 +115,17 @@ const checkUserPermission = async () => {
     return false
   }
   
+  // 检查邮箱验证状态（未验证邮箱的用户不能创建或编辑文章）
+  if (!currentUser.value.is_verified) {
+    error.value = '请先验证您的邮箱后再创建或编辑文章'
+    // 重定向到个人中心，让用户验证邮箱
+    router.push({ 
+      path: '/profile',
+      query: { message: '请先验证您的邮箱后再创建或编辑文章' }
+    })
+    return false
+  }
+  
   // 如果是编辑模式，需要检查是否有权限编辑该文章
   if (isEditMode.value) {
     try {

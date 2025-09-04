@@ -4,10 +4,11 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from src.lat_lab.schemas.article import Article, ArticleCreate, ArticleUpdate, ArticleDetail, Tag, ArticleStatus, ArticleVisibility
 from src.lat_lab.crud.article import get_article, get_articles, create_article, update_article, delete_article, increment_view_count, update_like_count
-from src.lat_lab.core.deps import get_db, get_current_user, get_current_author_or_admin
+from src.lat_lab.core.deps import get_db, get_current_user, get_current_author_or_admin, get_optional_user
 from src.lat_lab.models.user import User, RoleEnum
 from src.lat_lab.models.tag import Tag as TagModel
-from sqlalchemy import func
+from src.lat_lab.models.article import Article as ArticleModel
+from sqlalchemy import func, desc
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/articles", tags=["articles"])
@@ -18,7 +19,7 @@ def create_new_article(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """创建文章（需要用户登录）"""
+    """创建文章（需要用户登录且邮箱已验证）"""
     # 检查用户权限（访客不能发布文章）
     if current_user.role == RoleEnum.visitor:
         raise HTTPException(
@@ -26,23 +27,35 @@ def create_new_article(
             detail="访客不能发布文章"
         )
     
-    return create_article(db, article, current_user.id)
+    # 检查邮箱验证状态（未验证邮箱的用户不能发布文章）
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="请先验证您的邮箱后再发布文章"
+        )
+    
+    # 根据用户角色决定是否自动审核通过
+    auto_approve = current_user.role == RoleEnum.admin
+    
+    return create_article(db, article, current_user.id, auto_approve=auto_approve)
 
 @router.get("/", response_model=List[Article], response_model_exclude={"password"})
 def read_articles(
-    skip: int = 0,
-    limit: int = 10,
-    author_id: Optional[int] = None,
-    category_id: Optional[int] = None,
-    tag: Optional[str] = None,
-    search: Optional[str] = None,
-    pinned_first: bool = True,
-    status: Optional[ArticleStatus] = None,
-    visibility: Optional[ArticleVisibility] = None,
-    include_drafts: bool = False,
-    include_future: bool = False,
+    request: Request,
+    skip: int = Query(0, ge=0, description="跳过的文章数量"),
+    limit: int = Query(10, ge=1, le=1000, description="返回的文章数量"),
+    author_id: Optional[int] = Query(None, description="作者ID"),
+    category_id: Optional[int] = Query(None, description="分类ID"),
+    tag: Optional[str] = Query(None, description="标签名称"),
+    search: Optional[str] = Query(None, description="搜索关键词"),
+    pinned_first: bool = Query(True, description="是否优先显示置顶文章"),
+    status: Optional[ArticleStatus] = Query(None, description="文章状态"),
+    visibility: Optional[ArticleVisibility] = Query(None, description="文章可见性"),
+    include_drafts: bool = Query(False, description="是否包含草稿"),
+    include_future: bool = Query(False, description="是否包含定时发布文章"),
+    include_pending: bool = Query(False, description="是否包含待审核文章"),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """获取文章列表，支持分页、按作者/分类/标签筛选、搜索"""
     # 获取当前用户ID（如果已登录）
@@ -58,6 +71,10 @@ def read_articles(
     if not current_user or (current_user.role != RoleEnum.admin and (author_id is None or author_id != current_user.id)):
         include_drafts = False
     
+    # 仅管理员可以查看待审核文章列表
+    if include_pending and (not current_user or current_user.role != RoleEnum.admin):
+        include_pending = False
+    
     # 获取文章列表
     articles = get_articles(
         db, 
@@ -70,7 +87,8 @@ def read_articles(
         pinned_first=pinned_first,
         current_user_id=current_user_id,
         include_drafts=include_drafts,
-        include_future=include_future
+        include_future=include_future,
+        include_pending=include_pending
     )
     return articles
 
@@ -178,6 +196,28 @@ def read_user_drafts(
             detail="获取草稿文章失败"
         )
 
+# 文章审核相关API端点
+@router.get("/pending", response_model=List[Article])
+def get_pending_articles(
+    skip: int = Query(0, ge=0, description="跳过的文章数量"),
+    limit: int = Query(10, ge=1, le=1000, description="返回的文章数量"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取待审核文章列表（仅管理员）"""
+    # 检查管理员权限
+    if current_user.role != RoleEnum.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有管理员可以查看待审核文章"
+        )
+    
+    # 查询待审核文章
+    query = db.query(ArticleModel).filter(ArticleModel.is_approved == False)
+    articles = query.order_by(desc(ArticleModel.created_at)).offset(skip).limit(limit).all()
+    
+    return articles
+
 @router.get("/{article_id}", response_model=ArticleDetail, response_model_exclude={"password"})
 def read_article(
     article_id: int,
@@ -186,7 +226,7 @@ def read_article(
     password_hash: Optional[str] = None,
     client_hash: bool = False,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """获取文章详情
     
@@ -295,7 +335,14 @@ def update_article_by_id(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """更新文章（需要作者或管理员权限）"""
+    """更新文章（需要作者或管理员权限且邮箱已验证）"""
+    # 检查邮箱验证状态（未验证邮箱的用户不能编辑文章）
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="请先验证您的邮箱后再编辑文章"
+        )
+    
     # 使用修改后的get_article函数，传入当前用户ID以检查权限
     db_article = get_article(db, article_id, current_user.id)
     if db_article is None:
@@ -326,7 +373,14 @@ def delete_article_by_id(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """删除文章（需要作者或管理员权限）"""
+    """删除文章（需要作者或管理员权限且邮箱已验证）"""
+    # 检查邮箱验证状态（未验证邮箱的用户不能删除文章）
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="请先验证您的邮箱后再删除文章"
+        )
+    
     # 使用修改后的get_article函数，传入当前用户ID以检查权限
     db_article = get_article(db, article_id, current_user.id)
     if db_article is None:
@@ -496,4 +550,121 @@ def get_like_status(
     return {
         "likes_count": db_article.likes_count or 0,
         "is_liked": is_liked
-    } 
+    }
+
+
+
+@router.put("/{article_id}/approve", response_model=Article)
+def approve_article(
+    article_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """审核通过文章（仅管理员）"""
+    # 检查管理员权限
+    if current_user.role != RoleEnum.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有管理员可以审核文章"
+        )
+    
+    # 获取文章
+    db_article = db.query(ArticleModel).filter(ArticleModel.id == article_id).first()
+    if not db_article:
+        raise HTTPException(status_code=404, detail="文章不存在")
+    
+    # 检查是否已经审核过
+    if db_article.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该文章已经审核通过"
+        )
+    
+    # 更新审核状态
+    db_article.is_approved = True
+    db.commit()
+    db.refresh(db_article)
+    
+    return db_article
+
+@router.put("/{article_id}/reject", response_model=Dict[str, Any])
+def reject_article(
+    article_id: int,
+    reason: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """拒绝文章（仅管理员）"""
+    # 检查管理员权限
+    if current_user.role != RoleEnum.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有管理员可以审核文章"
+        )
+    
+    # 获取文章
+    db_article = db.query(ArticleModel).filter(ArticleModel.id == article_id).first()
+    if not db_article:
+        raise HTTPException(status_code=404, detail="文章不存在")
+    
+    # 检查是否已经审核过
+    if db_article.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该文章已经审核通过"
+        )
+    
+    # 删除文章（拒绝即删除）
+    db.delete(db_article)
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "文章已拒绝",
+        "reason": reason
+    }
+
+@router.get("/stats/approval", response_model=Dict[str, Any])
+def get_approval_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取文章审核统计信息（仅管理员）"""
+    try:
+        # 检查管理员权限
+        if current_user.role != RoleEnum.admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="只有管理员可以查看审核统计"
+            )
+        
+        # 统计各种状态的文章数量
+        total_articles = db.query(ArticleModel).count()
+        approved_articles = db.query(ArticleModel).filter(ArticleModel.is_approved == True).count()
+        pending_articles = db.query(ArticleModel).filter(ArticleModel.is_approved == False).count()
+        
+        # 计算审核率，避免除零错误
+        approval_rate = 0
+        if total_articles > 0:
+            approval_rate = round(approved_articles / total_articles * 100, 2)
+        
+        return {
+            "total": total_articles,
+            "approved": approved_articles,
+            "pending": pending_articles,
+            "approval_rate": approval_rate
+        }
+    except Exception as e:
+        # 记录详细错误信息
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"获取审核统计失败: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        logger.error(f"用户ID: {current_user.id if current_user else 'None'}")
+        logger.error(f"用户角色: {current_user.role if current_user else 'None'}")
+        
+        # 返回通用错误信息
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取审核统计信息失败，请稍后重试"
+        ) 

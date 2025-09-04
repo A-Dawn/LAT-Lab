@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from src.lat_lab.schemas.comment import Comment, CommentCreate, CommentUpdate, CommentLike
 from src.lat_lab.crud.comment import (
     get_comment, get_comments_by_article, get_comment_replies,
     create_comment, update_comment, delete_comment, like_comment
 )
 from src.lat_lab.crud.article import get_article
-from src.lat_lab.core.deps import get_db, get_current_user, get_current_admin_user
+from src.lat_lab.core.deps import get_db, get_current_user, get_current_admin_user, get_optional_user
 from src.lat_lab.models.user import User, RoleEnum
 from src.lat_lab.models.comment import Comment as CommentModel
 
@@ -16,10 +16,11 @@ router = APIRouter(prefix="/comments", tags=["comments"])
 @router.get("/article/{article_id}", response_model=List[Comment])
 def read_article_comments(
     article_id: int,
+    request: Request,
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """获取文章的评论"""
     # 检查文章是否存在
@@ -28,7 +29,7 @@ def read_article_comments(
         raise HTTPException(status_code=404, detail="文章不存在")
     
     # 管理员可以看到未审核的评论
-    include_unapproved = current_user.role == RoleEnum.admin
+    include_unapproved = current_user and current_user.role == RoleEnum.admin
     
     # 获取评论列表
     comments = get_comments_by_article(
@@ -141,7 +142,14 @@ def create_new_comment(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """创建评论或回复"""
+    """创建评论或回复（需要邮箱已验证）"""
+    # 检查邮箱验证状态（未验证邮箱的用户不能创建评论）
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="请先验证您的邮箱后再创建评论"
+        )
+    
     # 检查文章是否存在
     article = get_article(db, comment.article_id)
     if not article:

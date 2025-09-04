@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .user import Base
+from src.lat_lab.core.database import Base
 
 class Comment(Base):
     __tablename__ = "comments"

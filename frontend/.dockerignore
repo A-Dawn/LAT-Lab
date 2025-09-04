@@ -1,0 +1,65 @@
+# Git相关
+.git
+.gitignore
+.gitattributes
+
+# Node.js相关
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# 构建输出
+dist/
+build/
+.next/
+.nuxt/
+
+# 开发工具
+.dev-tools-backup/
+*.log
+logs/
+
+# 环境文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE相关
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统相关
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 测试相关
+coverage/
+.nyc_output/
+*.lcov
+
+# 文档
+*.md
+docs/
+README*
+
+# 临时文件
+{{ ... }}
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 开发工具相关（已移除排除规则）

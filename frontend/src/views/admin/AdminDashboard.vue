@@ -60,7 +60,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 })
 
-// 导航项 - 生产环境构建时开发工具项将被完全移除
+// 导航项
 const navItems = computed(() => {
   const baseItems = [
     { path: '/admin/articles', icon: '📄', label: '文章管理' },
@@ -68,14 +68,11 @@ const navItems = computed(() => {
     { path: '/admin/categories', icon: '📁', label: '分类管理' },
     { path: '/admin/tags', icon: '🏷️', label: '标签管理' },
     { path: '/admin/comments', icon: '💬', label: '评论管理' },
+    { path: '/admin/article-approval', icon: '✅', label: '文章审核' },
     { path: '/admin/plugins', icon: '🧩', label: '插件管理' },
-    { path: '/admin/about', icon: '👨‍💻', label: '关于博主' }
+    { path: '/admin/about', icon: '👨‍💻', label: '关于博主' },
+    { path: '/admin/dev-tools', icon: '🛠️', label: '开发工具' }
   ]
-  
-  // 开发工具项仅在开发环境下包含
-  if (isDevelopment.value) {
-    baseItems.push({ path: '/admin/dev-tools', icon: '🛠️', label: '开发工具' })
-  }
   
   return baseItems
 })

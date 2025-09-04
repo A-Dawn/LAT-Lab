@@ -148,7 +148,7 @@ const handleImageUpload = async (event) => {
     formData.append('file', file)
     
     // 发送请求到后端上传API
-    const response = await fetch('http://localhost:8000/api/upload/image', {
+          const response = await fetch('/api/upload/image', {
       method: 'POST',
       body: formData,
       headers: {
@@ -163,7 +163,7 @@ const handleImageUpload = async (event) => {
     const data = await response.json()
     
     // 获取图片URL并插入到编辑器
-    const imageUrl = `http://localhost:8000${data.url}`
+            const imageUrl = `${import.meta.env.VITE_UPLOAD_URL || '/uploads'}${data.url}`
     insertText(`![${file.name}](${imageUrl})`, '')
     uploadStatus.value = `上传成功: ${file.name}`
     

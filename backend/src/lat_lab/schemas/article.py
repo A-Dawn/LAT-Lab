@@ -42,6 +42,7 @@ class ArticleBase(BaseModel):
     content: str
     summary: Optional[str] = None
     is_pinned: Optional[bool] = False
+    is_approved: Optional[bool] = False
     category_id: Optional[int] = None
     status: Optional[ArticleStatus] = ArticleStatus.published
     published_at: Optional[datetime] = None
@@ -56,6 +57,7 @@ class ArticleUpdate(BaseModel):
     content: Optional[str] = None
     summary: Optional[str] = None
     is_pinned: Optional[bool] = None
+    is_approved: Optional[bool] = None
     category_id: Optional[int] = None
     tags: Optional[List[str]] = None
     status: Optional[ArticleStatus] = None

@@ -82,7 +82,10 @@ const fetchArticles = async () => {
     isLoading.value = true
     error.value = null
     
-    const response = await articleApi.getArticles({ limit: 100 })
+    const response = await articleApi.getArticles({ 
+      limit: 100,
+      include_pending: true  // 管理员可以看到所有文章，包括待审核的
+    })
     articles.value = response || []
     updateFilteredArticles()
   } catch (err) {
@@ -247,6 +250,7 @@ onMounted(fetchArticles)
             <th scope="col">标题</th>
             <th scope="col">作者</th>
             <th scope="col">发布日期</th>
+            <th scope="col">审核状态</th>
             <th scope="col">阅读量</th>
             <th scope="col" class="actions-header">操作</th>
           </tr>
@@ -257,6 +261,13 @@ onMounted(fetchArticles)
             <td class="title-cell">{{ article.title }}</td>
             <td>{{ article.author?.username || '未知' }}</td>
             <td>{{ formatDate(article.created_at) }}</td>
+            <td>
+              <span 
+                :class="['status-badge', article.is_approved ? 'approved' : 'pending']"
+              >
+                {{ article.is_approved ? '已审核' : '待审核' }}
+              </span>
+            </td>
             <td class="view-count">{{ article.view_count }}</td>
             <td class="actions-cell">
               <button 
@@ -773,6 +784,27 @@ onMounted(fetchArticles)
 
 .cancel-button:hover {
   background-color: var(--bg-hover);
+}
+
+/* 审核状态徽章 */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  display: inline-block;
+  min-width: 60px;
+}
+
+.status-badge.approved {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.status-badge.pending {
+  background-color: var(--warning-color);
+  color: white;
 }
 
 /* 响应式适配 */

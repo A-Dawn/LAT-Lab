@@ -1,0 +1,1025 @@
+/* 页面切换动画系统 - 与主题系统完美对接 */
+
+/* 基础动画变量 - 使用主题色 */
+:root {
+  --animation-duration-fast: 200ms;
+  --animation-duration-normal: 300ms;
+  --animation-duration-slow: 500ms;
+  --animation-easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --animation-easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --animation-easing-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 主题特定的动画变量 */
+[data-theme="light"] {
+  --animation-shadow: 0 4px 20px rgba(var(--primary-color-rgb), 0.15);
+  --animation-shadow-hover: 0 8px 30px rgba(var(--primary-color-rgb), 0.25);
+  --animation-glow: 0 0 10px rgba(var(--primary-color-rgb), 0.2);
+  --animation-border-glow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.3);
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] {
+  --animation-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --animation-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --animation-glow: 0 0 15px rgba(var(--primary-color-rgb), 0.3);
+  --animation-border-glow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.4);
+  --glass-bg: rgba(0, 0, 0, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="neon"] {
+  --animation-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --animation-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --animation-glow: 0 0 20px rgba(var(--primary-color-rgb), 0.4);
+  --animation-border-glow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.5);
+  --glass-bg: rgba(0, 0, 0, 0.3);
+  --glass-border: rgba(var(--primary-color-rgb), 0.3);
+}
+
+/* 页面切换动画容器 */
+.page-transition-container {
+  position: relative;
+  overflow: hidden;
+  min-height: 60vh;
+}
+
+/* 毛玻璃背景效果 */
+.glass-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  z-index: -1;
+}
+
+/* 1. 渐变+毛玻璃淡入淡出动画 */
+.glass-fade-enter-active,
+.glass-fade-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+  position: relative;
+}
+
+.glass-fade-enter-active::before,
+.glass-fade-leave-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 50%,
+    var(--accent-color) 100%
+  );
+  opacity: 0.1;
+  z-index: -2;
+  transition: opacity var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-fade-enter-active .glass-background,
+.glass-fade-leave-active .glass-background {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.glass-fade-enter-active::before {
+  opacity: 0.1;
+}
+
+.glass-fade-enter-active .glass-background {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.glass-fade-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+.glass-fade-leave-active::before {
+  opacity: 0;
+}
+
+.glass-fade-leave-active .glass-background {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+/* 2. 渐变+毛玻璃滑动动画 */
+.glass-slide-enter-active,
+.glass-slide-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-slide-enter-active::before,
+.glass-slide-leave-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 100%
+  );
+  opacity: 0.1;
+  z-index: -2;
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-slide-enter-active .glass-background,
+.glass-slide-leave-active .glass-background {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-slide-enter-from {
+  transform: translateX(100%) scale(0.95);
+  opacity: 0;
+}
+
+.glass-slide-enter-active::before {
+  opacity: 0.1;
+}
+
+.glass-slide-enter-active .glass-background {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.glass-slide-leave-to {
+  transform: translateX(-100%) scale(0.95);
+  opacity: 0;
+}
+
+.glass-slide-leave-active::before {
+  opacity: 0;
+}
+
+.glass-slide-leave-active .glass-background {
+  opacity: 0;
+  transform: translateX(-100%) scale(0.95);
+}
+
+/* 3. 渐变+毛玻璃上升动画 */
+.glass-rise-enter-active,
+.glass-rise-leave-active {
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+  position: relative;
+}
+
+.glass-rise-enter-active::before,
+.glass-rise-leave-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 100%
+  );
+  opacity: 0.1;
+  z-index: -2;
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+}
+
+.glass-rise-enter-active .glass-background,
+.glass-rise-leave-active .glass-background {
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+}
+
+.glass-rise-enter-from {
+  transform: translateY(50px) scale(0.95);
+  opacity: 0;
+}
+
+.glass-rise-enter-active::before {
+  opacity: 0.1;
+}
+
+.glass-rise-enter-active .glass-background {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.glass-rise-leave-to {
+  transform: translateY(-50px) scale(0.95);
+  opacity: 0;
+}
+
+.glass-rise-leave-active::before {
+  opacity: 0;
+}
+
+.glass-rise-leave-active .glass-background {
+  opacity: 0;
+  transform: translateY(-50px) scale(0.95);
+}
+
+/* 4. 渐变+毛玻璃缩放动画 */
+.glass-scale-enter-active,
+.glass-scale-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+  position: relative;
+}
+
+.glass-scale-enter-active::before,
+.glass-scale-leave-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    var(--primary-color) 0%,
+    var(--secondary-color) 70%,
+    transparent 100%
+  );
+  opacity: 0.1;
+  z-index: -2;
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-scale-enter-active .glass-background,
+.glass-scale-leave-active .glass-background {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-scale-enter-from {
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+.glass-scale-enter-active::before {
+  opacity: 0.1;
+}
+
+.glass-scale-enter-active .glass-background {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.glass-scale-leave-to {
+  transform: scale(1.1);
+  opacity: 0;
+}
+
+.glass-scale-leave-active::before {
+  opacity: 0;
+}
+
+.glass-scale-leave-active .glass-background {
+  opacity: 0;
+  transform: scale(1.1);
+}
+
+/* 5. 渐变+毛玻璃波纹动画 */
+.glass-ripple-enter-active {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+}
+
+.glass-ripple-enter-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    var(--primary-color) 0%,
+    var(--secondary-color) 30%,
+    transparent 70%
+  );
+  transform: scale(0);
+  opacity: 0.8;
+  animation: glassRippleExpand var(--animation-duration-slow) var(--animation-easing);
+  z-index: -2;
+}
+
+.glass-ripple-enter-active .glass-background {
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+}
+
+@keyframes glassRippleExpand {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.glass-ripple-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.glass-ripple-enter-active .glass-background {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.glass-ripple-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-ripple-leave-to {
+  opacity: 0;
+  transform: scale(1.05);
+}
+
+/* 6. 渐变+毛玻璃旋转动画 */
+.glass-rotate-enter-active,
+.glass-rotate-leave-active {
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+  position: relative;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.glass-rotate-enter-active::before,
+.glass-rotate-leave-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: conic-gradient(
+    from 0deg,
+    var(--primary-color) 0deg,
+    var(--secondary-color) 120deg,
+    var(--accent-color) 240deg,
+    var(--primary-color) 360deg
+  );
+  opacity: 0.1;
+  z-index: -2;
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+}
+
+.glass-rotate-enter-active .glass-background,
+.glass-rotate-leave-active .glass-background {
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+}
+
+.glass-rotate-enter-from {
+  transform: rotateY(90deg) scale(0.8);
+  opacity: 0;
+  transform-origin: center;
+}
+
+.glass-rotate-enter-active::before {
+  opacity: 0.1;
+}
+
+.glass-rotate-enter-active .glass-background {
+  opacity: 1;
+  transform: rotateY(0deg) scale(1);
+}
+
+.glass-rotate-leave-to {
+  transform: rotateY(-90deg) scale(0.8);
+  opacity: 0;
+  transform-origin: center;
+}
+
+.glass-rotate-leave-active::before {
+  opacity: 0;
+}
+
+.glass-rotate-leave-active .glass-background {
+  opacity: 0;
+  transform: rotateY(-90deg) scale(0.8);
+}
+
+/* 7. 渐变+毛玻璃弹性动画 */
+.glass-bounce-enter-active {
+  animation: glassBounceIn var(--animation-duration-slow) var(--animation-easing-bounce);
+  position: relative;
+}
+
+.glass-bounce-enter-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 50%,
+    var(--accent-color) 100%
+  );
+  opacity: 0.1;
+  z-index: -2;
+  animation: glassBounceGradient var(--animation-duration-slow) var(--animation-easing-bounce);
+}
+
+.glass-bounce-enter-active .glass-background {
+  animation: glassBounceBackground var(--animation-duration-slow) var(--animation-easing-bounce);
+}
+
+@keyframes glassBounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+    box-shadow: var(--animation-glow);
+  }
+  70% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: var(--animation-shadow);
+  }
+}
+
+@keyframes glassBounceGradient {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 0.1;
+  }
+}
+
+@keyframes glassBounceBackground {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.glass-bounce-leave-active {
+  animation: glassBounceOut var(--animation-duration-normal) ease-in;
+}
+
+@keyframes glassBounceOut {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* 8. 渐变+毛玻璃折叠动画 */
+.glass-fold-enter-active,
+.glass-fold-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+  position: relative;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.glass-fold-enter-active::before,
+.glass-fold-leave-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 100%
+  );
+  opacity: 0.1;
+  z-index: -2;
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-fold-enter-active .glass-background,
+.glass-fold-leave-active .glass-background {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.glass-fold-enter-from {
+  transform: rotateX(-90deg);
+  opacity: 0;
+  transform-origin: center top;
+}
+
+.glass-fold-enter-active::before {
+  opacity: 0.1;
+}
+
+.glass-fold-enter-active .glass-background {
+  opacity: 1;
+  transform: rotateX(0deg);
+}
+
+.glass-fold-leave-to {
+  transform: rotateX(90deg);
+  opacity: 0;
+  transform-origin: center bottom;
+}
+
+.glass-fold-leave-active::before {
+  opacity: 0;
+}
+
+.glass-fold-leave-active .glass-background {
+  opacity: 0;
+  transform: rotateX(90deg);
+}
+
+/* 9. 主题特定动画 - 霓虹主题 */
+[data-theme="neon"] .neon-glass-enter-active {
+  position: relative;
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+}
+
+[data-theme="neon"] .neon-glass-enter-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(var(--primary-color-rgb), 0.2) 25%,
+    rgba(var(--secondary-color-rgb), 0.2) 50%,
+    rgba(var(--accent-color-rgb), 0.2) 75%,
+    transparent 100%
+  );
+  animation: neonGlassScan var(--animation-duration-slow) var(--animation-easing);
+  z-index: -2;
+}
+
+[data-theme="neon"] .neon-glass-enter-active .glass-background {
+  transition: all var(--animation-duration-slow) var(--animation-easing);
+  box-shadow: 0 0 30px rgba(var(--primary-color-rgb), 0.3);
+}
+
+@keyframes neonGlassScan {
+  0% {
+    transform: translateX(-100%) translateY(-100%);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%);
+  }
+}
+
+[data-theme="neon"] .neon-glass-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+  box-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.3);
+}
+
+[data-theme="neon"] .neon-glass-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+[data-theme="neon"] .neon-glass-leave-to {
+  opacity: 0;
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(var(--primary-color-rgb), 0.5);
+}
+
+/* 10. 主题特定动画 - 深色主题 */
+[data-theme="dark"] .dark-glass-enter-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
+}
+
+[data-theme="dark"] .dark-glass-enter-active .glass-background {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+[data-theme="dark"] .dark-glass-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .dark-glass-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+[data-theme="dark"] .dark-glass-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* 11. 主题特定动画 - 浅色主题 */
+[data-theme="light"] .light-glass-enter-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
+}
+
+[data-theme="light"] .light-glass-enter-active .glass-background {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+[data-theme="light"] .light-glass-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+  box-shadow: 0 10px 30px rgba(var(--primary-color-rgb), 0.1);
+}
+
+[data-theme="light"] .light-glass-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+[data-theme="light"] .light-glass-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+  box-shadow: 0 -10px 30px rgba(var(--primary-color-rgb), 0.1);
+}
+
+/* 12. 页面内容动画 - 延迟进入 */
+.page-content-enter-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+  transition-delay: 100ms;
+}
+
+.page-content-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-content-leave-active {
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+}
+
+.page-content-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* 13. 导航栏动画 */
+.nav-enter-active,
+.nav-leave-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.nav-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.nav-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* 14. 卡片动画 - 级联效果 */
+.card-enter-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.card-enter-from {
+  opacity: 0;
+  transform: translateY(30px) scale(0.95);
+}
+
+.card-leave-active {
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+}
+
+.card-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+}
+
+/* 15. 按钮动画 - 主题色响应 */
+.button-enter-active {
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+}
+
+.button-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
+  box-shadow: var(--animation-shadow);
+}
+
+.button-leave-active {
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+}
+
+.button-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+/* 16. 模态框动画 */
+.modal-enter-active {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.modal-enter-from {
+  opacity: 0;
+  transform: scale(0.8) translateY(-20px);
+}
+
+.modal-leave-active {
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+}
+
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.8) translateY(-20px);
+}
+
+/* 17. 加载动画系统 - 主题色响应 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  position: relative;
+}
+
+/* 主题色旋转加载器 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 渐变加载器 */
+.loading-gradient {
+  width: 50px;
+  height: 50px;
+  background: conic-gradient(
+    from 0deg,
+    var(--primary-color) 0deg,
+    var(--secondary-color) 120deg,
+    var(--accent-color) 240deg,
+    var(--primary-color) 360deg
+  );
+  border-radius: 50%;
+  animation: gradientSpin 1.5s linear infinite;
+  position: relative;
+}
+
+.loading-gradient::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  background: var(--bg-primary);
+  border-radius: 50%;
+}
+
+@keyframes gradientSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 脉冲加载器 */
+.loading-pulse {
+  width: 40px;
+  height: 40px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* 波浪加载器 */
+.loading-wave {
+  display: flex;
+  gap: 4px;
+}
+
+.loading-wave span {
+  width: 4px;
+  height: 20px;
+  background: var(--primary-color);
+  border-radius: 2px;
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.loading-wave span:nth-child(1) { animation-delay: 0s; }
+.loading-wave span:nth-child(2) { animation-delay: 0.1s; }
+.loading-wave span:nth-child(3) { animation-delay: 0.2s; }
+.loading-wave span:nth-child(4) { animation-delay: 0.3s; }
+
+@keyframes wave {
+  0%, 40%, 100% {
+    transform: scaleY(0.4);
+  }
+  20% {
+    transform: scaleY(1);
+  }
+}
+
+/* 18. 进度条动画 - 主题色渐变 */
+.progress-bar {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 50%,
+    var(--accent-color) 100%
+  );
+  animation: progressMove 2s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+@keyframes progressMove {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* 19. 主题切换动画 */
+.theme-transition {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+.theme-transition * {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+/* 20. 页面加载完成动画 */
+.page-loaded {
+  animation: pageLoaded var(--animation-duration-normal) var(--animation-easing);
+}
+
+@keyframes pageLoaded {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式动画调整 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --animation-duration-fast: 150ms;
+    --animation-duration-normal: 250ms;
+    --animation-duration-slow: 400ms;
+  }
+}
+
+/* 性能优化 */
+.animation-optimized {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* 动画性能监控 */
+.animation-debug {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  z-index: 9999;
+}
+
+/* 毛玻璃效果增强 */
+.glass-effect {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* 自动播放动画类 */
+.auto-animate {
+  animation: autoFadeIn var(--animation-duration-normal) var(--animation-easing) forwards;
+}
+
+@keyframes autoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 级联动画延迟 */
+.cascade-animate > * {
+  opacity: 0;
+  animation: cascadeFadeIn var(--animation-duration-normal) var(--animation-easing) forwards;
+}
+
+.cascade-animate > *:nth-child(1) { animation-delay: 0ms; }
+.cascade-animate > *:nth-child(2) { animation-delay: 100ms; }
+.cascade-animate > *:nth-child(3) { animation-delay: 200ms; }
+.cascade-animate > *:nth-child(4) { animation-delay: 300ms; }
+.cascade-animate > *:nth-child(5) { animation-delay: 400ms; }
+
+@keyframes cascadeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

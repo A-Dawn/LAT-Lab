@@ -54,7 +54,8 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
     
     update_data = user_update.dict(exclude_unset=True)
     
-    # 不允许修改邮箱，确保邮箱作为固定的身份标识符
+    # 邮箱现在是主要登录标识符，不允许修改
+    # 这确保了JWT token的稳定性和用户身份的一致性
     if "email" in update_data:
         update_data.pop("email")
     
@@ -62,6 +63,14 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
     # 防御性编程措施，在API层已经过滤了role字段并再次加固
     if "role" in update_data and db_user.role != RoleEnum.admin:
         update_data.pop("role")
+    
+    # 处理用户名修改
+    if "username" in update_data:
+        new_username = update_data["username"]
+        # 检查新用户名是否已存在（排除当前用户）
+        existing_user = get_user_by_username(db, new_username)
+        if existing_user and existing_user.id != user_id:
+            raise ValueError(f"用户名 '{new_username}' 已被使用")
     
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
@@ -120,10 +129,27 @@ def delete_user(db: Session, user_id: int):
     db.commit()
     return True
 
-def authenticate_user(db: Session, username: str, password: str):
-    user = get_user_by_username(db, username)
+def authenticate_user(db: Session, login_identifier: str, password: str):
+    """
+    用户认证函数，支持邮箱或用户名登录
+    
+    Args:
+        db: 数据库会话
+        login_identifier: 登录标识符（邮箱或用户名）
+        password: 密码
+    
+    Returns:
+        认证成功的用户对象，失败返回False
+    """
+    # 首先尝试通过邮箱查找用户
+    user = get_user_by_email(db, login_identifier)
+    
+    # 如果邮箱没找到，尝试通过用户名查找
     if not user:
+        user = get_user_by_username(db, login_identifier)
+    
+    # 如果用户不存在或密码错误，返回False
+    if not user or not verify_password(password, user.hashed_password):
         return False
-    if not verify_password(password, user.hashed_password):
-        return False
+    
     return user 

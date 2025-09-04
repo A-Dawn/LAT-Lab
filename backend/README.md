@@ -33,9 +33,10 @@ LAT-Lab 博客平台的后端服务，基于 FastAPI 构建。
 
 #### 1. 配置环境变量
 ```bash
-# 复制环境配置文件
-cp ../env.example .env
+# 复制环境配置文件 (传统安装推荐使用SQLite)
+cp env.traditional.example .env
 # 编辑.env文件，设置必要的配置项
+# 注意：传统安装默认使用SQLite数据库，无需额外配置
 ```
 
 #### 2. 创建虚拟环境并安装依赖

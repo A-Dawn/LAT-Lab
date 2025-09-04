@@ -73,14 +73,13 @@ const fetchBlogOwner = async () => {
   try {
     isLoadingOwner.value = true
     
-    // 获取用户列表，限制为1个用户
-    const response = await userApi.getUsers({ skip: 0, limit: 1 })
+    // 使用公开API获取博主信息
+    const response = await publicApi.getBlogOwner()
     
-    if (response.data && response.data.length > 0) {
-      const firstUser = response.data[0]
+    if (response.success && response.data) {
       blogOwner.value = {
-        username: firstUser.username || 'LAT-Lab',
-        avatar: firstUser.avatar
+        username: response.data.username || 'LAT-Lab',
+        avatar: response.data.avatar
       }
     }
   } catch (error) {
@@ -131,6 +130,24 @@ const fetchAboutConfig = async () => {
 const getAvatarText = computed(() => {
   return blogOwner.value.username.charAt(0).toUpperCase()
 })
+
+// 处理头像URL
+const getAvatarUrl = (path) => {
+  if (!path) return null
+  // 如果已经是完整URL，则直接返回
+  if (path.startsWith('http')) return path
+  // 确保路径以斜杠开头
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  // 如果路径已经包含/uploads，则直接返回，避免重复
+  if (cleanPath.includes('/uploads/')) return cleanPath
+  // 否则添加基础路径，但要避免重复的/uploads
+  const baseUrl = (import.meta.env.VITE_UPLOAD_URL || '').replace(/\/?$/, '')
+  // 如果基础URL和路径都以/uploads开头，则只使用路径
+  if (baseUrl.endsWith('/uploads') && cleanPath.startsWith('/uploads/')) {
+    return cleanPath
+  }
+  return `${baseUrl}${cleanPath}`
+}
 
 /**
  * 过滤文章分类
@@ -197,7 +214,7 @@ onMounted(() => {
           </div>
           <img 
             v-else
-            :src="blogOwner.avatar"
+            :src="getAvatarUrl(blogOwner.avatar)"
             :alt="`${blogOwner.username}的头像`"
             class="avatar-image"
           />
@@ -278,10 +295,10 @@ onMounted(() => {
 
 /* 小部件通用样式 */
 .sidebar-widget {
-  background-color: var(--card-bg, white);
+  background-color: var(--card-bg);
   border-radius: 12px;
-  border: 1px solid var(--border-color, #ebeef5);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
   margin-bottom: 25px;
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -298,8 +315,8 @@ onMounted(() => {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
-  border-bottom: 1px solid var(--border-color, #ebeef5);
-  color: var(--text-primary, #303133);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -319,8 +336,8 @@ onMounted(() => {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background-color: var(--primary-color, #4c84ff);
-  color: white;
+  background-color: var(--primary-color);
+  color: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,7 +350,7 @@ onMounted(() => {
   height: 100px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid var(--border-color, #ebeef5);
+  border: 3px solid var(--border-color);
 }
 
 /* 用户名样式 */
@@ -341,7 +358,7 @@ onMounted(() => {
   text-align: center;
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--text-primary, #303133);
+  color: var(--text-primary);
   margin-bottom: 15px;
 }
 
@@ -352,7 +369,7 @@ onMounted(() => {
 }
 
 .about-text {
-  color: var(--text-secondary, #606266);
+  color: var(--text-secondary);
   text-align: center;
   margin-bottom: 20px;
   font-size: 0.95rem;
@@ -367,7 +384,7 @@ onMounted(() => {
 }
 
 .social-link {
-  color: var(--primary-color, #4c84ff);
+  color: var(--primary-color);
   font-size: 0.9rem;
   padding: 5px 15px;
   border: 1px solid var(--border-color);
@@ -394,7 +411,7 @@ onMounted(() => {
   margin-bottom: 12px;
   transition: all 0.3s ease;
   cursor: pointer;
-  color: var(--text-secondary, #606266);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   padding: 8px 10px;
@@ -402,13 +419,13 @@ onMounted(() => {
 }
 
 .category-list li:hover {
-  color: var(--primary-color, #4c84ff);
+  color: var(--primary-color);
   background-color: var(--hover-color);
   transform: translateX(5px);
 }
 
 .category-list li.active {
-  color: var(--primary-color, #4c84ff);
+  color: var(--primary-color);
   font-weight: 500;
   background-color: var(--hover-color);
 }
@@ -426,8 +443,8 @@ onMounted(() => {
 }
 
 .tag-cloud span {
-  background-color: var(--hover-color, rgba(76, 132, 255, 0.1));
-  color: var(--primary-color, #4c84ff);
+  background-color: var(--hover-color);
+  color: var(--primary-color);
   padding: 6px 14px;
   border-radius: 30px;
   font-size: 0.9rem;
@@ -437,8 +454,8 @@ onMounted(() => {
 
 .tag-cloud span:hover,
 .tag-cloud span.active {
-  background-color: var(--primary-color, #4c84ff);
-  color: white;
+  background-color: var(--primary-color);
+  color: var(--bg-secondary);
   transform: translateY(-3px);
 }
 

@@ -8,14 +8,18 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: Home,
+    meta: { 
+      transition: 'glass-fade'
+    }
   },
   {
     path: '/login',
     name: 'Login',
     component: Login,
     meta: { 
-      requiresGuest: true
+      requiresGuest: true,
+      transition: 'glass-slide'
     }
   },
   {
@@ -23,21 +27,26 @@ const routes = [
     name: 'Register',
     component: () => import('../views/Register.vue'),
     meta: { 
-      requiresGuest: true
+      requiresGuest: true,
+      transition: 'glass-slide'
     }
   },
   {
     path: '/article/:id',
     name: 'ArticleDetail',
     component: () => import('../views/ArticleDetail.vue'),
-    props: true
+    props: true,
+    meta: {
+      transition: 'glass-rise'
+    }
   },
   {
     path: '/article/new',
     name: 'CreateArticle',
     component: () => import('../views/ArticleEditor.vue'),
     meta: { 
-      requiresAuth: true
+      requiresAuth: true,
+      transition: 'glass-slide'
     }
   },
   {
@@ -46,7 +55,8 @@ const routes = [
     component: () => import('../views/ArticleEditor.vue'),
     props: true,
     meta: { 
-      requiresAuth: true
+      requiresAuth: true,
+      transition: 'glass-slide'
     }
   },
   {
@@ -54,7 +64,8 @@ const routes = [
     name: 'UserProfile',
     component: () => import('../views/UserProfile.vue'),
     meta: { 
-      requiresAuth: true
+      requiresAuth: false,  // 允许未认证用户访问
+      transition: 'glass-fade'
     }
   },
   {
@@ -63,67 +74,119 @@ const routes = [
     component: () => import('../views/admin/AdminDashboard.vue'),
     meta: {
       requiresAuth: true,
-      requiresAdmin: true
+      requiresAdmin: true,
+      transition: 'glass-fade'
     },
+    // 所有子路由放在一个children数组中
     children: [
+      // 文章管理
       {
         path: 'articles',
         name: 'AdminArticles',
-        component: () => import('../views/admin/AdminArticles.vue')
+        component: () => import('../views/admin/AdminArticles.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        }
       },
       {
         path: 'users',
         name: 'AdminUsers',
-        component: () => import('../views/admin/AdminUsers.vue')
+        component: () => import('../views/admin/AdminUsers.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        }
       },
       {
         path: 'categories',
         name: 'AdminCategories',
-        component: () => import('../views/admin/AdminCategories.vue')
+        component: () => import('../views/admin/AdminCategories.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        }
       },
       {
         path: 'comments',
         name: 'AdminComments',
-        component: () => import('../views/admin/AdminComments.vue')
+        component: () => import('../views/admin/AdminComments.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        }
+      },
+      {
+        path: 'article-approval',
+        name: 'AdminArticleApproval',
+        component: () => import('../views/admin/AdminArticleApproval.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        }
       },
       {
         path: 'plugins',
         name: 'AdminPlugins',
         component: () => import('../views/admin/AdminPlugins.vue'),
-        meta: { requiresAuth: true, requiresAdmin: true },
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        },
         children: [
           {
             path: 'marketplace',
             name: 'PluginMarketplace',
             component: () => import('../views/admin/AdminPluginMarketplace.vue'),
-            meta: { requiresAuth: true, requiresAdmin: true },
+            meta: { 
+              requiresAuth: true, 
+              requiresAdmin: true,
+              transition: 'glass-fade'
+            }
           }
         ]
       },
       {
         path: 'tags',
         name: 'AdminTags',
-        component: () => import('../views/admin/AdminTags.vue')
+        component: () => import('../views/admin/AdminTags.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        }
       },
       {
         path: 'about',
         name: 'AdminAbout',
-        component: () => import('../views/admin/AdminAbout.vue')
+        component: () => import('../views/admin/AdminAbout.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          transition: 'glass-fade'
+        }
       },
-      // 开发工具路由 - 仅在开发环境下可用
-      ...(import.meta.env.DEV ? [{
+      // 开发工具路由
+      {
         path: 'dev-tools',
         name: 'DevTools',
         component: () => import('../views/admin/DevTools.vue'),
         meta: { 
           requiresAuth: true, 
           requiresAdmin: true,
-          requiresDev: true // 需要开发环境
+          transition: 'glass-bounce'
         }
-      }] : []),
+      },
+      // 默认重定向到文章管理
       {
         path: '',
-        redirect: { name: 'AdminArticles' }
+        redirect: '/admin/articles'
       }
     ]
   },
@@ -133,13 +196,17 @@ const routes = [
     component: () => import('../views/VerifyEmail.vue'),
     meta: {
       title: '邮箱验证',
-      requiresAuth: false
+      requiresAuth: false,
+      transition: 'glass-fade'
     }
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: NotFound
+    component: NotFound,
+    meta: {
+      transition: 'glass-fade'
+    }
   }
 ]
 
@@ -150,6 +217,14 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('token')
+  const guestMode = localStorage.getItem('guest_mode') === 'true'
+  
+  // 对于邮箱验证页面，直接允许访问，不进行任何认证检查
+  if (to.path === '/verify-email') {
+    console.log('访问邮箱验证页面，直接允许')
+    next()
+    return
+  }
   
   if (token && !store.getters.isAuthenticated) {
     try {
@@ -162,12 +237,8 @@ router.beforeEach(async (to, from, next) => {
 
   const isAuthenticated = store.getters.isAuthenticated
   const currentUser = store.getters.currentUser
-
-  if (to.meta.requiresDev && import.meta.env.PROD) {
-    console.log('此功能仅在开发环境下可用')
-    next({ path: '/admin' })
-    return
-  }
+  const canAccessContent = store.getters.canAccessContent
+  
   if (to.meta.requiresAdmin) {
     if (!isAuthenticated || !currentUser || currentUser.role !== 'admin') {
       console.log('需要管理员权限，但用户不是管理员或未登录')
@@ -178,10 +249,10 @@ router.beforeEach(async (to, from, next) => {
     } else {
       next()
     }
-  }
+  } 
   // 检查是否需要登录权限
-  else if (to.meta.requiresAuth && !isAuthenticated) {
-    console.log('需要登录权限，但用户未登录')
+  else if (to.meta.requiresAuth && !canAccessContent) {
+    console.log('需要登录权限，但用户未登录且不是访客模式')
     next({ 
       path: '/login', 
       query: { redirect: to.fullPath } 

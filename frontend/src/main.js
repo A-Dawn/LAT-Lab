@@ -6,14 +6,16 @@ import store from './store'
 // 导入全局样式
 import './assets/styles.css'
 import './style.css'
+import './assets/animations.css'
 
-// 导入主题样式
+// 导入主题样式 - 确保在Docker环境中也能正常工作
 import './assets/theme-light.css'
 import './assets/theme-dark.css'
 import './assets/theme-neon.css'
 
 import { installContentStyles } from './utils/content-styles'
 import './utils/toast'
+import devToolsStyleLoader from './utils/devToolsStyleLoader'
 
 function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -30,10 +32,18 @@ function initTheme() {
       neon: '#030613'
     };
     metaThemeColor.setAttribute('content', themeColors[savedTheme] || themeColors.light);
-    }
+  }
+  
+  // 在Docker生产环境中，确保主题样式被正确应用
+  if (import.meta.env.PROD) {
+    console.log('生产环境：应用主题:', savedTheme);
+    // 强制重新计算CSS变量
+    document.documentElement.style.setProperty('--force-theme-update', Date.now());
+  }
 }
 
 initTheme();
+
 
 const app = createApp(App)
 
@@ -276,6 +286,12 @@ const initApp = async () => {
   
   installContentStyles(app)
   
+  // 检查访客模式状态
+  const guestMode = localStorage.getItem('guest_mode') === 'true'
+  if (guestMode) {
+    store.commit('setGuestMode', true)
+  }
+  
   if (localStorage.getItem('token')) {
     console.log('发现token，尝试获取用户信息');
     try {
@@ -295,6 +311,16 @@ const initApp = async () => {
   }
   
   app.mount('#app');
+  
+  // 初始化开发工具样式加载器
+  try {
+    // 等待DOM完全加载后再应用样式
+    setTimeout(async () => {
+      await devToolsStyleLoader.init();
+    }, 100);
+  } catch (error) {
+    console.error('开发工具样式加载器初始化失败:', error);
+  }
   
   console.log('LAT-LAB已启动 🚀');
 }

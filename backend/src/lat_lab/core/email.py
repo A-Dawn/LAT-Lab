@@ -77,12 +77,27 @@ def send_verification_email(email, username, token):
         # 添加HTML内容
         message.attach(MIMEText(html, "html"))
         
-        # 连接SMTP服务器并发送
-        logger.info(f"尝试连接SMTP服务器: {settings.MAIL_SERVER}:{settings.MAIL_PORT}")
-        
-        # 根据邮箱类型选择合适的连接方式
+        # 根据配置和环境选择合适的连接方式
         mail_domain = settings.MAIL_USERNAME.split('@')[-1].lower()
         
+        # 首先尝试SSL连接（如果配置中启用）
+        if settings.MAIL_SSL:
+            try:
+                logger.info("配置中启用SSL，优先尝试SSL连接")
+                server = smtplib.SMTP_SSL(settings.MAIL_SERVER, 465)
+                server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+                
+                logger.info(f"SSL连接成功，发送邮件到: {email}")
+                server.send_message(message)
+                server.quit()
+                
+                logger.info(f"验证邮件已成功发送至 {email}")
+                return True
+                
+            except Exception as ssl_error:
+                logger.warning(f"SSL连接失败: {str(ssl_error)}，尝试降级到无SSL连接")
+        
+        # 根据邮箱类型选择合适的连接方式
         if mail_domain == '163.com':
             # 163邮箱推荐使用25端口
             logger.info("检测到163邮箱，使用标准SMTP连接")
@@ -119,17 +134,19 @@ def send_verification_email(email, username, token):
     except Exception as e:
         logger.error(f"发送验证邮件失败: {str(e)}", exc_info=True)
         
-        # 尝试使用SSL连接作为备选方案
-        try:
-            logger.info("尝试使用SSL连接作为备选方案")
-            server_ssl = smtplib.SMTP_SSL(settings.MAIL_SERVER, 465)  # 使用465端口的SSL连接
-            server_ssl.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
-            
-            server_ssl.send_message(message)
-            server_ssl.quit()
-            
-            logger.info(f"使用SSL连接成功发送验证邮件至 {email}")
-            return True
-        except Exception as ssl_error:
-            logger.error(f"SSL连接发送邮件也失败: {str(ssl_error)}", exc_info=True)
-            return False 
+        # 如果配置中没有启用SSL，但标准连接失败，尝试SSL作为最后的备选方案
+        if not settings.MAIL_SSL:
+            try:
+                logger.info("标准连接失败，尝试SSL连接作为最后的备选方案")
+                server_ssl = smtplib.SMTP_SSL(settings.MAIL_SERVER, 465)
+                server_ssl.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+                
+                server_ssl.send_message(message)
+                server_ssl.quit()
+                
+                logger.info(f"使用SSL连接成功发送验证邮件至 {email}")
+                return True
+            except Exception as ssl_error:
+                logger.error(f"SSL连接发送邮件也失败: {str(ssl_error)}", exc_info=True)
+        
+        return False 

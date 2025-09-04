@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { resendVerificationEmail } from '../services/api'
+import ResendVerificationButton from '../components/ResendVerificationButton.vue'
 
 const router = useRouter()
 
@@ -14,9 +14,6 @@ const errorMsg = ref('')
 const isLoading = ref(false)
 const isRegistered = ref(false)
 const registeredEmail = ref('')
-const isResending = ref(false)
-const resendStatus = ref('')
-const resendMessage = ref('')
 
 const register = async () => {
   errorMsg.value = ''
@@ -34,7 +31,7 @@ const register = async () => {
   isLoading.value = true
   
   try {
-    const response = await axios.post('http://localhost:8000/api/auth/register', {
+    const response = await axios.post('/api/auth/register', {
       username: username.value,
       email: email.value,
       password: password.value
@@ -51,22 +48,6 @@ const register = async () => {
     }
   } finally {
     isLoading.value = false
-  }
-}
-const handleResendVerification = async () => {
-  isResending.value = true
-  resendStatus.value = ''
-  resendMessage.value = ''
-  
-  try {
-    await resendVerificationEmail(registeredEmail.value)
-    resendStatus.value = 'success'
-    resendMessage.value = '验证邮件已重新发送，请查收'
-  } catch (error) {
-    resendStatus.value = 'error'
-    resendMessage.value = error.response?.data?.detail || '发送失败，请稍后重试'
-  } finally {
-    isResending.value = false
   }
 }
 </script>
@@ -141,27 +122,13 @@ const handleResendVerification = async () => {
       <div v-if="isRegistered" class="success-message">
         <div class="success-icon">✓</div>
         <h3>注册成功！</h3>
-        <p>我们已向 <strong>{{ registeredEmail }}</strong> 发送了一封验证邮件。</p>
-        <p>请查收邮件并点击验证链接以激活您的账号。</p>
-        <p class="note">如果没有收到邮件，请检查垃圾邮件文件夹，或者点击下方按钮重新发送验证邮件。</p>
+        <p>您的账号已成功创建，我们正在向 <strong>{{ registeredEmail }}</strong> 发送验证邮件。</p>
+        <p>请稍等片刻并查收邮件，然后点击验证链接以激活您的账号。</p>
+        <p class="note">如果五分钟后仍未收到邮件，请检查垃圾邮件文件夹，或者点击下方按钮重新发送验证邮件。</p>
         
         <!-- 重新发送验证邮件按钮 -->
         <div class="resend-section">
-          <button 
-            @click="handleResendVerification" 
-            :disabled="isResending" 
-            class="resend-button"
-          >
-            {{ isResending ? '发送中...' : '重新发送验证邮件' }}
-          </button>
-          
-          <div v-if="resendStatus === 'success'" class="resend-success">
-            {{ resendMessage }}
-          </div>
-          
-          <div v-if="resendStatus === 'error'" class="resend-error">
-            {{ resendMessage }}
-          </div>
+          <ResendVerificationButton :email="registeredEmail" />
         </div>
         
         <div class="warning-note">

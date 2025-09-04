@@ -1,9 +1,9 @@
 <template>
-  <!-- 生产环境下完全不渲染开发工具界面 -->
-  <div v-if="!isProduction" class="dev-tools-container">
+  <!-- 开发工具界面在所有环境下都可用 -->
+  <div class="dev-tools-container">
     <div class="dev-tools-header">
       <h2>前端开发工具</h2>
-      <div class="dev-env-badge">开发环境</div>
+      <div class="dev-env-badge">{{ isDevelopment ? '开发环境' : '生产环境' }}</div>
     </div>
 
     <!-- 页面选择器 -->
@@ -76,18 +76,6 @@
       <button class="admin-btn admin-btn-primary" @click="saveChanges">保存更改</button>
     </div>
   </div>
-  
-  <!-- 生产环境下显示访问被拒绝信息 -->
-  <div v-else class="production-warning">
-    <div class="warning-card">
-      <h2>访问被拒绝</h2>
-      <p>开发工具仅在开发环境下可用。</p>
-      <p>此功能在生产环境下已被完全禁用。</p>
-      <router-link to="/admin" class="admin-btn admin-btn-primary">
-        返回管理面板
-      </router-link>
-    </div>
-  </div>
 </template>
 
 <script setup>
@@ -106,12 +94,7 @@ const store = useStore();
 // 检查环境变量
 const isDev = computed(() => import.meta.env.DEV);
 const isProduction = computed(() => import.meta.env.PROD);
-
-// 在生产环境下完全禁用功能加载
-if (isProduction.value) {
-  console.warn('开发工具在生产环境下已被完全禁用');
-  // 在生产环境下提前退出，不执行后续的初始化逻辑
-}
+const isDevelopment = computed(() => !isProduction.value);
 
 // 标签页配置
 const tabs = [
@@ -141,9 +124,6 @@ const isLoading = ref(false);
 
 // 初始化数据
 onMounted(async () => {
-  // 生产环境下完全跳过初始化
-  if (isProduction.value) return;
-  
   // 从本地存储加载历史更改
   loadChangeHistory();
   
@@ -784,40 +764,5 @@ const scanCurrentPageElements = () => {
     flex-grow: 1;
     text-align: center;
   }
-}
-
-/* 生产环境警告样式 */
-.production-warning {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 60vh;
-  padding: 20px;
-}
-
-.warning-card {
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  box-shadow: var(--card-shadow);
-  padding: 40px;
-  text-align: center;
-  border: 2px solid var(--error-color);
-  max-width: 500px;
-}
-
-.warning-card h2 {
-  color: var(--error-color);
-  margin-bottom: 20px;
-  font-size: 1.5rem;
-}
-
-.warning-card p {
-  color: var(--text-secondary);
-  margin-bottom: 15px;
-  line-height: 1.6;
-}
-
-.warning-card .admin-btn {
-  margin-top: 20px;
 }
 </style> 

@@ -38,6 +38,7 @@ LAT-Lab 是一个功能强大、架构现代的个人博客系统，采用前后
 - **数据库**: SQLite/MySQL
 
 详细更新日志请查看 [CHANGELOG.md](./Docs/CHANGELOG.md)
+- 🌍 **英文更新日志**: [CHANGELOG_EN.md](./Docs/CHANGELOG_EN.md)
 
 ---
 
@@ -88,6 +89,9 @@ LAT-Lab 是一个功能强大、架构现代的个人博客系统，采用前后
 - **速率限制**: 多层级速率限制保护
 - **安全装饰器**: 数据库、文件、网络操作安全包装
 - **环境适配**: 开发/生产环境安全策略区分
+- **用户名验证**: 完整的用户名验证系统，防止恶意注册和系统攻击
+- **安全错误框架**: 统一的错误处理标准，防止敏感信息泄露
+- **连接安全**: 邮件系统智能连接降级，支持SSL/TLS自动切换
 
 ---
 
@@ -106,141 +110,36 @@ LAT-Lab 是一个功能强大、架构现代的个人博客系统，采用前后
 
 ## 🚀 快速开始
 
-### 环境准备
-确保您的系统满足以下要求：
-- Python 3.8 或更高版本
-- Node.js 14 或更高版本
-- MySQL 8.0+ (可选，默认使用 SQLite)
-- Git (用于克隆代码)
+### 🚀 一键部署 (推荐)
 
-### 方法一：传统安装 (推荐开发环境)
+我们提供了快速部署脚本，自动检测环境并引导您完成部署：
 
-#### 1. 克隆项目
+#### Linux/macOS
 ```bash
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
+chmod +x deploy.sh
+./deploy.sh
 ```
 
-#### 2. 后端配置
-```bash
-# 进入后端目录
-cd backend
-
-# 复制并编辑环境配置
-cp ../env.example .env
-# 编辑 .env 文件，设置必要的配置项
-
-# 创建虚拟环境并安装依赖
-python scripts/setup_env.py
-
-# 激活虚拟环境
-# Windows:
-.\.venv\Scripts\activate
-# Linux/Mac:
-source .venv/bin/activate
-
-# 初始化数据库
-mkdir -p data
-python scripts/run_migrations.py run
-
-# 初始化示例数据和插件
-python -m src.lat_lab.init_examples
-
-# 创建用户（-a参数为管理员） 
-python scripts/create_user.py
-# 启动后端服务
-python -m src.lat_lab.main
-```
-
-#### 3. 前端配置
-```bash
-# 新开终端，进入前端目录
-cd frontend
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-```
-
-#### 4. 访问系统
-- **前端界面**: http://localhost:5173
-- **后端API**: http://localhost:8000
-- **API文档**: http://localhost:8000/docs (开发环境)
-- **管理后台**: http://localhost:5173/admin
-
-### 方法二：Docker 部署 (推荐生产环境)
-
-#### 1. 准备配置
-```bash
-# 克隆项目
+#### Windows PowerShell
+```powershell
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
-
-# 复制并编辑环境配置
-cp env.example .env
-# 根据需要修改数据库密码等配置
+.\deploy.ps1
 ```
 
-#### 2. 构建并启动服务
-```bash
-# 构建并启动所有服务
-docker-compose up -d
+#### 部署脚本功能特性
+- **跨平台支持**: 自动检测操作系统类型，提供相应的部署方案
+- **环境检查**: 自动检查Docker、内存、磁盘空间等系统要求
+- **健康监控**: 实时监控容器状态，自动重启失败的服务
+- **智能部署**: 支持启动、停止、重启、状态查看、日志查看等操作
+- **错误处理**: 完善的错误处理和重试机制，提高部署成功率
 
-# 查看服务状态
-docker-compose ps
-
-# 初始化数据库 (首次部署)
-docker-compose exec backend python scripts/run_migrations.py run
-docker-compose exec backend python -m src.lat_lab.init_examples
-docker-compose exec backend python scripts/init_db.py
-```
-
-#### 3. 访问系统
-- **前端界面**: http://localhost (80端口)
-- **后端API**: http://localhost:45609
-- **管理后台**: http://localhost/admin
-
-### ⚠️ 生产环境部署注意事项
-
-当部署前端代码到生产环境时：
-
-1. **构建生产版本**:
-   ```bash
-   cd frontend
-   npm run build
-   ```
-
-2. **配置文件位置**:
-   - 构建后的文件将位于 `frontend/dist/` 目录
-   - 您需要配置 Web 服务器（Nginx、Apache 等）来提供这些静态文件
-   - 将您的域名/子域名指向 `dist` 目录
-   - 确保 API 请求正确代理到后端服务器
-
-3. **Nginx 配置示例**:
-   ```nginx
-   server {
-       listen 80;
-       server_name yourdomain.com;
-       
-       # 提供前端静态文件
-       location / {
-           root /path/to/LAT-Lab/frontend/dist;
-           index index.html;
-           try_files $uri $uri/ /index.html;
-       }
-       
-       # 代理 API 请求到后端
-       location /api/ {
-           proxy_pass http://your-backend-server:8000;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-       }
-   }
-   ```
-
-> **重要提醒**: 生产环境中绝对不要使用 `npm run dev`！请务必使用 `npm run build` 并提供构建后的文件。
+### 📚 详细部署指南
+- **跨平台部署**: [DEPLOYMENT_GUIDE.md](./Docs/DEPLOYMENT_GUIDE.md) - 完整的部署脚本使用指南
+- **Docker部署**: [DOCKER_DEPLOYMENT.md](./Docs/DOCKER_DEPLOYMENT.md) - Docker容器化部署详解
+- **传统安装**: [TRADITIONAL_INSTALLATION.md](./Docs/TRADITIONAL_INSTALLATION.md) - 开发环境安装指南
 
 ---
 
@@ -261,7 +160,9 @@ LAT-Lab/
 │   └── package.json          # 依赖配置
 ├── Docs/                     # 项目文档
 ├── docker-compose.yml        # Docker配置
-├── env.example               # 环境变量示例
+├── env.example               # 统一环境配置模板
+├── deploy.sh                 # Linux/macOS 跨平台部署脚本
+├── deploy.ps1                # Windows PowerShell 跨平台部署脚本
 └── README.md                 # 项目说明
 ```
 
@@ -269,10 +170,17 @@ LAT-Lab/
 
 ## 📚 文档
 
+### 📚 完整文档中心
+- **[文档中心](./Docs/README.md)** - 查看所有项目文档和详细指南
+
 ### 核心文档
 - 📖 **项目概述**: 您正在阅读的文件
 - 📝 **更新日志**: [CHANGELOG.md](./Docs/CHANGELOG.md) - 版本更新记录
 - 🔐 **安全政策**: [SECURITY.md](./Docs/SECURITY.md) - 安全报告指南
+
+### 部署指南
+- 🚀 **快速部署**: [DEPLOYMENT_GUIDE.md](./Docs/DEPLOYMENT_GUIDE.md) - 跨平台部署脚本使用指南
+- 🐳 **Docker部署**: [DOCKER_DEPLOYMENT.md](./Docs/DOCKER_DEPLOYMENT.md) - Docker容器化部署详解
 
 ### 贡献相关
 - 🤝 **贡献指南**: [CONTRIBUTORS.md](./Docs/CONTRIBUTORS.md) - 如何参与项目贡献
@@ -282,6 +190,7 @@ LAT-Lab/
 ### 许可证相关
 - 📜 **许可证映射**: [LICENSE-MAPPING.md](./Docs/LICENSE-MAPPING.md) - 详细的许可证说明
 - 🔍 **英文文档**: 每个文档都提供对应的英文版本（文件名以_EN结尾）
+- 🌍 **完整英文文档**: [查看所有英文文档](./Docs/README_EN.md)
 
 ---
 
@@ -311,6 +220,7 @@ LAT-Lab/
 6. 签署CLA（如需要）
 
 详细的贡献指南请查看 [CONTRIBUTORS.md](./Docs/CONTRIBUTORS.md)
+- 🌍 **英文贡献指南**: [CONTRIBUTORS_EN.md](./Docs/CONTRIBUTORS_EN.md)
 
 ---
 
@@ -319,7 +229,9 @@ LAT-Lab/
 我们非常重视LAT-Lab的安全性，欢迎安全研究员报告漏洞：
 
 - 🔒 **安全政策**: [SECURITY.md](./Docs/SECURITY.md) - 详细的安全报告指南
+- 🌍 **英文安全政策**: [SECURITY_EN.md](./Docs/SECURITY_EN.md)
 - 🏆 **安全贡献者**: [SECURITY_CONTRIBUTORS.md](./Docs/SECURITY_CONTRIBUTORS.md) - 安全研究员名单
+- 🌍 **英文安全贡献者指南**: [SECURITY_CONTRIBUTORS_EN.md](./Docs/SECURITY_CONTRIBUTORS_EN.md)
 - 📧 **安全邮箱**: security@luminarc.tech - 私密报告安全问题
 - ⚡ **响应时间**: 24小时内确认，积极配合修复
 
@@ -334,14 +246,8 @@ LAT-Lab/
 - 📧 **邮件联系**: contact@luminarc.tech
 
 ### 常见问题
-- **Q: 如何修改默认管理员账户？**  
-  A: 运行 `python scripts/init_db.py` 时会创建默认管理员账户 (admin/admin123)，建议立即在管理后台修改密码。
-
-- **Q: 如何配置邮件服务？**  
-  A: 在 `.env` 文件中配置 SMTP 服务器信息，支持大多数邮件服务提供商。
-
-- **Q: 可以自定义主题吗？**  
-  A: 可以通过开发工具系统进行样式自定义，或直接修改前端源码。
+常见问题解答请查看 [FAQ.md](./Docs/FAQ.md) 或 [文档中心](./Docs/README.md)
+- 🌍 **英文FAQ**: [FAQ_EN.md](./Docs/FAQ_EN.md)
 
 ---
 
@@ -360,6 +266,7 @@ LAT-Lab/
 - ❌ **核心商用**: 核心业务代码未经授权不得用于商业目的
 
 详细的许可证说明请查看 [LICENSE-MAPPING.md](./Docs/LICENSE-MAPPING.md)
+- 🌍 **英文许可证说明**: [LICENSE-MAPPING_EN.md](./Docs/LICENSE-MAPPING_EN.md)
 
 ### 📞 商业授权
 如需核心代码的商业使用授权，请联系：`contact@luminarc.tech`
