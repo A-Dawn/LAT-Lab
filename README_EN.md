@@ -1,4 +1,4 @@
-# LAT-Lab v1.0.1 - Modern Blog System
+# LAT-Lab v1.1.0 - Modern Blog System
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 <div align="center">
 
-![LAT-Lab Logo](https://img.shields.io/badge/LAT--Lab-v1.0.1-blue.svg)
+![LAT-Lab Logo](https://img.shields.io/badge/LAT--Lab-v1.1.0-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Latest-red.svg)
@@ -31,7 +31,7 @@
 LAT-Lab is a powerful, modern personal blog system with a frontend-backend separation design, providing complete content management, user systems, plugin extensions, and development tool support. The system is not only suitable for personal blog setup but also provides developers with powerful secondary development capabilities.
 
 ### 🏷️ Version Information
-- **Current Version**: v1.0.1
+- **Current Version**: v1.1.0
 - **Release Date**: 2025-08-15
 - **Python**: 3.8+
 - **Node.js**: 14+

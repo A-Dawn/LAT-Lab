@@ -1,4 +1,4 @@
-# LAT-Lab v1.0.1 - 现代博客系统
+# LAT-Lab v1.1.0 - 现代博客系统
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 <div align="center">
 
-![LAT-Lab Logo](https://img.shields.io/badge/LAT--Lab-v1.0.1-blue.svg)
+![LAT-Lab Logo](https://img.shields.io/badge/LAT--Lab-v1.1.0-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Latest-red.svg)
@@ -31,7 +31,7 @@
 LAT-Lab 是一个功能强大、架构现代的个人博客系统，采用前后端分离设计，提供完整的内容管理、用户系统、插件扩展和开发工具支持。系统不仅适合个人博客搭建，也为开发者提供了强大的二次开发能力。
 
 ### 🏷️ 版本信息
-- **当前版本**: v1.0.1
+- **当前版本**: v1.1.0
 - **发布日期**: 2025-08-15
 - **Python**: 3.8+
 - **Node.js**: 14+
