@@ -1,7 +1,7 @@
 <template>
   <div class="plugin-widget" :class="position">
     <div class="plugin-widget-header" v-if="showHeader">
-      <h3 class="widget-title">{{ name }}</h3>
+      <h3 class="widget-title">{{ displayTitle }}</h3>
       <div class="widget-controls" v-if="isAdmin">
         <button @click="$emit('refresh')" class="control-btn refresh" title="刷新">
           🔄
@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { sanitizeHtml } from '../utils/sanitize'
 
@@ -65,8 +65,11 @@ export default {
   
   emits: ['refresh', 'edit'],
   
-  setup() {
+  setup(props) {
     const store = useStore()
+    
+    // 用于存储映射的文本内容
+    const mappedTitle = ref(null)
     
     // 是否是管理员
     const isAdmin = computed(() => {
@@ -74,9 +77,59 @@ export default {
       return user && user.role === 'admin'
     })
     
+    // 从全局映射中读取标题
+    const getMappedTitle = () => {
+      if (mappedTitle.value) return mappedTitle.value
+      
+      // 尝试从快速查找映射中查找
+      if (window.__devToolsQuickMap) {
+        // 尝试多种选择器格式
+        const selectors = [
+          '.widget-title',
+          '.plugin-widget .widget-title',
+          'h3.widget-title'
+        ]
+        
+        for (const selector of selectors) {
+          const mapped = window.__devToolsQuickMap[selector]
+          if (mapped) {
+            mappedTitle.value = mapped
+            return mapped
+          }
+        }
+      }
+      
+      // 返回原始值
+      return props.name
+    }
+    
+    // 在mounted时检查是否需要更新
+    onMounted(() => {
+      // 延迟一点点，确保同步加载已完成
+      setTimeout(() => {
+        if (window.__devToolsQuickMap) {
+          const selectors = [
+            '.widget-title',
+            '.plugin-widget .widget-title',
+            'h3.widget-title'
+          ]
+          
+          for (const selector of selectors) {
+            const mapped = window.__devToolsQuickMap[selector]
+            if (mapped && mapped !== props.name) {
+              mappedTitle.value = mapped
+              break
+            }
+          }
+        }
+      }, 0)
+    })
+    
     return {
       isAdmin,
-      sanitizeHtml // 直接使用导入的sanitizeHtml函数
+      sanitizeHtml,
+      getMappedTitle,
+      displayTitle: computed(() => getMappedTitle())
     }
   }
 }

@@ -19,6 +19,8 @@ class User(Base):
     role = Column(Enum(RoleEnum), default=RoleEnum.user, nullable=False)
     avatar = Column(Text, nullable=True)  # 用户头像URL
     bio = Column(Text, nullable=True)     # 用户简介
+    # 首登改密标记
+    must_change_password = Column(Boolean, default=False, nullable=False)
     
     # 邮箱验证相关字段
     is_verified = Column(Boolean, default=False)  # 是否已验证邮箱

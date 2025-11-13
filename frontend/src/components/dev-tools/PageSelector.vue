@@ -287,9 +287,18 @@ const injectCommunicationScript = (doc) => {
           // 更新CSS变量
           document.documentElement.style.setProperty(payload.name, payload.value);
         } else if (action === 'update-text') {
-          // 更新文本内容
+          // 更新文本内容 - 安全地应用HTML
           const element = document.querySelector(payload.selector);
-          if (element) element.textContent = payload.value;
+          if (element && payload.value !== undefined) {
+            // 检测是否包含HTML标签
+            const hasHtml = /<[a-z][\s\S]*>/i.test(payload.value);
+            if (hasHtml) {
+              // 应用HTML内容（主要净化在外部完成）
+              element.innerHTML = payload.value;
+            } else {
+              element.textContent = payload.value;
+            }
+          }
         } else if (action === 'update-layout') {
           // 更新布局属性
           const elements = document.querySelectorAll(payload.selector);
@@ -399,36 +408,141 @@ const injectCommunicationScript = (doc) => {
         return staticPatterns.some(pattern => pattern.test(trimmedText));
       }
       
-      // 提取可编辑元素的函数
-      function extractElementsForDevTools() {
-        // CSS变量
-        const rootStyles = getComputedStyle(document.documentElement);
+      // 动态提取所有CSS变量的函数
+      function extractAllCssVariables(doc) {
+        const rootStyles = getComputedStyle(doc.documentElement);
         const cssVariables = [];
+        const variableSet = new Set();
         
-        // 主题颜色变量 - 扩展更多变量
-        const themeVars = [
-          '--primary-color', '--secondary-color', '--accent-color',
-          '--bg-primary', '--bg-secondary', '--bg-elevated', '--bg-hover',
-          '--text-primary', '--text-secondary', '--text-tertiary',
-          '--border-color', '--card-bg', '--card-shadow',
-          '--input-bg', '--input-border', '--input-text',
-          '--success-color', '--warning-color', '--error-color', '--info-color',
-          '--header-bg', '--footer-bg', '--sidebar-bg', '--modal-bg',
-          '--button-primary', '--button-secondary', '--button-hover',
-          '--link-color', '--link-hover', '--code-bg', '--code-text'
-        ];
+        // 方法1: 从样式表中提取所有CSS变量定义（最可靠的方法）
+        try {
+          const allRules = Array.from(doc.styleSheets || [])
+            .flatMap(sheet => {
+              try {
+                return Array.from(sheet.cssRules || sheet.rules || []);
+              } catch (e) {
+                // 跨域样式表可能无法访问
+                return [];
+              }
+            });
+          
+          allRules.forEach(rule => {
+            // 处理普通规则（如:root, html等）
+            if (rule.style) {
+              for (let i = 0; i < rule.style.length; i++) {
+                const property = rule.style[i];
+                if (property.startsWith('--')) {
+                  variableSet.add(property);
+                }
+              }
+            }
+            // 处理 @media 规则中的变量
+            if (rule.cssRules) {
+              Array.from(rule.cssRules).forEach(mediaRule => {
+                if (mediaRule.style) {
+                  for (let i = 0; i < mediaRule.style.length; i++) {
+                    const property = mediaRule.style[i];
+                    if (property.startsWith('--')) {
+                      variableSet.add(property);
+                    }
+                  }
+                }
+              });
+            }
+            // 处理 @supports 规则中的变量
+            if (rule.type === CSSRule.SUPPORTS_RULE && rule.cssRules) {
+              Array.from(rule.cssRules).forEach(supportsRule => {
+                if (supportsRule.style) {
+                  for (let i = 0; i < supportsRule.style.length; i++) {
+                    const property = supportsRule.style[i];
+                    if (property.startsWith('--')) {
+                      variableSet.add(property);
+                    }
+                  }
+                }
+              });
+            }
+          });
+        } catch (error) {
+          console.warn('从样式表提取CSS变量时出错:', error);
+        }
         
-        themeVars.forEach(varName => {
+        // 方法2: 从documentElement的内联样式中提取
+        try {
+          const rootElement = doc.documentElement;
+          if (rootElement.style) {
+            for (let i = 0; i < rootElement.style.length; i++) {
+              const property = rootElement.style[i];
+              if (property.startsWith('--')) {
+                variableSet.add(property);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('从根元素内联样式提取CSS变量时出错:', error);
+        }
+        
+        // 方法3: 从所有元素的computedStyle中提取使用的变量
+        // 遍历所有元素，查找使用var()的CSS变量
+        try {
+          const allElements = doc.querySelectorAll('*');
+          allElements.forEach(el => {
+            const styles = getComputedStyle(el);
+            // 检查所有CSS属性（不仅仅是常见的几个）
+            // 通过遍历style对象来获取所有属性
+            for (let i = 0; i < styles.length; i++) {
+              const prop = styles[i];
+              try {
+                const value = styles.getPropertyValue(prop);
+                if (value && value.includes('var(')) {
+                  // 提取var()中的变量名（支持嵌套var()）
+                  const varMatches = value.match(/var\((--[^,)]+)/g);
+                  if (varMatches) {
+                    varMatches.forEach(match => {
+                      const varName = match.replace(/var\(|\)/g, '').trim();
+                      if (varName.startsWith('--')) {
+                        variableSet.add(varName);
+                      }
+                    });
+                  }
+                }
+              } catch (e) {
+                // 忽略无法访问的属性
+              }
+            }
+          });
+        } catch (error) {
+          console.warn('从元素样式提取CSS变量时出错:', error);
+        }
+        
+        // 将Set转换为数组并获取值
+        variableSet.forEach(varName => {
+          try {
           const value = rootStyles.getPropertyValue(varName).trim();
           if (value) {
             cssVariables.push({
               name: varName,
               value: value,
               originalValue: value,
-              type: varName.includes('color') ? 'color' : 'text'
+                type: varName.includes('color') || varName.includes('Color') ? 'color' : 'text'
             });
           }
+          } catch (error) {
+            // 忽略无法获取的变量
+          }
         });
+        
+        // 按变量名排序
+        cssVariables.sort((a, b) => a.name.localeCompare(b.name));
+        
+        console.log('提取到', cssVariables.length, '个CSS变量');
+        return cssVariables;
+      }
+      
+      // 提取可编辑元素的函数
+      function extractElementsForDevTools() {
+        // CSS变量 - 使用动态提取
+        const cssVariables = extractAllCssVariables(document);
         
         // 文本元素
         const textElements = [];
@@ -442,12 +556,14 @@ const injectCommunicationScript = (doc) => {
           if (el.textContent.trim() && 
               !el.querySelector('input, textarea, select') && 
               shouldInclude) {
+            const hasHtml = el.innerHTML !== el.textContent;
             textElements.push({
               id: \`heading-\${index}\`,
               selector: getUniqueSelector(el),
               description: \`标题: \${el.textContent.substring(0, 30)}\${el.textContent.length > 30 ? '...' : ''}\`,
-              currentValue: el.textContent,
-              originalValue: el.textContent
+              currentValue: el.innerHTML,
+              originalValue: el.innerHTML,
+              contentType: hasHtml ? 'html' : 'text'
             });
           }
         });
@@ -461,12 +577,14 @@ const injectCommunicationScript = (doc) => {
           if (el.textContent.trim() && 
               !el.querySelector('input, textarea, select') && 
               shouldInclude) {
+            const hasHtml = el.innerHTML !== el.textContent;
             textElements.push({
               id: \`paragraph-\${index}\`,
               selector: getUniqueSelector(el),
               description: \`段落: \${el.textContent.substring(0, 30)}\${el.textContent.length > 30 ? '...' : ''}\`,
-              currentValue: el.textContent,
-              originalValue: el.textContent
+              currentValue: el.innerHTML,
+              originalValue: el.innerHTML,
+              contentType: hasHtml ? 'html' : 'text'
             });
           }
         });
@@ -479,12 +597,14 @@ const injectCommunicationScript = (doc) => {
           if (el.textContent.trim() && 
               !el.querySelector('input, textarea, select') && 
               shouldInclude) {
+            const hasHtml = el.innerHTML !== el.textContent;
             textElements.push({
               id: \`button-\${index}\`,
               selector: getUniqueSelector(el),
               description: \`按钮: \${el.textContent.substring(0, 30)}\${el.textContent.length > 30 ? '...' : ''}\`,
-              currentValue: el.textContent,
-              originalValue: el.textContent
+              currentValue: el.innerHTML,
+              originalValue: el.innerHTML,
+              contentType: hasHtml ? 'html' : 'text'
             });
           }
         });
@@ -497,12 +617,14 @@ const injectCommunicationScript = (doc) => {
           if (el.textContent.trim() && 
               !el.querySelector('input, textarea, select') && 
               shouldInclude) {
+            const hasHtml = el.innerHTML !== el.textContent;
             textElements.push({
               id: \`label-\${index}\`,
               selector: getUniqueSelector(el),
               description: \`标签: \${el.textContent.substring(0, 30)}\${el.textContent.length > 30 ? '...' : ''}\`,
-              currentValue: el.textContent,
-              originalValue: el.textContent
+              currentValue: el.innerHTML,
+              originalValue: el.innerHTML,
+              contentType: hasHtml ? 'html' : 'text'
             });
           }
         });
@@ -513,12 +635,14 @@ const injectCommunicationScript = (doc) => {
                                (!isDynamicElement(el) && isStaticTemplateText(el.textContent));
           
           if (el.textContent.trim() && shouldInclude) {
+            const hasHtml = el.innerHTML !== el.textContent;
             textElements.push({
               id: \`nav-link-\${index}\`,
               selector: getUniqueSelector(el),
               description: \`导航链接: \${el.textContent.substring(0, 30)}\${el.textContent.length > 30 ? '...' : ''}\`,
-              currentValue: el.textContent,
-              originalValue: el.textContent
+              currentValue: el.innerHTML,
+              originalValue: el.innerHTML,
+              contentType: hasHtml ? 'html' : 'text'
             });
           }
         });
@@ -532,12 +656,14 @@ const injectCommunicationScript = (doc) => {
           if (el.textContent.trim() && 
               !el.querySelector('input, textarea, select') && 
               shouldInclude) {
+            const hasHtml = el.innerHTML !== el.textContent;
             textElements.push({
               id: \`title-\${index}\`,
               selector: getUniqueSelector(el),
               description: \`标题元素: \${el.textContent.substring(0, 30)}\${el.textContent.length > 30 ? '...' : ''}\`,
-              currentValue: el.textContent,
-              originalValue: el.textContent
+              currentValue: el.innerHTML,
+              originalValue: el.innerHTML,
+              contentType: hasHtml ? 'html' : 'text'
             });
           }
         });
@@ -548,79 +674,220 @@ const injectCommunicationScript = (doc) => {
                                (!isDynamicElement(el) && isStaticTemplateText(el.textContent));
           
           if (el.textContent.trim() && shouldInclude) {
+            const hasHtml = el.innerHTML !== el.textContent;
             textElements.push({
               id: \`form-text-\${index}\`,
               selector: getUniqueSelector(el),
               description: \`表单文本: \${el.textContent.substring(0, 30)}\${el.textContent.length > 30 ? '...' : ''}\`,
-              currentValue: el.textContent,
-              originalValue: el.textContent
+              currentValue: el.innerHTML,
+              originalValue: el.innerHTML,
+              contentType: hasHtml ? 'html' : 'text'
             });
           }
         });
+        
+        // 解析CSS值，提取数值和单位
+        function parseCssValue(value) {
+          if (!value || value === 'none' || value === 'auto' || value === 'inherit' || value === 'initial') {
+            return { numeric: 0, unit: 'px', isSpecial: true };
+          }
+          
+          // 匹配数值和单位（支持 px, %, rem, em, vw, vh）
+          const match = value.match(/^([-+]?\\d*\\.?\\d+)(px|%|rem|em|vw|vh)?$/);
+          if (match) {
+            return {
+              numeric: parseFloat(match[1]),
+              unit: match[2] || 'px',
+              isSpecial: false
+            };
+          }
+          
+          return { numeric: 0, unit: 'px', isSpecial: true };
+        }
+        
+        // 添加布局元素的辅助函数
+        function addLayoutElement(elements, id, selector, property, description, value, unit, min, max) {
+          const parsed = parseCssValue(value);
+          // 只添加有效的数值属性（排除 auto, none 等特殊值，除非是 max-width: none）
+          if (!parsed.isSpecial || (property === 'max-width' && value === 'none')) {
+            elements.push({
+              id: id,
+              selector: selector,
+              property: property,
+              description: description,
+              currentValue: value,
+              originalValue: value,
+              unit: parsed.unit || unit,
+              min: min,
+              max: max
+            });
+          }
+        }
         
         // 布局元素
         const layoutElements = [];
         
         // 查找容器元素 - 扩展更多选择器，但排除动态内容区域
-        document.querySelectorAll('.container, .card, .section, .panel, main, section, article, aside, .content, .wrapper, .box, .widget, .admin-card, .form-group, .input-group, header, footer, nav, .sidebar').forEach((el, index) => {
+        document.querySelectorAll('.container, .card, .section, .panel, main, section, article, aside, .content, .wrapper, .box, .widget, .admin-card, .form-group, .input-group, header, footer, nav, .sidebar, .main-layout, .content-layout, .left-column, .right-column, .main-column').forEach((el, index) => {
           // 跳过动态内容容器（除非用户选择包含动态内容）
           if (!window.includeDynamicContent && isDynamicElement(el)) {
             return;
           }
           
           const styles = getComputedStyle(el);
+          const selector = getUniqueSelector(el);
+          const selectorName = selector.split(' ')[0];
+          const isContainer = el.classList.contains('container');
           
           // 宽度
-          layoutElements.push({
-            id: \`width-\${index}\`,
-            selector: getUniqueSelector(el),
-            property: 'width',
-            description: \`宽度: \${getUniqueSelector(el).split(' ')[0]}\`,
-            currentValue: styles.width,
-            originalValue: styles.width,
-            unit: 'px',
-            min: 100,
-            max: 2000
-          });
+          addLayoutElement(
+            layoutElements,
+            \`width-\${index}\`,
+            selector,
+            'width',
+            \`宽度: \${selectorName}\`,
+            styles.width,
+            'px',
+            100,
+            2000
+          );
+          
+          // 最大宽度（特别重要，用于 .container）
+          if (isContainer || styles.maxWidth !== 'none') {
+            addLayoutElement(
+              layoutElements,
+              \`max-width-\${index}\`,
+              selector,
+              'max-width',
+              \`最大宽度: \${selectorName}\${isContainer ? ' (容器)' : ''}\`,
+              styles.maxWidth,
+              'px',
+              800,
+              5000
+            );
+          }
+          
+          // 最小宽度
+          if (styles.minWidth !== '0px' && styles.minWidth !== 'auto') {
+            addLayoutElement(
+              layoutElements,
+              \`min-width-\${index}\`,
+              selector,
+              'min-width',
+              \`最小宽度: \${selectorName}\`,
+              styles.minWidth,
+              'px',
+              0,
+              2000
+            );
+          }
+          
+          // 高度（仅当元素有明确高度时）
+          if (styles.height !== 'auto' && styles.height !== '0px') {
+            addLayoutElement(
+              layoutElements,
+              \`height-\${index}\`,
+              selector,
+              'height',
+              \`高度: \${selectorName}\`,
+              styles.height,
+              'px',
+              50,
+              2000
+            );
+          }
+          
+          // 最大高度
+          if (styles.maxHeight !== 'none' && styles.maxHeight !== 'auto') {
+            addLayoutElement(
+              layoutElements,
+              \`max-height-\${index}\`,
+              selector,
+              'max-height',
+              \`最大高度: \${selectorName}\`,
+              styles.maxHeight,
+              'px',
+              100,
+              3000
+            );
+          }
           
           // 内边距
-          layoutElements.push({
-            id: \`padding-\${index}\`,
-            selector: getUniqueSelector(el),
-            property: 'padding',
-            description: \`内边距: \${getUniqueSelector(el).split(' ')[0]}\`,
-            currentValue: styles.padding,
-            originalValue: styles.padding,
-            unit: 'px',
-            min: 0,
-            max: 100
-          });
+          addLayoutElement(
+            layoutElements,
+            \`padding-\${index}\`,
+            selector,
+            'padding',
+            \`内边距: \${selectorName}\`,
+            styles.padding,
+            'px',
+            0,
+            100
+          );
           
           // 外边距
-          layoutElements.push({
-            id: \`margin-\${index}\`,
-            selector: getUniqueSelector(el),
-            property: 'margin',
-            description: \`外边距: \${getUniqueSelector(el).split(' ')[0]}\`,
-            currentValue: styles.margin,
-            originalValue: styles.margin,
-            unit: 'px',
-            min: 0,
-            max: 100
-          });
+          addLayoutElement(
+            layoutElements,
+            \`margin-\${index}\`,
+            selector,
+            'margin',
+            \`外边距: \${selectorName}\`,
+            styles.margin,
+            'px',
+            0,
+            100
+          );
           
           // 边框圆角
+          if (styles.borderRadius !== '0px') {
+            addLayoutElement(
+              layoutElements,
+              \`border-radius-\${index}\`,
+              selector,
+              'border-radius',
+              \`边框圆角: \${selectorName}\`,
+              styles.borderRadius,
+              'px',
+              0,
+              50
+            );
+          }
+          
+          // Gap（用于 flexbox 和 grid 布局）
+          if (styles.gap !== 'normal' && styles.gap !== '0px') {
+            addLayoutElement(
+              layoutElements,
+              \`gap-\${index}\`,
+              selector,
+              'gap',
+              \`间距: \${selectorName}\`,
+              styles.gap,
+              'px',
+              0,
+              100
+            );
+          }
+          
+          // 行高（对于文本容器）
+          if (el.tagName && ['P', 'DIV', 'SPAN', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(el.tagName)) {
+            const lineHeight = styles.lineHeight;
+            if (lineHeight !== 'normal' && lineHeight !== 'inherit') {
+              const parsed = parseCssValue(lineHeight);
+              if (!parsed.isSpecial && parsed.numeric > 0) {
           layoutElements.push({
-            id: \`border-radius-\${index}\`,
-            selector: getUniqueSelector(el),
-            property: 'border-radius',
-            description: \`边框圆角: \${getUniqueSelector(el).split(' ')[0]}\`,
-            currentValue: styles.borderRadius,
-            originalValue: styles.borderRadius,
-            unit: 'px',
-            min: 0,
-            max: 50
+                  id: \`line-height-\${index}\`,
+                  selector: selector,
+                  property: 'line-height',
+                  description: \`行高: \${selectorName}\`,
+                  currentValue: lineHeight,
+                  originalValue: lineHeight,
+                  unit: parsed.unit || 'px',
+                  min: 0.5,
+                  max: 5
           });
+              }
+            }
+          }
         });
         
         return {
@@ -713,36 +980,141 @@ const loadCurrentPageElements = () => {
   emit('elements-loaded', extractedElements);
 };
 
-// 提取可编辑元素
-const extractEditableElements = (doc) => {
-  // CSS变量
+// 动态提取所有CSS变量的函数
+const extractAllCssVariables = (doc) => {
   const rootStyles = getComputedStyle(doc.documentElement);
   const cssVariables = [];
+  const variableSet = new Set();
   
-  // 主题颜色变量 - 扩展更多变量
-  const themeVars = [
-    '--primary-color', '--secondary-color', '--accent-color',
-    '--bg-primary', '--bg-secondary', '--bg-elevated', '--bg-hover',
-    '--text-primary', '--text-secondary', '--text-tertiary',
-    '--border-color', '--card-bg', '--card-shadow',
-    '--input-bg', '--input-border', '--input-text',
-    '--success-color', '--warning-color', '--error-color', '--info-color',
-    '--header-bg', '--footer-bg', '--sidebar-bg', '--modal-bg',
-    '--button-primary', '--button-secondary', '--button-hover',
-    '--link-color', '--link-hover', '--code-bg', '--code-text'
-  ];
+  // 方法1: 从样式表中提取所有CSS变量定义（最可靠的方法）
+  try {
+    const allRules = Array.from(doc.styleSheets || [])
+      .flatMap(sheet => {
+        try {
+          return Array.from(sheet.cssRules || sheet.rules || []);
+        } catch (e) {
+          // 跨域样式表可能无法访问
+          return [];
+        }
+      });
+    
+    allRules.forEach(rule => {
+      // 处理普通规则（如:root, html等）
+      if (rule.style) {
+        for (let i = 0; i < rule.style.length; i++) {
+          const property = rule.style[i];
+          if (property.startsWith('--')) {
+            variableSet.add(property);
+          }
+        }
+      }
+      // 处理 @media 规则中的变量
+      if (rule.cssRules) {
+        Array.from(rule.cssRules).forEach(mediaRule => {
+          if (mediaRule.style) {
+            for (let i = 0; i < mediaRule.style.length; i++) {
+              const property = mediaRule.style[i];
+              if (property.startsWith('--')) {
+                variableSet.add(property);
+              }
+            }
+          }
+        });
+      }
+      // 处理 @supports 规则中的变量
+      if (rule.type === CSSRule.SUPPORTS_RULE && rule.cssRules) {
+        Array.from(rule.cssRules).forEach(supportsRule => {
+          if (supportsRule.style) {
+            for (let i = 0; i < supportsRule.style.length; i++) {
+              const property = supportsRule.style[i];
+              if (property.startsWith('--')) {
+                variableSet.add(property);
+              }
+            }
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.warn('从样式表提取CSS变量时出错:', error);
+  }
   
-  themeVars.forEach(varName => {
+  // 方法2: 从documentElement的内联样式中提取
+  try {
+    const rootElement = doc.documentElement;
+    if (rootElement.style) {
+      for (let i = 0; i < rootElement.style.length; i++) {
+        const property = rootElement.style[i];
+        if (property.startsWith('--')) {
+          variableSet.add(property);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('从根元素内联样式提取CSS变量时出错:', error);
+  }
+  
+  // 方法3: 从所有元素的computedStyle中提取使用的变量
+  // 遍历所有元素，查找使用var()的CSS变量
+  try {
+    const allElements = doc.querySelectorAll('*');
+    allElements.forEach(el => {
+      const styles = getComputedStyle(el);
+      // 检查所有CSS属性（不仅仅是常见的几个）
+      // 通过遍历style对象来获取所有属性
+      for (let i = 0; i < styles.length; i++) {
+        const prop = styles[i];
+        try {
+          const value = styles.getPropertyValue(prop);
+          if (value && value.includes('var(')) {
+            // 提取var()中的变量名（支持嵌套var()）
+            const varMatches = value.match(/var\((--[^,)]+)/g);
+            if (varMatches) {
+              varMatches.forEach(match => {
+                const varName = match.replace(/var\(|\)/g, '').trim();
+                if (varName.startsWith('--')) {
+                  variableSet.add(varName);
+                }
+              });
+            }
+          }
+        } catch (e) {
+          // 忽略无法访问的属性
+        }
+      }
+    });
+  } catch (error) {
+    console.warn('从元素样式提取CSS变量时出错:', error);
+  }
+  
+  // 将Set转换为数组并获取值
+  variableSet.forEach(varName => {
+    try {
     const value = rootStyles.getPropertyValue(varName).trim();
     if (value) {
       cssVariables.push({
         name: varName,
         value: value,
         originalValue: value,
-        type: varName.includes('color') ? 'color' : 'text'
+          type: varName.includes('color') || varName.includes('Color') ? 'color' : 'text'
       });
     }
+    } catch (error) {
+      // 忽略无法获取的变量
+    }
   });
+  
+  // 按变量名排序
+  cssVariables.sort((a, b) => a.name.localeCompare(b.name));
+  
+  console.log('提取到', cssVariables.length, '个CSS变量');
+  return cssVariables;
+};
+
+// 提取可编辑元素
+const extractEditableElements = (doc) => {
+  // CSS变量 - 使用动态提取
+  const cssVariables = extractAllCssVariables(doc);
   
   // 文本元素
   const textElements = [];
@@ -750,12 +1122,15 @@ const extractEditableElements = (doc) => {
   // 查找标题元素
   doc.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((el, index) => {
     if (el.textContent.trim() && !el.querySelector('input, textarea, select')) {
+      const hasHtml = el.innerHTML !== el.textContent;
       textElements.push({
         id: `heading-${index}`,
         selector: getUniqueSelector(el),
         description: `标题: ${el.textContent.substring(0, 30)}${el.textContent.length > 30 ? '...' : ''}`,
-        currentValue: el.textContent,
-        originalValue: el.textContent
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: el.tagName.toLowerCase(),
+        contentType: hasHtml ? 'html' : 'text'
       });
     }
   });
@@ -763,12 +1138,15 @@ const extractEditableElements = (doc) => {
   // 查找段落元素
   doc.querySelectorAll('p').forEach((el, index) => {
     if (el.textContent.trim() && !el.querySelector('input, textarea, select')) {
+      const hasHtml = el.innerHTML !== el.textContent;
       textElements.push({
         id: `paragraph-${index}`,
         selector: getUniqueSelector(el),
         description: `段落: ${el.textContent.substring(0, 30)}${el.textContent.length > 30 ? '...' : ''}`,
-        currentValue: el.textContent,
-        originalValue: el.textContent
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'p',
+        contentType: hasHtml ? 'html' : 'text'
       });
     }
   });
@@ -776,12 +1154,15 @@ const extractEditableElements = (doc) => {
   // 查找按钮文本
   doc.querySelectorAll('button, .btn, .button, .admin-btn').forEach((el, index) => {
     if (el.textContent.trim() && !el.querySelector('input, textarea, select')) {
+      const hasHtml = el.innerHTML !== el.textContent;
       textElements.push({
         id: `button-${index}`,
         selector: getUniqueSelector(el),
         description: `按钮: ${el.textContent.substring(0, 30)}${el.textContent.length > 30 ? '...' : ''}`,
-        currentValue: el.textContent,
-        originalValue: el.textContent
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'button',
+        contentType: hasHtml ? 'html' : 'text'
       });
     }
   });
@@ -789,12 +1170,15 @@ const extractEditableElements = (doc) => {
   // 查找标签文本
   doc.querySelectorAll('label').forEach((el, index) => {
     if (el.textContent.trim() && !el.querySelector('input, textarea, select')) {
+      const hasHtml = el.innerHTML !== el.textContent;
       textElements.push({
         id: `label-${index}`,
         selector: getUniqueSelector(el),
         description: `标签: ${el.textContent.substring(0, 30)}${el.textContent.length > 30 ? '...' : ''}`,
-        currentValue: el.textContent,
-        originalValue: el.textContent
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'label',
+        contentType: hasHtml ? 'html' : 'text'
       });
     }
   });
@@ -802,12 +1186,15 @@ const extractEditableElements = (doc) => {
   // 查找导航链接
   doc.querySelectorAll('nav a, .nav a, .navbar a').forEach((el, index) => {
     if (el.textContent.trim()) {
+      const hasHtml = el.innerHTML !== el.textContent;
       textElements.push({
         id: `nav-link-${index}`,
         selector: getUniqueSelector(el),
         description: `导航链接: ${el.textContent.substring(0, 30)}${el.textContent.length > 30 ? '...' : ''}`,
-        currentValue: el.textContent,
-        originalValue: el.textContent
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'nav-link',
+        contentType: hasHtml ? 'html' : 'text'
       });
     }
   });
@@ -815,12 +1202,15 @@ const extractEditableElements = (doc) => {
   // 查找标题类元素
   doc.querySelectorAll('.title, .heading, .card-title, .section-title').forEach((el, index) => {
     if (el.textContent.trim() && !el.querySelector('input, textarea, select')) {
+      const hasHtml = el.innerHTML !== el.textContent;
       textElements.push({
         id: `title-${index}`,
         selector: getUniqueSelector(el),
         description: `标题元素: ${el.textContent.substring(0, 30)}${el.textContent.length > 30 ? '...' : ''}`,
-        currentValue: el.textContent,
-        originalValue: el.textContent
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'title-class',
+        contentType: hasHtml ? 'html' : 'text'
       });
     }
   });
@@ -828,74 +1218,465 @@ const extractEditableElements = (doc) => {
   // 查找表单相关文本
   doc.querySelectorAll('legend, .form-label, .form-text, .help-text').forEach((el, index) => {
     if (el.textContent.trim()) {
+      const hasHtml = el.innerHTML !== el.textContent;
       textElements.push({
         id: `form-text-${index}`,
         selector: getUniqueSelector(el),
         description: `表单文本: ${el.textContent.substring(0, 30)}${el.textContent.length > 30 ? '...' : ''}`,
-        currentValue: el.textContent,
-        originalValue: el.textContent
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'form-text',
+        contentType: hasHtml ? 'html' : 'text'
       });
     }
   });
+  
+  // 查找列表项文本
+  doc.querySelectorAll('li').forEach((el, index) => {
+    const text = el.textContent.trim();
+    // 排除包含输入元素或嵌套的复杂列表，但放宽限制
+    if (text && !el.querySelector('input, textarea, select') && text.length < 500) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `list-item-${index}`,
+        selector: getUniqueSelector(el),
+        description: `列表项: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'li',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找所有span元素（包括有子元素的）
+  doc.querySelectorAll('span').forEach((el, index) => {
+    const text = el.textContent.trim();
+    // 只要有文本且不包含表单元素，且不是太长的文本
+    if (text && !el.querySelector('input, textarea, select') && text.length < 200 && text.length > 0) {
+      // 检查是否为叶子span（最内层的span）
+      const hasSpanChild = el.querySelector('span');
+      if (!hasSpanChild || text.length < 100) {
+        const hasHtml = el.innerHTML !== el.textContent;
+        textElements.push({
+          id: `span-${index}`,
+          selector: getUniqueSelector(el),
+          description: `文本: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+          currentValue: el.innerHTML,
+          originalValue: el.innerHTML,
+          tag: 'span',
+          contentType: hasHtml ? 'html' : 'text'
+        });
+      }
+    }
+  });
+  
+  // 查找所有div文本节点
+  doc.querySelectorAll('div').forEach((el, index) => {
+    const text = el.textContent.trim();
+    // 只提取纯文本div或子元素很少的div
+    if (text && text.length < 300 && text.length > 0) {
+      const blockChildren = el.querySelectorAll('div, p, h1, h2, h3, h4, h5, h6, ul, ol, table');
+      // 没有块级子元素，或者只有很少的子元素
+      if (blockChildren.length === 0 || (el.children.length <= 2 && text.length < 150)) {
+        const hasHtml = el.innerHTML !== el.textContent;
+        textElements.push({
+          id: `div-text-${index}`,
+          selector: getUniqueSelector(el),
+          description: `文本块: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+          currentValue: el.innerHTML,
+          originalValue: el.innerHTML,
+          tag: 'div',
+          contentType: hasHtml ? 'html' : 'text'
+        });
+      }
+    }
+  });
+  
+  // 查找所有链接文本
+  doc.querySelectorAll('a').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && !el.querySelector('input, textarea, select, img, svg') && text.length < 200) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `link-${index}`,
+        selector: getUniqueSelector(el),
+        description: `链接: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'a',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找表格单元格文本
+  doc.querySelectorAll('td').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && !el.querySelector('input, button, select') && text.length < 200) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `table-cell-${index}`,
+        selector: getUniqueSelector(el),
+        description: `单元格: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'td',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找表格标题
+  doc.querySelectorAll('th').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `table-header-${index}`,
+        selector: getUniqueSelector(el),
+        description: `表头: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'th',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找dt/dd定义列表文本
+  doc.querySelectorAll('dt, dd').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && text.length < 200) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `definition-${index}`,
+        selector: getUniqueSelector(el),
+        description: `定义: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: el.tagName.toLowerCase(),
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找徽章和标签
+  doc.querySelectorAll('.badge, .tag, .pill, .label:not(label), [role="status"]').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `badge-${index}`,
+        selector: getUniqueSelector(el),
+        description: `徽章: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'badge',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找strong、em、b、i等强调文本
+  doc.querySelectorAll('strong, em, b, i, mark').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && text.length < 100 && !el.querySelector('input, textarea, select')) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `emphasis-${index}`,
+        selector: getUniqueSelector(el),
+        description: `强调: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: el.tagName.toLowerCase(),
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找small、caption等小字文本
+  doc.querySelectorAll('small, caption, figcaption').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && text.length < 150) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `small-text-${index}`,
+        selector: getUniqueSelector(el),
+        description: `小字: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: el.tagName.toLowerCase(),
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找code、pre等代码文本
+  doc.querySelectorAll('code:not(pre code), pre').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && text.length < 300) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `code-${index}`,
+        selector: getUniqueSelector(el),
+        description: `代码: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: el.tagName.toLowerCase(),
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找blockquote引用文本
+  doc.querySelectorAll('blockquote').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && text.length < 500) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `quote-${index}`,
+        selector: getUniqueSelector(el),
+        description: `引用: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'blockquote',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找time标签内容
+  doc.querySelectorAll('time').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `time-${index}`,
+        selector: getUniqueSelector(el),
+        description: `时间: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'time',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 查找所有带有data-editable属性的元素
+  doc.querySelectorAll('[data-editable="true"]').forEach((el, index) => {
+    const text = el.textContent.trim();
+    if (text && text.length < 300) {
+      const hasHtml = el.innerHTML !== el.textContent;
+      textElements.push({
+        id: `editable-${index}`,
+        selector: getUniqueSelector(el),
+        description: `可编辑: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`,
+        currentValue: el.innerHTML,
+        originalValue: el.innerHTML,
+        tag: 'data-editable',
+        contentType: hasHtml ? 'html' : 'text'
+      });
+    }
+  });
+  
+  // 解析CSS值，提取数值和单位
+  const parseCssValue = (value) => {
+    if (!value || value === 'none' || value === 'auto' || value === 'inherit' || value === 'initial') {
+      return { numeric: 0, unit: 'px', isSpecial: true };
+    }
+    
+    // 匹配数值和单位（支持 px, %, rem, em, vw, vh）
+    const match = value.match(/^([-+]?\d*\.?\d+)(px|%|rem|em|vw|vh)?$/);
+    if (match) {
+      return {
+        numeric: parseFloat(match[1]),
+        unit: match[2] || 'px',
+        isSpecial: false
+      };
+    }
+    
+    return { numeric: 0, unit: 'px', isSpecial: true };
+  };
+  
+  // 添加布局元素的辅助函数
+  const addLayoutElement = (elements, id, selector, property, description, value, unit, min, max) => {
+    const parsed = parseCssValue(value);
+    // 只添加有效的数值属性（排除 auto, none 等特殊值，除非是 max-width: none）
+    if (!parsed.isSpecial || (property === 'max-width' && value === 'none')) {
+      elements.push({
+        id: id,
+        selector: selector,
+        property: property,
+        description: description,
+        currentValue: value,
+        originalValue: value,
+        unit: parsed.unit || unit,
+        min: min,
+        max: max
+      });
+    }
+  };
   
   // 布局元素
   const layoutElements = [];
   
   // 查找容器元素 - 扩展更多选择器
-  doc.querySelectorAll('.container, .card, .section, .panel, main, section, article, aside, .content, .wrapper, .box, .widget, .admin-card, .form-group, .input-group, header, footer, nav, .sidebar').forEach((el, index) => {
+  doc.querySelectorAll('.container, .card, .section, .panel, main, section, article, aside, .content, .wrapper, .box, .widget, .admin-card, .form-group, .input-group, header, footer, nav, .sidebar, .main-layout, .content-layout, .left-column, .right-column, .main-column').forEach((el, index) => {
     const styles = getComputedStyle(el);
+    const selector = getUniqueSelector(el);
+    const selectorName = selector.split(' ')[0];
+    const isContainer = el.classList.contains('container');
     
     // 宽度
-    layoutElements.push({
-      id: `width-${index}`,
-      selector: getUniqueSelector(el),
-      property: 'width',
-      description: `宽度: ${getUniqueSelector(el).split(' ')[0]}`,
-      currentValue: styles.width,
-      originalValue: styles.width,
-      unit: 'px',
-      min: 100,
-      max: 2000
-    });
+    addLayoutElement(
+      layoutElements,
+      `width-${index}`,
+      selector,
+      'width',
+      `宽度: ${selectorName}`,
+      styles.width,
+      'px',
+      100,
+      2000
+    );
+    
+    // 最大宽度（特别重要，用于 .container）
+    if (isContainer || styles.maxWidth !== 'none') {
+      addLayoutElement(
+        layoutElements,
+        `max-width-${index}`,
+        selector,
+        'max-width',
+        `最大宽度: ${selectorName}${isContainer ? ' (容器)' : ''}`,
+        styles.maxWidth,
+        'px',
+        800,
+        5000
+      );
+    }
+    
+    // 最小宽度
+    if (styles.minWidth !== '0px' && styles.minWidth !== 'auto') {
+      addLayoutElement(
+        layoutElements,
+        `min-width-${index}`,
+        selector,
+        'min-width',
+        `最小宽度: ${selectorName}`,
+        styles.minWidth,
+        'px',
+        0,
+        2000
+      );
+    }
+    
+    // 高度（仅当元素有明确高度时）
+    if (styles.height !== 'auto' && styles.height !== '0px') {
+      addLayoutElement(
+        layoutElements,
+        `height-${index}`,
+        selector,
+        'height',
+        `高度: ${selectorName}`,
+        styles.height,
+        'px',
+        50,
+        2000
+      );
+    }
+    
+    // 最大高度
+    if (styles.maxHeight !== 'none' && styles.maxHeight !== 'auto') {
+      addLayoutElement(
+        layoutElements,
+        `max-height-${index}`,
+        selector,
+        'max-height',
+        `最大高度: ${selectorName}`,
+        styles.maxHeight,
+        'px',
+        100,
+        3000
+      );
+    }
     
     // 内边距
-    layoutElements.push({
-      id: `padding-${index}`,
-      selector: getUniqueSelector(el),
-      property: 'padding',
-      description: `内边距: ${getUniqueSelector(el).split(' ')[0]}`,
-      currentValue: styles.padding,
-      originalValue: styles.padding,
-      unit: 'px',
-      min: 0,
-      max: 100
-    });
+    addLayoutElement(
+      layoutElements,
+      `padding-${index}`,
+      selector,
+      'padding',
+      `内边距: ${selectorName}`,
+      styles.padding,
+      'px',
+      0,
+      100
+    );
     
     // 外边距
-    layoutElements.push({
-      id: `margin-${index}`,
-      selector: getUniqueSelector(el),
-      property: 'margin',
-      description: `外边距: ${getUniqueSelector(el).split(' ')[0]}`,
-      currentValue: styles.margin,
-      originalValue: styles.margin,
-      unit: 'px',
-      min: 0,
-      max: 100
-    });
+    addLayoutElement(
+      layoutElements,
+      `margin-${index}`,
+      selector,
+      'margin',
+      `外边距: ${selectorName}`,
+      styles.margin,
+      'px',
+      0,
+      100
+    );
     
     // 边框圆角
+    if (styles.borderRadius !== '0px') {
+      addLayoutElement(
+        layoutElements,
+        `border-radius-${index}`,
+        selector,
+        'border-radius',
+        `边框圆角: ${selectorName}`,
+        styles.borderRadius,
+        'px',
+        0,
+        50
+      );
+    }
+    
+    // Gap（用于 flexbox 和 grid 布局）
+    if (styles.gap !== 'normal' && styles.gap !== '0px') {
+      addLayoutElement(
+        layoutElements,
+        `gap-${index}`,
+        selector,
+        'gap',
+        `间距: ${selectorName}`,
+        styles.gap,
+        'px',
+        0,
+        100
+      );
+    }
+    
+    // 行高（对于文本容器）
+    if (el.tagName && ['P', 'DIV', 'SPAN', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(el.tagName)) {
+      const lineHeight = styles.lineHeight;
+      if (lineHeight !== 'normal' && lineHeight !== 'inherit') {
+        const parsed = parseCssValue(lineHeight);
+        if (!parsed.isSpecial && parsed.numeric > 0) {
     layoutElements.push({
-      id: `border-radius-${index}`,
-      selector: getUniqueSelector(el),
-      property: 'border-radius',
-      description: `边框圆角: ${getUniqueSelector(el).split(' ')[0]}`,
-      currentValue: styles.borderRadius,
-      originalValue: styles.borderRadius,
-      unit: 'px',
-      min: 0,
-      max: 50
+            id: `line-height-${index}`,
+            selector: selector,
+            property: 'line-height',
+            description: `行高: ${selectorName}`,
+            currentValue: lineHeight,
+            originalValue: lineHeight,
+            unit: parsed.unit || 'px',
+            min: 0.5,
+            max: 5
     });
+        }
+      }
+    }
   });
   
   return {

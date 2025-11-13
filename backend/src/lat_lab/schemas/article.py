@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+from src.lat_lab.schemas.user import UserOut
 
 class ArticleStatus(str, Enum):
     draft = "draft"
@@ -74,64 +75,13 @@ class Article(ArticleBase):
     updated_at: datetime
     tags: List[Tag] = []
     category: Optional[Category] = None
+    author: Optional[UserOut] = None
 
     class Config:
         from_attributes = True
 
 class ArticleDetail(Article):
-    author: Dict[str, Any]
+    author: Optional[UserOut] = None
 
     class Config:
         from_attributes = True
-    
-    @classmethod
-    def model_validate(cls, obj, from_attributes: bool = False):
-        if from_attributes:
-            try:
-                # 创建原始数据的副本
-                data = {}
-                for attr in dir(obj):
-                    if not attr.startswith('_') and attr != 'metadata' and hasattr(obj, attr):
-                        try:
-                            data[attr] = getattr(obj, attr)
-                        except Exception:
-                            # 忽略无法获取的属性
-                            pass
-                
-                # 处理author字段
-                if hasattr(obj, 'author') and obj.author is not None:
-                    # 确保author被转换为字典
-                    try:
-                        author_obj = obj.author
-                        author_dict = {
-                            "id": author_obj.id,
-                            "username": author_obj.username,
-                            "email": author_obj.email,
-                            "role": author_obj.role
-                        }
-                        
-                        # 添加可能存在的头像和简介
-                        if hasattr(author_obj, 'avatar') and author_obj.avatar is not None:
-                            author_dict["avatar"] = author_obj.avatar
-                        
-                        if hasattr(author_obj, 'bio') and author_obj.bio is not None:
-                            author_dict["bio"] = author_obj.bio
-                            
-                        data['author'] = author_dict
-                    except Exception as e:
-                        # 如果处理失败，创建最小化的作者信息
-                        print(f"处理作者信息时出错: {str(e)}")
-                        data['author'] = {"id": getattr(obj.author, 'id', 0), "username": "未知用户"}
-                else:
-                    # 如果没有作者信息，提供默认值
-                    data['author'] = {"id": 0, "username": "匿名"}
-                
-                # 直接使用数据创建实例
-                return cls(**data)
-                
-            except Exception as e:
-                print(f"文章详情转换错误: {str(e)}")
-                # 发生错误时，尝试基本转换
-                return super().model_validate(obj, from_attributes=True)
-        else:
-            return super().model_validate(obj) 

@@ -276,3 +276,24 @@ def secure_filename(filename):
         basename = 'untitled'
         
     return basename 
+
+
+def detect_image_type(file_bytes: bytes):
+    """基于魔数检测常见图片类型并返回 (mime, ext)
+    
+    仅允许: jpeg, png, gif, webp
+    不允许: svg、bmp、tiff 等（可按需扩展）
+    """
+    # JPEG: FF D8 ... FF D9
+    if len(file_bytes) >= 3 and file_bytes[0:2] == b'\xFF\xD8':
+        return ("image/jpeg", ".jpg")
+    # PNG: 89 50 4E 47 0D 0A 1A 0A
+    if len(file_bytes) >= 8 and file_bytes[0:8] == b'\x89PNG\r\n\x1a\n':
+        return ("image/png", ".png")
+    # GIF: 47 49 46 38
+    if len(file_bytes) >= 4 and file_bytes[0:4] == b'GIF8':
+        return ("image/gif", ".gif")
+    # WEBP: RIFF....WEBP
+    if len(file_bytes) >= 12 and file_bytes[0:4] == b'RIFF' and file_bytes[8:12] == b'WEBP':
+        return ("image/webp", ".webp")
+    return (None, None)

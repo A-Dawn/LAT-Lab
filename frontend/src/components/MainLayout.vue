@@ -114,9 +114,9 @@ const refreshWidget = (widgetId) => {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: var(--layout-max-width, 1400px);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--layout-side-padding, 20px);
   width: 100%;
 }
 

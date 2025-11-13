@@ -1,18 +1,23 @@
 ﻿# 构建阶段
-FROM node:18 as build-stage
+FROM node:20 as build-stage
 WORKDIR /app
 
 # 接收构建参数
 ARG VITE_API_BASE_URL=/api
 ARG VITE_UPLOAD_URL=/uploads
 ARG VITE_ENABLE_DEV_TOOLS=false
+ARG VITE_ICP_RECORD=
+ARG VITE_ICP_LINK=https://beian.miit.gov.cn/
+ARG VITE_MPS_RECORD=
+ARG VITE_MPS_LINK=https://www.beian.gov.cn/portal/registerSystemInfo
 
-# 设置构建环境变量
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_UPLOAD_URL=$VITE_UPLOAD_URL
 ENV VITE_ENABLE_DEV_TOOLS=$VITE_ENABLE_DEV_TOOLS
-ENV NODE_ENV=production
-
+ENV VITE_ICP_RECORD=$VITE_ICP_RECORD
+ENV VITE_ICP_LINK=$VITE_ICP_LINK
+ENV VITE_MPS_RECORD=$VITE_MPS_RECORD
+ENV VITE_MPS_LINK=$VITE_MPS_LINK
 # 安装依赖
 COPY package*.json ./
 # 删除package-lock.json并使用npm install来避免Rollup原生模块问题
@@ -25,7 +30,7 @@ COPY . .
 RUN npm run build
 
 # 生产阶段
-FROM nginx:stable-alpine as production-stage
+FROM nginx:stable-alpine AS production-stage
 
 # 安装必要的工具
 RUN apk add --no-cache curl

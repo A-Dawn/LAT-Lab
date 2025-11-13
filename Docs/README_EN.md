@@ -2,6 +2,13 @@
 
 Welcome to the LAT-Lab project documentation center! This contains all important project documents and instructions.
 
+## 🆕 Latest Update Highlights (v1.1.0)
+
+- **Identity safeguards**: Added a `must_change_password` flag and supporting APIs so accounts flagged by admins must rotate credentials on their next login.
+- **Admin DevTools refresh**: The admin panel now includes status indicators, element navigation, change history, and export tabs powered by new sanitization utilities.
+- **Deployment scripts**: Unified `deploy.sh` / `deploy.ps1` deliver guided Docker/traditional setup, health checks, log streaming, and cleanup helpers.
+- **Environment templates**: Updated `docker.env.example` and `env.traditional.example` expose resource limits, log policies, and frontend feature toggles such as `VITE_ENABLE_DEV_TOOLS`.
+
 ## 📋 Documentation Categories
 
 ### 🚀 Deployment Guides

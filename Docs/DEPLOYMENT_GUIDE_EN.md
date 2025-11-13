@@ -19,8 +19,8 @@ This document provides detailed instructions for using LAT-Lab's cross-platform 
 #### Basic Requirements
 - **Docker**: Version 20.10 or higher
 - **Docker Compose**: Version 2.0 or higher
-- **Memory**: At least 4GB available memory
-- **Disk Space**: At least 10GB available space
+- **Memory**: At least 1GB available memory
+- **Disk Space**: At least 500MB available space
 - **Network**: Stable network connection
 
 #### Operating System Support
@@ -41,20 +41,19 @@ cd LAT-Lab
 
 # Add execution permission to deployment script
 chmod +x deploy.sh
-
-# Check system requirements
-./deploy.sh check
 ```
 
 ### 2. Configure Environment Variables
 
 ```bash
 # Copy environment configuration template
-cp env.example .env
+cp docker.env.example .env
 
 # Edit configuration file
 nano .env
 ```
+
+> ℹ️ For traditional (non-Docker) setup steps, copy `env.traditional.example` and follow `Docs/TRADITIONAL_INSTALLATION_EN.md`.
 
 **Key Configuration Items**:
 ```bash
@@ -80,9 +79,6 @@ MAIL_PASSWORD=your-email-password
 # Start all services
 ./deploy.sh start
 
-# Check service status
-./deploy.sh status
-
 # View real-time logs
 ./deploy.sh logs
 ```
@@ -99,20 +95,14 @@ MAIL_PASSWORD=your-email-password
 # Restart services
 ./deploy.sh restart
 
-# Check status
-./deploy.sh status
-
 # View logs
 ./deploy.sh logs
 
-# Health check
-./deploy.sh health
-
-# System check
-./deploy.sh check
-
 # Help information
 ./deploy.sh help
+
+# Traditional installation helper
+./deploy.sh traditional
 ```
 
 ---
@@ -137,11 +127,13 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ```powershell
 # Copy environment configuration template
-Copy-Item env.example .env
+Copy-Item docker.env.example .env
 
 # Edit configuration file with Notepad
 notepad .env
 ```
+
+> ℹ️ Preparing a traditional installation? Copy `env.traditional.example` instead and follow `Docs/TRADITIONAL_INSTALLATION_EN.md`.
 
 **Key Configuration Items** (same as Linux):
 ```bash
@@ -186,17 +178,8 @@ MAIL_PASSWORD=your-email-password
 # Restart services
 .\deploy.ps1 restart
 
-# Check status
-.\deploy.ps1 status
-
 # View logs
 .\deploy.ps1 logs
-
-# Health check
-.\deploy.ps1 health
-
-# System check
-.\deploy.ps1 check
 
 # Help information
 .\deploy.ps1 help
@@ -252,41 +235,25 @@ LOG_MAX_FILES=3
 ### 1. Service Status Monitoring
 
 ```bash
-# Linux/macOS
-./deploy.sh status
+# Show running containers
+docker-compose ps
 
-# Windows
-.\deploy.ps1 status
-```
+# Inspect health status (example for backend)
+docker inspect --format '{{ .State.Health.Status }}' lat-lab_backend_1
 
-**Output Example**:
-```
-Service Status:
-├── Database (db): ✅ Healthy
-├── Backend (backend): ✅ Healthy
-└── Frontend (frontend): ✅ Running
-
-Container Resources:
-├── Database: CPU 0.5%, Memory 256MB/512MB
-├── Backend: CPU 1.2%, Memory 180MB/384MB
-└── Frontend: CPU 0.3%, Memory 45MB/128MB
+# View resource usage
+docker stats
 ```
 
 ### 2. Health Check
 
 ```bash
-# Linux/macOS
-./deploy.sh health
+# Backend heartbeat
+curl -f http://localhost:8000/healthz
 
-# Windows
-.\deploy.ps1 health
+# Frontend availability
+curl -I http://localhost
 ```
-
-**Check Items**:
-- Database connection status
-- Backend API response
-- Frontend service availability
-- Container resource usage
 
 ### 3. Log Viewing
 
@@ -294,11 +261,8 @@ Container Resources:
 # View all service logs
 ./deploy.sh logs
 
-# View specific service logs
-./deploy.sh logs backend
-
-# Real-time log tracking
-./deploy.sh logs -f
+# Tail a single service
+docker-compose logs -f backend
 ```
 
 ---
@@ -350,7 +314,7 @@ docker-compose restart backend
 ### 3. Data Backup
 
 ```bash
-# Backup database
+# Backup database (MySQL)
 docker-compose exec db mysqldump -u root -p lat_lab_db > backup.sql
 
 # Backup upload files
@@ -378,7 +342,8 @@ git pull origin main
 ./deploy.sh stop
 
 # Backup data
-./deploy.sh backup
+docker-compose exec db mysqldump -u root -p lat_lab_db > backup_$(date +%Y%m%d).sql
+tar -czf uploads_backup_$(date +%Y%m%d).tar.gz uploads/
 
 # Update code
 git pull origin main

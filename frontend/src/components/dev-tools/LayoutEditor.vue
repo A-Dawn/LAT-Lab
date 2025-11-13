@@ -45,7 +45,19 @@
           </div>
           
           <div class="element-input">
-            <div class="slider-container">
+            <!-- 特殊值处理：max-width 可以设置为 none -->
+            <div v-if="element.property === 'max-width'" class="special-value-control">
+              <label class="special-value-label">
+                <input 
+                  type="checkbox" 
+                  :checked="element.currentValue === 'none'"
+                  @change="handleSpecialValueToggle(element)"
+                />
+                <span>移除最大宽度限制 (设置为 none)</span>
+              </label>
+            </div>
+            
+            <div v-if="element.currentValue !== 'none'" class="slider-container">
               <input 
                 :id="element.id"
                 type="range" 
@@ -71,7 +83,7 @@
           
           <div class="element-preview">
             <div class="preview-label">当前值:</div>
-            <div class="preview-content">{{ element.currentValue }}</div>
+            <div class="preview-content">{{ element.currentValue === 'none' ? 'none (无限制)' : element.currentValue }}</div>
           </div>
         </div>
       </div>
@@ -92,6 +104,15 @@ const emit = defineEmits(['update-layout', 'refresh']);
 // 解析值为数字（去掉单位）
 const parseValueNumber = (value) => {
   if (typeof value === 'string') {
+    // 处理特殊值
+    if (value === 'none' || value === 'auto' || value === 'inherit' || value === 'initial') {
+      return 0;
+    }
+    // 提取数值部分（支持负数和小数）
+    const match = value.match(/^([-+]?\d*\.?\d+)/);
+    if (match) {
+      return parseFloat(match[1]) || 0;
+    }
     return parseInt(value.replace(/[^\d.-]/g, '')) || 0;
   }
   return value;
@@ -106,7 +127,26 @@ const updateLayout = (id, value) => {
 const resetElement = (id) => {
   const element = props.layoutElements.find(el => el.id === id);
   if (element) {
+    // 如果原始值是特殊值（如 'none'），直接使用原始值
+    if (element.originalValue === 'none' || element.originalValue === 'auto') {
+      emit('update-layout', { id, value: element.originalValue });
+    } else {
     updateLayout(id, parseValueNumber(element.originalValue));
+    }
+  }
+};
+
+// 处理特殊值切换（如 max-width: none）
+const handleSpecialValueToggle = (element) => {
+  if (element.currentValue === 'none') {
+    // 从 none 切换回数值：使用原始值或默认值
+    const defaultValue = element.originalValue !== 'none' 
+      ? parseValueNumber(element.originalValue) 
+      : 1200; // 默认值
+    updateLayout(element.id, defaultValue);
+  } else {
+    // 切换到 none
+    emit('update-layout', { id: element.id, value: 'none' });
   }
 };
 </script>
@@ -339,6 +379,34 @@ const resetElement = (id) => {
 .reset-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.special-value-control {
+  margin-bottom: 15px;
+  padding: 12px;
+  background-color: var(--bg-elevated);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.special-value-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.special-value-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+}
+
+.special-value-label span {
+  user-select: none;
 }
 
 @media (max-width: 768px) {

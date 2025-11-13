@@ -30,8 +30,8 @@ COPY migrations/ ./migrations/
 COPY alembic.ini ./
 COPY start.sh ./
 
-# 设置启动脚本权限
-RUN chmod +x /app/start.sh
+# 修复行结束符并设置启动脚本权限（针对Windows系统）
+RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
 
 # 创建必要的目录
 RUN mkdir -p uploads/avatars uploads/articles plugins

@@ -4,6 +4,12 @@
 
 This document provides detailed instructions on how to deploy the LAT-Lab project using Docker. Docker deployment offers advantages of environment consistency, rapid deployment, and easy management.
 
+## 🆕 What's New (v1.1.0)
+
+- **Unified deployment scripts**: The new `deploy.sh` (Linux/macOS) and `deploy.ps1` (Windows) replace the legacy `docker-deploy` helpers with guided environment setup, health checks, log streaming, and cleanup utilities.
+- **Service health probes**: `docker-compose.yml` now defines health checks for MySQL, backend, and frontend containers so the stack only boots when dependencies are ready.
+- **Resource & feature toggles**: Expanded environment templates (`docker.env.example`) expose CPU/memory limits, log rotation options, and the `VITE_ENABLE_DEV_TOOLS` frontend flag.
+
 ## 🚀 Quick Start
 
 ### 1. Requirements
@@ -22,10 +28,10 @@ git clone <repository-url>
 cd LAT-Lab
 
 # Set execution permissions
-chmod +x docker-deploy.sh
+chmod +x deploy.sh
 
-# Start services
-./docker-deploy.sh start
+# Start services with guided setup
+./deploy.sh start
 ```
 
 #### Windows PowerShell
@@ -34,8 +40,8 @@ chmod +x docker-deploy.sh
 git clone <repository-url>
 cd LAT-Lab
 
-# Start services
-.\docker-deploy.ps1 start
+# Start services with guided setup
+.\deploy.ps1 start
 ```
 
 #### Manual Deployment
@@ -107,8 +113,8 @@ LAT-Lab/
 ├── docker-compose.yml          # Docker Compose configuration
 ├── docker.env.example          # Docker environment variables template
 ├── .env                        # Environment variables configuration (needs to be created)
-├── docker-deploy.sh            # Linux/macOS deployment script
-├── docker-deploy.ps1           # Windows PowerShell deployment script
+├── deploy.sh                   # Cross-platform deployment script (Linux/macOS)
+├── deploy.ps1                  # Cross-platform deployment script (Windows PowerShell)
 ├── backend/
 │   ├── Dockerfile              # Backend image build file
 │   └── scripts/
@@ -143,23 +149,23 @@ docker-compose logs -f [service_name]
 ### Using Deployment Scripts
 
 ```bash
-# Start services
-./docker-deploy.sh start
+# Start services (Docker)
+./deploy.sh start
+
+# Start traditional installation bootstrap
+./deploy.sh traditional
 
 # Stop services
-./docker-deploy.sh stop
+./deploy.sh stop
 
 # Restart services
-./docker-deploy.sh restart
+./deploy.sh restart
 
-# View logs
-./docker-deploy.sh logs
+# View combined logs
+./deploy.sh logs
 
-# Check status
-./docker-deploy.sh status
-
-# Clean up resources
-./docker-deploy.sh clean
+# Clean up containers and volumes
+./deploy.sh clean
 ```
 
 ## 🚨 Troubleshooting
@@ -206,7 +212,7 @@ curl http://localhost:8000/api/health
 ```bash
 # Fix file permissions
 sudo chown -R $USER:$USER .
-chmod +x docker-deploy.sh
+chmod +x deploy.sh
 
 # Fix Docker permissions
 sudo usermod -aG docker $USER

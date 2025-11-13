@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, func, or_
 from typing import List, Optional
 from datetime import datetime
@@ -12,7 +12,12 @@ def get_article(db: Session, article_id: int, current_user_id: Optional[int] = N
     """
     获取文章详情，添加可见性权限控制
     """
-    article = db.query(Article).filter(Article.id == article_id).first()
+    article = (
+        db.query(Article)
+        .options(joinedload(Article.author))
+        .filter(Article.id == article_id)
+        .first()
+    )
     
     # 如果文章不存在，直接返回None
     if not article:
@@ -55,7 +60,7 @@ def get_articles(
     """
     获取文章列表，添加权限控制和草稿状态过滤
     """
-    query = db.query(Article)
+    query = db.query(Article).options(joinedload(Article.author))
     
     # 根据作者过滤
     if author_id:

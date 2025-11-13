@@ -10,7 +10,7 @@
 **A**: 运行 `python scripts/init_db.py` 时会创建默认管理员账户 (admin/admin123)，建议立即在管理后台修改密码。
 
 ### Q: 如何配置邮件服务？
-**A**: 在 `.env` 文件中配置 SMTP 服务器信息，支持大多数邮件服务提供商。详细配置请参考 [邮件配置指南](./MAIL_CONFIG.md)。
+**A**: 在 `.env`（或 `docker.env.example`）中填写 SMTP 凭据即可完成配置。详细变量说明可参考 [Docker 部署指南](./DOCKER_DEPLOYMENT.md) 与 [传统安装指南](./TRADITIONAL_INSTALLATION.md) 中的配置章节。
 
 ### Q: Docker 部署时端口被占用怎么办？
 **A**: 可以通过以下方式解决：
@@ -31,19 +31,19 @@
 ## 🔧 功能使用
 
 ### Q: 可以自定义主题吗？
-**A**: 可以通过开发工具系统进行样式自定义，或直接修改前端源码。详细说明请参考 [主题定制指南](./THEME_CUSTOMIZATION.md)。
+**A**: 可以。您可以直接修改 `frontend/src/assets` 下的主题样式文件（如 `theme-light.css`、`theme-dark.css`、`theme-neon.css`），或调整相关的 Vue 组件。修改后请按照 `frontend/README.md` 提供的构建命令重新打包前端。
 
 ### Q: 如何添加新的插件？
-**A**: 插件开发请参考 [插件开发指南](./PLUGIN_DEVELOPMENT.md)，或从 [插件市场](https://github.com/A-Dawn/LAT-Lab-marketplace) 下载现成插件。
+**A**: 可以先查看 `backend/plugin_examples` 中的示例插件以及 `backend/src/lat_lab/marketplace_config.json` 中的元数据格式。按照同样的结构实现后，可本地加载或提交到 [插件市场](https://github.com/A-Dawn/LAT-Lab-marketplace)。
 
 ### Q: 支持哪些数据库？
-**A**: 默认支持 SQLite，生产环境推荐使用 MySQL 8.0+。数据库配置请参考 [数据库配置指南](./DATABASE_CONFIG.md)。
+**A**: 默认支持 SQLite，生产环境推荐使用 MySQL 8.0+。具体的配置示例可参见 [Docker 部署指南](./DOCKER_DEPLOYMENT.md) 和 [传统安装指南](./TRADITIONAL_INSTALLATION.md)。
 
 ### Q: 如何备份和恢复数据？
 **A**: 数据备份方法：
 1. **数据库备份**: `docker-compose exec db mysqldump -u root -p lat_lab_db > backup.sql`
 2. **文件备份**: `tar -czf uploads_backup.tar.gz uploads/`
-3. **完整备份**: 使用 `./deploy.sh backup` 命令
+3. **完整备份**: 同时保留数据库导出与上传文件压缩包（或对 Docker 卷进行快照）
 
 ---
 
@@ -107,12 +107,11 @@
 ## 🔌 插件开发
 
 ### Q: 如何开发自定义插件？
-**A**: 插件开发流程：
-1. 参考 [插件开发指南](./PLUGIN_DEVELOPMENT.md)
-2. 使用插件模板创建项目
-3. 实现插件功能
-4. 测试和调试
-5. 打包和发布
+**A**: 建议流程如下：
+1. 阅读 `backend/plugin_examples` 中的参考插件
+2. 将示例复制到 `backend/plugins`（或自建仓库），并按 `backend/src/lat_lab/marketplace_config.json` 定义元数据
+3. 本地实现并测试插件功能
+4. 打包后提交到 [插件市场](https://github.com/A-Dawn/LAT-Lab-marketplace)（可选）
 
 ### Q: 插件开发需要什么技能？
 **A**: 插件开发需要：
@@ -145,7 +144,7 @@
 ## 🌐 国际化
 
 ### Q: 支持多语言吗？
-**A**: 目前支持中文和英文，更多语言支持正在开发中。如需添加新语言，请参考 [国际化指南](./I18N_GUIDE.md)。
+**A**: 目前支持中文和英文，更多语言正在规划中。如需新增语言，可参考 `frontend/src` 中现有的翻译资源结构，补充对应的文案与界面，并通过 Pull Request 提交。
 
 ### Q: 如何切换语言？
 **A**: 语言切换方式：

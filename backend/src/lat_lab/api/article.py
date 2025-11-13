@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from src.lat_lab.schemas.article import Article, ArticleCreate, ArticleUpdate, ArticleDetail, Tag, ArticleStatus, ArticleVisibility
@@ -213,7 +213,11 @@ def get_pending_articles(
         )
     
     # 查询待审核文章
-    query = db.query(ArticleModel).filter(ArticleModel.is_approved == False)
+    query = (
+        db.query(ArticleModel)
+        .options(joinedload(ArticleModel.author))
+        .filter(ArticleModel.is_approved == False)
+    )
     articles = query.order_by(desc(ArticleModel.created_at)).offset(skip).limit(limit).all()
     
     return articles

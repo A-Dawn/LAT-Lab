@@ -4,6 +4,12 @@
 
 This document provides detailed instructions on how to deploy the LAT-Lab project using traditional installation methods. Traditional installation is suitable for development environments, learning research, and personal use, using SQLite database without requiring additional database services.
 
+## 🆕 What's New (v1.1.0)
+
+- **Password rotation flag**: Accounts can now be marked with `must_change_password`, prompting them to update credentials immediately after signing in.
+- **Scripted bootstrap**: The unified `deploy.sh` / `deploy.ps1` scripts include a `traditional` command that prepares environment files and dependencies for manual installs.
+- **Extended environment template**: `env.traditional.example` packages mail settings, rate limits, plugin marketplace toggles, and `VITE_ENABLE_DEV_TOOLS` so you can align frontend/backends quickly.
+
 ## 🚀 Quick Start
 
 ### 1. Requirements
@@ -19,6 +25,16 @@ This document provides detailed instructions on how to deploy the LAT-Lab projec
 ```bash
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
+```
+
+#### Optional: Bootstrap with the helper script
+```bash
+# Linux/macOS
+chmod +x deploy.sh
+./deploy.sh traditional
+
+# Windows PowerShell
+.\deploy.ps1 traditional
 ```
 
 ---
@@ -138,6 +154,12 @@ BASE_URL=http://localhost:5173  # Frontend address
 SECRET_KEY=your_secret_key_here_for_traditional_installation_minimum_32_chars
 ```
 
+Additional knobs in the template let you configure:
+- **Email delivery** (`MAIL_*` block) for verification and notification messages.
+- **Rate limiting** (`RATE_LIMIT_*`) for login, API, upload, and plugin access.
+- **Plugin marketplace** integration (source, Git repository, cache TTL).
+- **Frontend behaviour** including API base paths and the `VITE_ENABLE_DEV_TOOLS` toggle.
+
 ### Database Configuration
 
 - **Type**: SQLite (default)
@@ -181,6 +203,7 @@ If you want to deploy traditional installation to production environment:
 - `DEBUG=True`: Display detailed error information for debugging
 - `CORS_ORIGINS`: Allow frontend cross-origin access
 - Rate Limiting: Use more relaxed limits for development environment
+- `must_change_password`: When set for an account by an administrator, users will be prompted to rotate their password after the next login
 
 ---
 

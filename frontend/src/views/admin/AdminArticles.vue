@@ -221,7 +221,7 @@ onMounted(fetchArticles)
     
     <div v-else class="articles-table-container" role="region" aria-label="文章列表">
       <p v-if="filteredArticles.length" class="results-summary">
-        显示 {{ paginatedArticles.length }} 篇文章，共 {{ filteredArticles.length }} 篇
+        显示 <span class="count">{{ paginatedArticles.length }}</span> 篇文章，共 <span class="count">{{ filteredArticles.length }}</span> 篇
       </p>
       
       <div v-if="filteredArticles.length === 0" class="empty-state">
@@ -513,9 +513,22 @@ onMounted(fetchArticles)
 }
 
 .results-summary {
-  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 15px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.results-summary .count {
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 0 4px;
 }
 
 .empty-state {

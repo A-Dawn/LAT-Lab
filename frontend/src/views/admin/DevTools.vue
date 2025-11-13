@@ -23,6 +23,14 @@
       :is-loading="isLoading"
     />
 
+    <!-- 元素导航器 -->
+    <ElementNavigator 
+      :elements="{ styles: cssVariables, texts: textElements, layouts: layoutElements }"
+      @select-item="handleSelectItem"
+      @highlight-item="handleHighlightItem"
+      @unhighlight-item="handleUnhighlightItem"
+    />
+
     <div class="dev-tools-tabs">
       <button 
         v-for="tab in tabs" 
@@ -88,6 +96,9 @@ import ChangeHistory from '../../components/dev-tools/ChangeHistory.vue';
 import PageSelector from '../../components/dev-tools/PageSelector.vue';
 import FileExporter from '../../components/dev-tools/FileExporter.vue';
 import StatusIndicator from '../../components/dev-tools/StatusIndicator.vue';
+import ElementNavigator from '../../components/dev-tools/ElementNavigator.vue';
+import { sanitizeHtml, safelyApplyContent } from '../../utils/htmlSanitizer.js';
+import toast from '../../utils/toast';
 
 const store = useStore();
 
@@ -121,6 +132,12 @@ const currentPageUrl = ref('');
 const iframeRef = ref(null);
 // 加载状态
 const isLoading = ref(false);
+// 原始值快照（用于重置时恢复真正的原始值）
+const originalValuesSnapshot = ref({
+  cssVariables: new Map(), // key: variable.name, value: originalValue
+  textElements: new Map(), // key: element.id, value: originalValue
+  layoutElements: new Map() // key: `${element.selector}-${element.property}`, value: originalValue
+});
 
 // 初始化数据
 onMounted(async () => {
@@ -177,16 +194,35 @@ const updateElements = (elements) => {
   
   if (elements.cssVariables) {
     cssVariables.value = elements.cssVariables;
+    // 保存原始值快照（仅在首次提取或页面切换时保存）
+    elements.cssVariables.forEach(variable => {
+      if (!originalValuesSnapshot.value.cssVariables.has(variable.name)) {
+        originalValuesSnapshot.value.cssVariables.set(variable.name, variable.originalValue);
+      }
+    });
     console.log('更新CSS变量:', elements.cssVariables.length, '个');
   }
   
   if (elements.textElements) {
     textElements.value = elements.textElements;
+    // 保存原始值快照
+    elements.textElements.forEach(element => {
+      if (!originalValuesSnapshot.value.textElements.has(element.id)) {
+        originalValuesSnapshot.value.textElements.set(element.id, element.originalValue);
+      }
+    });
     console.log('更新文本元素:', elements.textElements.length, '个');
   }
   
   if (elements.layoutElements) {
     layoutElements.value = elements.layoutElements;
+    // 保存原始值快照
+    elements.layoutElements.forEach(element => {
+      const key = `${element.selector}-${element.property}`;
+      if (!originalValuesSnapshot.value.layoutElements.has(key)) {
+        originalValuesSnapshot.value.layoutElements.set(key, element.originalValue);
+      }
+    });
     console.log('更新布局元素:', elements.layoutElements.length, '个');
   }
 };
@@ -202,6 +238,11 @@ const handlePageChange = (pageUrl) => {
   cssVariables.value = [];
   textElements.value = [];
   layoutElements.value = [];
+  
+  // 清空原始值快照（新页面需要重新保存）
+  originalValuesSnapshot.value.cssVariables.clear();
+  originalValuesSnapshot.value.textElements.clear();
+  originalValuesSnapshot.value.layoutElements.clear();
   
   console.log('页面切换到:', pageUrl || '当前页面');
 };
@@ -254,17 +295,21 @@ const updateCssVariable = ({ name, value }) => {
   });
 };
 
-// 更新文本内容
+// 更新文本内容 - 使用安全的HTML应用
 const updateTextContent = ({ id, value }) => {
   const element = textElements.value.find(el => el.id === id);
   if (!element) return;
   
   try {
+    // 净化HTML内容
+    const safeValue = sanitizeHtml(value);
+    
     // 如果是当前页面，直接更新DOM
     if (!currentPageUrl.value) {
       const domElement = document.querySelector(element.selector);
       if (domElement) {
-        domElement.textContent = value;
+        // 使用安全的内容应用方法
+        safelyApplyContent(domElement, safeValue);
       }
     } else if (iframeRef.value && iframeRef.value.contentWindow) {
       try {
@@ -272,13 +317,14 @@ const updateTextContent = ({ id, value }) => {
         const frameDocument = iframeRef.value.contentDocument || iframeRef.value.contentWindow.document;
         const domElement = frameDocument.querySelector(element.selector);
         if (domElement) {
-          domElement.textContent = value;
+          // 使用安全的内容应用方法
+          safelyApplyContent(domElement, safeValue);
         }
       } catch (error) {
-        // 如果跨域，使用postMessage
+        // 如果跨域，使用postMessage（传递净化后的值）
         iframeRef.value.contentWindow.postMessage({
           action: 'update-text',
-          payload: { selector: element.selector, value }
+          payload: { selector: element.selector, value: safeValue }
         }, '*');
       }
     }
@@ -306,20 +352,33 @@ const updateLayoutProperty = ({ id, value }) => {
   const element = layoutElements.value.find(el => el.id === id);
   if (!element) return;
   
-  const valueWithUnit = value + element.unit;
+  // 处理特殊值
+  let finalValue;
+  if (value === 'none' || value === 'auto') {
+    // 直接使用特殊值
+    finalValue = value;
+  } else if (element.property === 'max-width' && element.originalValue === 'none' && value === 0) {
+    finalValue = 'none';
+  } else if (element.property === 'max-width' && value >= element.max) {
+    // 如果值达到最大值，可以设置为 'none' 来移除限制
+    finalValue = 'none';
+  } else {
+    // 正常情况：数值 + 单位
+    finalValue = value + element.unit;
+  }
   
   try {
     // 如果是当前页面，直接更新DOM
     if (!currentPageUrl.value) {
       document.querySelectorAll(element.selector).forEach(domElement => {
-        domElement.style[element.property] = valueWithUnit;
+        domElement.style[element.property] = finalValue;
       });
     } else if (iframeRef.value && iframeRef.value.contentWindow) {
       try {
         // 尝试直接访问iframe内容
         const frameDocument = iframeRef.value.contentDocument || iframeRef.value.contentWindow.document;
         frameDocument.querySelectorAll(element.selector).forEach(domElement => {
-          domElement.style[element.property] = valueWithUnit;
+          domElement.style[element.property] = finalValue;
         });
       } catch (error) {
         // 如果跨域，使用postMessage
@@ -328,14 +387,14 @@ const updateLayoutProperty = ({ id, value }) => {
           payload: { 
             selector: element.selector, 
             property: element.property, 
-            value: valueWithUnit 
+            value: finalValue 
           }
         }, '*');
       }
     }
     
     // 更新状态
-    element.currentValue = valueWithUnit;
+    element.currentValue = finalValue;
     
     // 记录变更
     addToHistory({
@@ -344,7 +403,7 @@ const updateLayoutProperty = ({ id, value }) => {
       selector: element.selector,
       property: element.property,
       oldValue: element.originalValue,
-      newValue: valueWithUnit,
+      newValue: finalValue,
       timestamp: new Date().toISOString(),
       page: currentPageUrl.value || 'current'
     });
@@ -392,11 +451,13 @@ const revertChange = (change) => {
         cssVariables.value[varIndex].value = change.oldValue;
       }
     } else if (change.type === 'text') {
+      // 回退时直接恢复旧值，不需要净化（旧值来自历史记录）
       // 如果是当前页面，直接更新DOM
       if (!currentPageUrl.value) {
         const domElement = document.querySelector(change.selector);
         if (domElement) {
-          domElement.textContent = change.oldValue;
+          // 直接设置 innerHTML 恢复旧值
+          domElement.innerHTML = change.oldValue;
         }
       } else if (iframeRef.value && iframeRef.value.contentWindow) {
         try {
@@ -404,7 +465,8 @@ const revertChange = (change) => {
           const frameDocument = iframeRef.value.contentDocument || iframeRef.value.contentWindow.document;
           const domElement = frameDocument.querySelector(change.selector);
           if (domElement) {
-            domElement.textContent = change.oldValue;
+            // 直接设置 innerHTML 恢复旧值
+            domElement.innerHTML = change.oldValue;
           }
         } catch (error) {
           // 如果跨域，使用postMessage
@@ -467,38 +529,79 @@ const revertChange = (change) => {
   }
 };
 
-// 重置所有更改
-const resetChanges = () => {
-  try {
-    // 重置CSS变量
-    cssVariables.value.forEach(variable => {
+// 重置单个CSS变量（返回Promise以便等待完成）
+const resetCssVariable = (variable) => {
+  return new Promise((resolve) => {
+    // 从快照中获取真正的原始值
+    const trueOriginalValue = originalValuesSnapshot.value.cssVariables.get(variable.name) || variable.originalValue;
+    
+    // 更新变量对象中的 originalValue（确保同步）
+    variable.originalValue = trueOriginalValue;
+    
       // 如果是当前页面，直接更新DOM
       if (!currentPageUrl.value) {
-        document.documentElement.style.setProperty(variable.name, variable.originalValue);
+      try {
+        if (trueOriginalValue === null || trueOriginalValue === undefined || trueOriginalValue === '') {
+          document.documentElement.style.removeProperty(variable.name);
+        } else {
+          document.documentElement.style.setProperty(variable.name, trueOriginalValue);
+        }
+        variable.value = trueOriginalValue;
+        resolve();
+      } catch (error) {
+        console.error(`重置CSS变量 ${variable.name} 失败:`, error);
+        resolve(); // 继续执行，不阻塞其他重置操作
+      }
       } else if (iframeRef.value && iframeRef.value.contentWindow) {
         try {
           // 尝试直接访问iframe内容
           const frameDocument = iframeRef.value.contentDocument || iframeRef.value.contentWindow.document;
-          frameDocument.documentElement.style.setProperty(variable.name, variable.originalValue);
+        if (trueOriginalValue === null || trueOriginalValue === undefined || trueOriginalValue === '') {
+          frameDocument.documentElement.style.removeProperty(variable.name);
+        } else {
+          frameDocument.documentElement.style.setProperty(variable.name, trueOriginalValue);
+        }
+        variable.value = trueOriginalValue;
+        resolve();
         } catch (error) {
           // 如果跨域，使用postMessage
           iframeRef.value.contentWindow.postMessage({
             action: 'update-style',
-            payload: { name: variable.name, value: variable.originalValue }
+          payload: { name: variable.name, value: trueOriginalValue }
           }, '*');
-        }
+        variable.value = trueOriginalValue;
+        // 跨域场景下，等待一小段时间确保消息被处理
+        setTimeout(resolve, 50);
       }
-      
-      variable.value = variable.originalValue;
-    });
+    } else {
+      variable.value = trueOriginalValue;
+      resolve();
+    }
+  });
+};
+
+// 重置单个文本元素（返回Promise以便等待完成）
+const resetTextElement = (element) => {
+  return new Promise((resolve) => {
+    // 从快照中获取真正的原始值
+    const trueOriginalValue = originalValuesSnapshot.value.textElements.get(element.id) || element.originalValue;
     
-    // 重置文本内容
-    textElements.value.forEach(element => {
+    // 更新元素对象中的 originalValue
+    element.originalValue = trueOriginalValue;
+    
       // 如果是当前页面，直接更新DOM
       if (!currentPageUrl.value) {
+      try {
         const domElement = document.querySelector(element.selector);
         if (domElement) {
-          domElement.textContent = element.originalValue;
+          // 使用 safelyApplyContent 方法保持一致性
+          safelyApplyContent(domElement, trueOriginalValue);
+          element.currentValue = trueOriginalValue;
+        }
+        resolve();
+      } catch (error) {
+        console.error(`重置文本元素 ${element.selector} 失败:`, error);
+        resolve();
         }
       } else if (iframeRef.value && iframeRef.value.contentWindow) {
         try {
@@ -506,34 +609,73 @@ const resetChanges = () => {
           const frameDocument = iframeRef.value.contentDocument || iframeRef.value.contentWindow.document;
           const domElement = frameDocument.querySelector(element.selector);
           if (domElement) {
-            domElement.textContent = element.originalValue;
+          safelyApplyContent(domElement, trueOriginalValue);
+          element.currentValue = trueOriginalValue;
           }
+        resolve();
         } catch (error) {
           // 如果跨域，使用postMessage
           iframeRef.value.contentWindow.postMessage({
             action: 'update-text',
-            payload: { selector: element.selector, value: element.originalValue }
+          payload: { selector: element.selector, value: trueOriginalValue }
           }, '*');
-        }
+        element.currentValue = trueOriginalValue;
+        // 跨域场景下，等待一小段时间确保消息被处理
+        setTimeout(resolve, 50);
       }
-      
-      element.currentValue = element.originalValue;
-    });
+    } else {
+      element.currentValue = trueOriginalValue;
+      resolve();
+    }
+  });
+};
+
+// 重置单个布局元素（返回Promise以便等待完成）
+const resetLayoutElement = (element) => {
+  return new Promise((resolve) => {
+    // 从快照中获取真正的原始值
+    const key = `${element.selector}-${element.property}`;
+    const trueOriginalValue = originalValuesSnapshot.value.layoutElements.get(key) || element.originalValue;
     
-    // 重置布局属性
-    layoutElements.value.forEach(element => {
+    // 验证原始值格式
+    if (trueOriginalValue === null || trueOriginalValue === undefined) {
+      element.currentValue = '';
+      resolve();
+      return;
+    }
+    
+    // 更新元素对象中的 originalValue
+    element.originalValue = trueOriginalValue;
+    
       // 如果是当前页面，直接更新DOM
       if (!currentPageUrl.value) {
+      try {
         document.querySelectorAll(element.selector).forEach(domElement => {
-          domElement.style[element.property] = element.originalValue;
+          if (trueOriginalValue === '') {
+            domElement.style[element.property] = '';
+          } else {
+            domElement.style[element.property] = trueOriginalValue;
+          }
         });
+        element.currentValue = trueOriginalValue;
+        resolve();
+      } catch (error) {
+        console.error(`重置布局元素 ${element.selector}.${element.property} 失败:`, error);
+        resolve();
+      }
       } else if (iframeRef.value && iframeRef.value.contentWindow) {
         try {
           // 尝试直接访问iframe内容
           const frameDocument = iframeRef.value.contentDocument || iframeRef.value.contentWindow.document;
           frameDocument.querySelectorAll(element.selector).forEach(domElement => {
-            domElement.style[element.property] = element.originalValue;
-          });
+          if (trueOriginalValue === '') {
+            domElement.style[element.property] = '';
+          } else {
+            domElement.style[element.property] = trueOriginalValue;
+          }
+        });
+        element.currentValue = trueOriginalValue;
+        resolve();
         } catch (error) {
           // 如果跨域，使用postMessage
           iframeRef.value.contentWindow.postMessage({
@@ -541,20 +683,98 @@ const resetChanges = () => {
             payload: { 
               selector: element.selector, 
               property: element.property, 
-              value: element.originalValue 
+            value: trueOriginalValue 
             }
           }, '*');
+        element.currentValue = trueOriginalValue;
+        // 跨域场景下，等待一小段时间确保消息被处理
+        setTimeout(resolve, 50);
         }
-      }
-      
-      element.currentValue = element.originalValue;
+    } else {
+      element.currentValue = trueOriginalValue;
+      resolve();
+    }
+  });
+};
+
+// 重置所有更改
+const resetChanges = async () => {
+  try {
+    // 显示加载状态
+    isLoading.value = true;
+    
+    // 收集所有重置操作的Promise
+    const resetPromises = [];
+    
+    // 重置CSS变量
+    cssVariables.value.forEach(variable => {
+      resetPromises.push(resetCssVariable(variable));
     });
+    
+    // 重置文本内容
+    textElements.value.forEach(element => {
+      resetPromises.push(resetTextElement(element));
+    });
+    
+    // 重置布局属性
+    layoutElements.value.forEach(element => {
+      resetPromises.push(resetLayoutElement(element));
+    });
+    
+    // 等待所有重置操作完成
+    await Promise.all(resetPromises);
+    
+    // 额外等待时间，确保跨域消息被处理（特别是iframe场景）
+    if (iframeRef.value && currentPageUrl.value) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     
     // 清空历史记录
     changeHistory.value = [];
     localStorage.removeItem('dev-tools-history');
+    
+    // 清除所有开发工具相关的缓存
+    localStorage.removeItem('devToolsStyles');
+    localStorage.removeItem('devToolsPageData');
+    
+    // 清除 Vuex store 中保存的数据
+    try {
+      const currentPage = currentPageUrl.value || 'current';
+      store.commit('devTools/clearPageData', currentPage);
+    } catch (storeError) {
+      console.warn('清除Vuex数据失败:', storeError);
+    }
+    
+    // 显示成功提示
+    toast.success('所有更改已重置', { duration: 2000 });
+    
+    // 重新提取页面元素（在重置完成后）
+    console.log('重置完成，重新加载页面以获取原始元素...');
+    
+    // 如果有iframe，重新加载iframe
+    if (iframeRef.value && currentPageUrl.value) {
+      const currentSrc = iframeRef.value.src;
+      iframeRef.value.src = '';
+      setTimeout(() => {
+        iframeRef.value.src = currentSrc;
+        isLoading.value = false;
+      }, 100);
+    } else {
+      // 如果是当前页面，重新扫描元素
+      console.log('正在重新扫描页面元素...');
+      setTimeout(() => {
+        refreshElements();
+        // 提示用户：如果元素识别有问题，建议刷新页面
+        console.log('提示：如果元素识别有问题，请手动刷新页面（F5）');
+      }, 300);
+    }
+    
   } catch (error) {
     console.error('重置更改失败:', error);
+    toast.error('重置更改失败，请查看控制台了解详情', { duration: 3000 });
+    isLoading.value = false;
   }
 };
 
@@ -609,6 +829,65 @@ const refreshElements = () => {
       // 模拟扫描当前页面的元素
       scanCurrentPageElements();
     }, 500);
+  }
+};
+
+// 处理从导航器选择元素
+const handleSelectItem = (item) => {
+  console.log('选中元素:', item);
+  
+  // 根据元素类型切换到相应的tab并聚焦到该元素
+  if (item.type === 'style') {
+    activeTab.value = 'styles';
+  } else if (item.type === 'text') {
+    activeTab.value = 'text';
+  } else if (item.type === 'layout') {
+    activeTab.value = 'layout';
+  }
+  
+  // 等待tab切换完成后滚动到元素
+  setTimeout(() => {
+    const elementId = item.id;
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.add('highlight-flash');
+      setTimeout(() => {
+        element.classList.remove('highlight-flash');
+      }, 2000);
+    }
+  }, 100);
+};
+
+// 处理高亮元素
+const handleHighlightItem = (item) => {
+  // 通过postMessage通知iframe高亮元素
+  if (iframeRef.value && iframeRef.value.contentWindow) {
+    try {
+      iframeRef.value.contentWindow.postMessage({
+        action: 'highlight-element',
+        payload: { 
+          selector: item.data.selector,
+          type: item.type
+        }
+      }, '*');
+    } catch (error) {
+      console.error('发送高亮消息失败:', error);
+    }
+  }
+};
+
+// 取消高亮
+const handleUnhighlightItem = () => {
+  if (iframeRef.value && iframeRef.value.contentWindow) {
+    try {
+      iframeRef.value.contentWindow.postMessage({
+        action: 'unhighlight-element',
+        payload: {}
+      }, '*');
+    } catch (error) {
+      console.error('发送取消高亮消息失败:', error);
+    }
   }
 };
 
@@ -675,6 +954,25 @@ const scanCurrentPageElements = () => {
   }
 };
 </script>
+
+<style scoped>
+/* 高亮闪烁动画 */
+@keyframes highlight-flash {
+  0%, 100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+  50% {
+    background-color: rgba(76, 132, 255, 0.15);
+    box-shadow: 0 0 0 4px rgba(76, 132, 255, 0.2);
+  }
+}
+
+.highlight-flash {
+  animation: highlight-flash 1s ease-in-out 2;
+  border-radius: 4px;
+}
+</style>
 
 <style scoped>
 .dev-tools-container {

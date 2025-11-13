@@ -63,11 +63,6 @@ else
 fi
 
 echo "启动 LAT-LAB 后端服务..."
-echo "默认管理员账户："
-echo "  用户名: admin"
-echo "  密码: admin123"
-echo "  邮箱: admin@example.com"
-echo ""
 
 # 启动主应用
 cd /app && exec python -m src.lat_lab.main 

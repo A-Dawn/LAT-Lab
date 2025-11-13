@@ -119,14 +119,21 @@ LAT-Lab 是一个功能强大、架构现代的个人博客系统，采用前后
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
 chmod +x deploy.sh
-./deploy.sh
+cp docker.env.example .env
+# 根据实际环境更新 .env 配置
+./deploy.sh start
+# 可选：使用 `./deploy.sh logs` 观察启动日志
 ```
 
 #### Windows PowerShell
 ```powershell
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
-.\deploy.ps1
+Copy-Item docker.env.example .env
+# 传统部署请复制 env.traditional.example
+notepad .env
+.\deploy.ps1 start
+# 可选：执行 `.\deploy.ps1 logs` 查看启动日志
 ```
 
 #### 部署脚本功能特性
@@ -160,7 +167,8 @@ LAT-Lab/
 │   └── package.json          # 依赖配置
 ├── Docs/                     # 项目文档
 ├── docker-compose.yml        # Docker配置
-├── env.example               # 统一环境配置模板
+├── docker.env.example        # Docker 部署环境配置模板
+├── env.traditional.example   # 传统部署环境配置模板
 ├── deploy.sh                 # Linux/macOS 跨平台部署脚本
 ├── deploy.ps1                # Windows PowerShell 跨平台部署脚本
 └── README.md                 # 项目说明

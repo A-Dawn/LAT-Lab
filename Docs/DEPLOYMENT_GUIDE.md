@@ -19,8 +19,8 @@
 #### 基础要求
 - **Docker**: 20.10 或更高版本
 - **Docker Compose**: 2.0 或更高版本
-- **内存**: 至少 4GB 可用内存
-- **磁盘空间**: 至少 10GB 可用空间
+- **内存**: 至少 1GB 可用内存
+- **磁盘空间**: 至少 500MB 可用空间
 - **网络**: 稳定的网络连接
 
 #### 操作系统支持
@@ -41,20 +41,19 @@ cd LAT-Lab
 
 # 给部署脚本添加执行权限
 chmod +x deploy.sh
-
-# 检查系统要求
-./deploy.sh check
 ```
 
 ### 2. 配置环境变量
 
 ```bash
 # 复制环境配置模板
-cp env.example .env
+cp docker.env.example .env
 
 # 编辑配置文件
 nano .env
 ```
+
+> ℹ️ 如需进行传统安装，请复制 `env.traditional.example`，并参考 `Docs/TRADITIONAL_INSTALLATION.md` 中的步骤。
 
 **关键配置项**:
 ```bash
@@ -80,9 +79,6 @@ MAIL_PASSWORD=your-email-password
 # 启动所有服务
 ./deploy.sh start
 
-# 查看服务状态
-./deploy.sh status
-
 # 查看实时日志
 ./deploy.sh logs
 ```
@@ -99,20 +95,14 @@ MAIL_PASSWORD=your-email-password
 # 重启服务
 ./deploy.sh restart
 
-# 查看状态
-./deploy.sh status
-
 # 查看日志
 ./deploy.sh logs
 
-# 健康检查
-./deploy.sh health
-
-# 系统检查
-./deploy.sh check
-
 # 帮助信息
 ./deploy.sh help
+
+# 传统安装辅助
+./deploy.sh traditional
 ```
 
 ---
@@ -137,11 +127,13 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ```powershell
 # 复制环境配置模板
-Copy-Item env.example .env
+Copy-Item docker.env.example .env
 
 # 使用记事本编辑配置文件
 notepad .env
 ```
+
+> ℹ️ 若准备进行传统安装，请改为复制 `env.traditional.example` 并参考 `Docs/TRADITIONAL_INSTALLATION.md`。
 
 **关键配置项** (与 Linux 相同):
 ```bash
@@ -186,17 +178,8 @@ MAIL_PASSWORD=your-email-password
 # 重启服务
 .\deploy.ps1 restart
 
-# 查看状态
-.\deploy.ps1 status
-
 # 查看日志
 .\deploy.ps1 logs
-
-# 健康检查
-.\deploy.ps1 health
-
-# 系统检查
-.\deploy.ps1 check
 
 # 帮助信息
 .\deploy.ps1 help
@@ -252,41 +235,25 @@ LOG_MAX_FILES=3
 ### 1. 服务状态监控
 
 ```bash
-# Linux/macOS
-./deploy.sh status
+# 查看容器状态
+docker-compose ps
 
-# Windows
-.\deploy.ps1 status
-```
+# 检查容器健康状态（以 backend 为例）
+docker inspect --format '{{ .State.Health.Status }}' lat-lab_backend_1
 
-**输出示例**:
-```
-Service Status:
-├── Database (db): ✅ Healthy
-├── Backend (backend): ✅ Healthy
-└── Frontend (frontend): ✅ Running
-
-Container Resources:
-├── Database: CPU 0.5%, Memory 256MB/512MB
-├── Backend: CPU 1.2%, Memory 180MB/384MB
-└── Frontend: CPU 0.3%, Memory 45MB/128MB
+# 查看实时资源使用
+docker stats
 ```
 
 ### 2. 健康检查
 
 ```bash
-# Linux/macOS
-./deploy.sh health
+# 后端心跳接口
+curl -f http://localhost:8000/healthz
 
-# Windows
-.\deploy.ps1 health
+# 前端可用性
+curl -I http://localhost
 ```
-
-**检查项目**:
-- 数据库连接状态
-- 后端API响应
-- 前端服务可用性
-- 容器资源使用情况
 
 ### 3. 日志查看
 
@@ -294,11 +261,8 @@ Container Resources:
 # 查看所有服务日志
 ./deploy.sh logs
 
-# 查看特定服务日志
-./deploy.sh logs backend
-
-# 实时日志跟踪
-./deploy.sh logs -f
+# 跟踪单个服务日志
+docker-compose logs -f backend
 ```
 
 ---
@@ -350,7 +314,7 @@ docker-compose restart backend
 ### 3. 数据备份
 
 ```bash
-# 备份数据库
+# 备份数据库 (MySQL)
 docker-compose exec db mysqldump -u root -p lat_lab_db > backup.sql
 
 # 备份上传文件
@@ -378,7 +342,8 @@ git pull origin main
 ./deploy.sh stop
 
 # 备份数据
-./deploy.sh backup
+docker-compose exec db mysqldump -u root -p lat_lab_db > backup_$(date +%Y%m%d).sql
+tar -czf uploads_backup_$(date +%Y%m%d).tar.gz uploads/
 
 # 更新代码
 git pull origin main

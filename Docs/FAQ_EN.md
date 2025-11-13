@@ -10,7 +10,7 @@ This document collects common questions and answers during the use of the LAT-La
 **A**: Running `python scripts/init_db.py` will create a default administrator account (admin/admin123). It's recommended to change the password immediately in the admin panel.
 
 ### Q: How to configure email service?
-**A**: Configure SMTP server information in the `.env` file, supporting most email service providers. For detailed configuration, please refer to [Email Configuration Guide](./MAIL_CONFIG_EN.md).
+**A**: Configure SMTP credentials in your `.env` (or `docker.env.example`) file. The configuration sections in [Docker Deployment Guide](./DOCKER_DEPLOYMENT_EN.md) and [Traditional Installation Guide](./TRADITIONAL_INSTALLATION_EN.md) list the required variables and examples.
 
 ### Q: What to do when ports are occupied during Docker deployment?
 **A**: You can resolve this in the following ways:
@@ -31,19 +31,19 @@ This document collects common questions and answers during the use of the LAT-La
 ## 🔧 Feature Usage
 
 ### Q: Can themes be customized?
-**A**: You can customize styles through the development tool system, or directly modify the frontend source code. For detailed instructions, please refer to [Theme Customization Guide](./THEME_CUSTOMIZATION_EN.md).
+**A**: Yes. Update the theme stylesheets under `frontend/src/assets` (for example `theme-light.css`, `theme-dark.css`, `theme-neon.css`) or tweak Vue components directly. Refer to `frontend/README.md` for build commands after applying your changes.
 
 ### Q: How to add new plugins?
-**A**: For plugin development, please refer to [Plugin Development Guide](./PLUGIN_DEVELOPMENT_EN.md), or download ready-made plugins from the [Plugin Marketplace](https://github.com/A-Dawn/LAT-Lab-marketplace).
+**A**: Review the sample plugins in `backend/plugin_examples` and the metadata format in `backend/src/lat_lab/marketplace_config.json`. Once your plugin follows the same structure, you can side-load it or publish it to the [Plugin Marketplace](https://github.com/A-Dawn/LAT-Lab-marketplace).
 
 ### Q: Which databases are supported?
-**A**: SQLite is supported by default, MySQL 8.0+ is recommended for production environments. For database configuration, please refer to [Database Configuration Guide](./DATABASE_CONFIG_EN.md).
+**A**: SQLite is supported by default, while MySQL 8.0+ is recommended for production workloads. Configuration examples are included in [Docker Deployment Guide](./DOCKER_DEPLOYMENT_EN.md) and [Traditional Installation Guide](./TRADITIONAL_INSTALLATION_EN.md).
 
 ### Q: How to backup and restore data?
 **A**: Data backup methods:
 1. **Database backup**: `docker-compose exec db mysqldump -u root -p lat_lab_db > backup.sql`
 2. **File backup**: `tar -czf uploads_backup.tar.gz uploads/`
-3. **Complete backup**: Use `./deploy.sh backup` command
+3. **Complete backup**: Combine the database dump and uploaded files archive (or snapshot your Docker volumes)
 
 ---
 
@@ -107,12 +107,11 @@ This document collects common questions and answers during the use of the LAT-La
 ## 🔌 Plugin Development
 
 ### Q: How to develop custom plugins?
-**A**: Plugin development process:
-1. Refer to [Plugin Development Guide](./PLUGIN_DEVELOPMENT_EN.md)
-2. Use plugin template to create project
-3. Implement plugin functionality
-4. Test and debug
-5. Package and publish
+**A**: Suggested workflow:
+1. Review the reference plugins in `backend/plugin_examples`
+2. Copy an example into `backend/plugins` (or your own repository) and adjust the metadata defined in `backend/src/lat_lab/marketplace_config.json`
+3. Implement and test your functionality locally
+4. Package the plugin and, if desired, publish it to the [Plugin Marketplace](https://github.com/A-Dawn/LAT-Lab-marketplace)
 
 ### Q: What skills are needed for plugin development?
 **A**: Plugin development requires:
@@ -145,7 +144,7 @@ This document collects common questions and answers during the use of the LAT-La
 ## 🌐 Internationalization
 
 ### Q: Does it support multiple languages?
-**A**: Currently supports Chinese and English, more language support is under development. For adding new languages, please refer to [Internationalization Guide](./I18N_GUIDE_EN.md).
+**A**: Currently supports Chinese and English, and additional locales are planned. To add another language, replicate the existing translation resources under `frontend/src` (layouts, copy, and locale files) and submit the changes through a pull request.
 
 ### Q: How to switch languages?
 **A**: Language switching methods:

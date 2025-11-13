@@ -162,8 +162,18 @@ const handleImageUpload = async (event) => {
     
     const data = await response.json()
     
-    // 获取图片URL并插入到编辑器
-            const imageUrl = `${import.meta.env.VITE_UPLOAD_URL || '/uploads'}${data.url}`
+    // 获取图片URL并插入到编辑器（避免重复的 /uploads 前缀）
+    const baseUrl = (import.meta.env.VITE_UPLOAD_URL || '').replace(/\/?$/, '')
+    let imageUrl = data.url || ''
+    if (!imageUrl.startsWith('http')) {
+      const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`
+      // 如果基础URL已指向 /uploads 且返回路径也以 /uploads 开头，则直接使用返回路径
+      if (baseUrl.endsWith('/uploads') && cleanPath.startsWith('/uploads/')) {
+        imageUrl = cleanPath
+      } else {
+        imageUrl = `${baseUrl}${cleanPath}`
+      }
+    }
     insertText(`![${file.name}](${imageUrl})`, '')
     uploadStatus.value = `上传成功: ${file.name}`
     

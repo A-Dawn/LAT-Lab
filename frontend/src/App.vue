@@ -88,6 +88,12 @@ const getAvatarUrl = (path) => {
   }
   return `${baseUrl}${cleanPath}`
 }
+
+const icpRecord = (import.meta.env.VITE_ICP_RECORD || '').trim()
+const icpLink = (import.meta.env.VITE_ICP_LINK || 'https://beian.miit.gov.cn/').trim()
+const mpsRecord = (import.meta.env.VITE_MPS_RECORD || '').trim()
+const mpsLink = (import.meta.env.VITE_MPS_LINK || 'https://www.beian.gov.cn/portal/registerSystemInfo').trim()
+const showRecordInfo = computed(() => Boolean(icpRecord || mpsRecord))
 </script>
 
 <template>
@@ -232,6 +238,26 @@ const getAvatarUrl = (path) => {
         </div>
       </div>
       <div class="footer-bottom">
+        <div v-if="showRecordInfo" class="record-info">
+          <a
+            v-if="icpRecord"
+            :href="icpLink"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ icpRecord }}
+          </a>
+          <span v-if="icpRecord && mpsRecord" class="record-separator">|</span>
+          <a
+            v-if="mpsRecord"
+            :href="mpsLink"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="record-icon">🛡️</span>
+            {{ mpsRecord }}
+          </a>
+        </div>
         <div class="copyright">
           &copy; {{ new Date().getFullYear() }} LAT-Lab. 保留所有权利。
         </div>
@@ -241,6 +267,11 @@ const getAvatarUrl = (path) => {
 </template>
 
 <style>
+:root {
+  --layout-max-width: 1400px;
+  --layout-side-padding: clamp(16px, 4vw, 32px);
+}
+
 /* Page transitions */
 .fade-enter-active,
 .fade-leave-active {
@@ -412,9 +443,9 @@ button {
 }
 
 .header-container {
-  max-width: 1200px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--layout-side-padding);
   height: 70px;
   display: flex;
   align-items: center;
@@ -655,9 +686,9 @@ button {
 }
 
 .footer-container {
-  max-width: 1200px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
-  padding: 50px 20px;
+  padding: 50px var(--layout-side-padding);
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -733,6 +764,34 @@ button {
   background-color: var(--bg-elevated);
   padding: 20px 0;
   text-align: center;
+}
+
+.record-info {
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.record-info a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.record-info a:hover {
+  color: var(--primary-color);
+}
+
+.record-separator {
+  color: var(--text-tertiary);
+}
+
+.record-icon {
+  margin-right: 4px;
 }
 
 .copyright {

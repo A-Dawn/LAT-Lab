@@ -40,35 +40,43 @@ def read_article_comments(
         include_unapproved=include_unapproved
     )
     
-    # 构造符合响应模型的数据
-    result = []
-    for comment in comments:
-        # 获取评论回复
-        replies_db = get_comment_replies(db, comment.id, include_unapproved)
-        
-        # 构造回复数据
-        replies = []
-        for reply in replies_db:
-            replies.append({
-                "id": reply.id,
-                "content": reply.content,
-                "article_id": reply.article_id,
-                "parent_id": reply.parent_id,
-                "user_id": reply.user_id,
-                "likes": reply.likes,
-                "is_approved": reply.is_approved,
-                "created_at": reply.created_at,
+    def build_comment_with_replies(comment, include_unapproved, depth=0, max_depth=5):
+        """递归构建评论及其回复
+        Args:
+            comment: 评论对象
+            include_unapproved: 是否包含未审核评论
+            depth: 当前递归深度
+            max_depth: 最大递归深度（默认5层）
+        """
+        # 限制递归深度，避免性能和无限循环问题
+        if depth >= max_depth:
+            return {
+                "id": comment.id,
+                "content": comment.content,
+                "article_id": comment.article_id,
+                "parent_id": comment.parent_id,
+                "user_id": comment.user_id,
+                "likes": comment.likes,
+                "is_approved": comment.is_approved,
+                "created_at": comment.created_at,
                 "user": {
-                    "id": reply.user.id,
-                    "username": reply.user.username,
-                    "email": reply.user.email,
-                    "role": reply.user.role
+                    "id": comment.user.id,
+                    "username": comment.user.username,
+                    "email": comment.user.email,
+                    "role": comment.user.role
                 },
                 "replies": []
-            })
+            }
         
-        # 构造评论数据
-        comment_data = {
+        # 获取评论的直接回复
+        replies_db = get_comment_replies(db, comment.id, include_unapproved)
+        
+        # 递归构建每个回复
+        replies = []
+        for reply in replies_db:
+            replies.append(build_comment_with_replies(reply, include_unapproved, depth + 1, max_depth))
+        
+        return {
             "id": comment.id,
             "content": comment.content,
             "article_id": comment.article_id,
@@ -85,8 +93,11 @@ def read_article_comments(
             },
             "replies": replies
         }
-        
-        result.append(comment_data)
+    
+    # 构造符合响应模型的数据
+    result = []
+    for comment in comments:
+        result.append(build_comment_with_replies(comment, include_unapproved))
     
     return result
 

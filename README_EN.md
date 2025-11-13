@@ -118,14 +118,21 @@ We provide rapid deployment scripts that automatically detect the environment an
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
 chmod +x deploy.sh
-./deploy.sh
+cp docker.env.example .env
+# Update .env with your configuration values
+./deploy.sh start
+# Optional: follow with `./deploy.sh logs` to monitor startup
 ```
 
 #### Windows PowerShell
 ```powershell
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
-.\deploy.ps1
+Copy-Item docker.env.example .env
+# For traditional installs copy env.traditional.example instead
+notepad .env
+.\deploy.ps1 start
+# Optional: run `.\deploy.ps1 logs` to monitor startup
 ```
 
 #### Deployment Script Features
@@ -159,7 +166,8 @@ LAT-Lab/
 │   └── package.json          # Dependency configuration
 ├── Docs/                     # Project documentation
 ├── docker-compose.yml        # Docker configuration
-├── env.example               # Unified environment configuration template
+├── docker.env.example        # Docker deployment environment template
+├── env.traditional.example   # Traditional deployment environment template
 ├── deploy.sh                 # Linux/macOS cross-platform deployment script
 ├── deploy.ps1                # Windows PowerShell cross-platform deployment script
 └── README.md                 # Project description

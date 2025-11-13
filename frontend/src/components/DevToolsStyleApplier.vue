@@ -75,13 +75,17 @@ const applyStyles = async (config) => {
     })
   }
 
-  // Apply text changes
+  // Apply text changes - with safe HTML handling
   if (config.texts && config.texts.length > 0) {
+    // 动态导入 HTML 净化工具
+    const { safelyApplyContent } = await import('../utils/htmlSanitizer.js')
+    
     config.texts.forEach(text => {
       if (text.currentValue !== text.originalValue) {
         const elements = document.querySelectorAll(text.selector)
         elements.forEach(el => {
-          el.textContent = text.currentValue
+          // 使用安全的内容应用方法
+          safelyApplyContent(el, text.currentValue)
         })
       }
     })

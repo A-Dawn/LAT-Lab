@@ -28,7 +28,7 @@
         <div class="page-actions">
           <button 
             class="preview-btn"
-            @click.stop="previewPage(page)"
+            @click.stop="openPreviewPage(page)"
             title="预览页面"
           >
             
@@ -75,7 +75,7 @@
     <div v-if="showPreview" class="preview-modal" @click="closePreview">
       <div class="preview-content" @click.stop>
         <div class="preview-header">
-          <h3>{{ previewPage?.name }} - 页面预览</h3>
+          <h3>{{ previewedPage?.name }} - 页面预览</h3>
           <button class="close-btn" @click="closePreview"></button>
         </div>
         <div class="preview-iframe-container">
@@ -136,7 +136,7 @@ const emit = defineEmits(['page-change', 'elements-loaded', 'iframe-ready']);
 const router = useRouter();
 const selectedPageUrl = ref('');
 const showPreview = ref(false);
-const previewPage = ref(null);
+const previewedPage = ref(null);
 const includeDynamicContent = ref(false);
 
 // 开发环境判断
@@ -146,9 +146,9 @@ const isDev = computed(() => {
 
 // 预览URL
 const previewUrl = computed(() => {
-  if (!previewPage.value) return '';
+  if (!previewedPage.value) return '';
   
-  const url = new URL(previewPage.value.url, window.location.origin);
+  const url = new URL(previewedPage.value.url, window.location.origin);
   url.searchParams.append('devtools', 'true');
   return url.toString();
 });
@@ -299,21 +299,21 @@ const selectCurrentPage = () => {
 };
 
 // 预览页面
-const previewPage = (page) => {
-  previewPage.value = page;
+const openPreviewPage = (page) => {
+  previewedPage.value = page;
   showPreview.value = true;
 };
 
 // 关闭预览
 const closePreview = () => {
   showPreview.value = false;
-  previewPage.value = null;
+  previewedPage.value = null;
 };
 
 // 选择并关闭预览
 const selectAndClosePreview = () => {
-  if (previewPage.value) {
-    selectPage(previewPage.value);
+  if (previewedPage.value) {
+    selectPage(previewedPage.value);
   }
   closePreview();
 };
@@ -521,7 +521,7 @@ defineExpose({
   background: var(--card-bg);
   border-radius: 12px;
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--layout-max-width, 1400px);
   max-height: 90vh;
   display: flex;
   flex-direction: column;

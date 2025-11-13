@@ -4,6 +4,12 @@
 
 本文档详细说明如何使用传统安装方式部署 LAT-Lab 项目。传统安装方式适合开发环境、学习研究和个人使用，使用 SQLite 数据库，无需额外的数据库服务。
 
+## 🆕 本次更新亮点（v1.1.0）
+
+- **密码轮换标记**：支持为账号设置 `must_change_password`，要求用户在下一次登录后立即修改密码。
+- **脚本化引导**：统一的 `deploy.sh` / `deploy.ps1` 提供 `traditional` 指令，可自动准备环境文件与依赖骨架。
+- **环境模板扩展**：`env.traditional.example` 新增邮件、速率限制、插件市场与 `VITE_ENABLE_DEV_TOOLS` 等配置项，前后端联动更轻松。
+
 ## 🚀 快速开始
 
 ### 1. 环境要求
@@ -19,6 +25,16 @@
 ```bash
 git clone https://github.com/A-Dawn/LAT-Lab.git
 cd LAT-Lab
+```
+
+#### 可选：使用脚本快速引导
+```bash
+# Linux/macOS
+chmod +x deploy.sh
+./deploy.sh traditional
+
+# Windows PowerShell
+.\deploy.ps1 traditional
 ```
 
 ---
@@ -138,6 +154,12 @@ BASE_URL=http://localhost:5173  # 前端地址
 SECRET_KEY=your_secret_key_here_for_traditional_installation_minimum_32_chars
 ```
 
+模板中还提供了以下可调节项：
+- **邮件发送**：`MAIL_*` 配置用于邮箱验证与通知。
+- **速率限制**：`RATE_LIMIT_*` 控制登录、API、上传、插件访问频率。
+- **插件市场**：可配置来源、Git 仓库与缓存时间。
+- **前端行为**：包括 API 基地址、上传路径以及 `VITE_ENABLE_DEV_TOOLS` 开关。
+
 ### 数据库配置
 
 - **类型**: SQLite (默认)
@@ -181,6 +203,7 @@ LAT-Lab/
 - `DEBUG=True`: 显示详细错误信息，便于调试
 - `CORS_ORIGINS`: 允许前端跨域访问
 - 速率限制: 开发环境使用更宽松的限制
+- `must_change_password`: 当管理员为某账号启用该标记时，用户将在下次登录后被要求修改密码
 
 ---
 

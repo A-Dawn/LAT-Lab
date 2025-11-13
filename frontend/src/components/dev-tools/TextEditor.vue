@@ -51,8 +51,19 @@
           </div>
           
           <div class="element-preview">
-            <div class="preview-label">预览:</div>
-            <div class="preview-content">{{ element.currentValue }}</div>
+            <div class="preview-label">
+              预览:
+              <span v-if="containsHtml(element.currentValue)" class="html-badge">HTML</span>
+            </div>
+            <div 
+              class="preview-content" 
+              v-html="vHtmlSafe(element.currentValue)"
+            ></div>
+          </div>
+          
+          <div v-if="containsHtml(element.currentValue)" class="html-hint">
+            <span class="hint-icon">ℹ️</span>
+            此元素包含HTML标记（如链接、加粗等）。所有HTML将被安全净化后应用。
           </div>
         </div>
       </div>
@@ -61,6 +72,8 @@
 </template>
 
 <script setup>
+import { vHtmlSafe } from '../../utils/htmlSanitizer.js';
+
 const props = defineProps({
   textElements: {
     type: Array,
@@ -81,6 +94,11 @@ const resetElement = (id) => {
   if (element) {
     updateText(id, element.originalValue);
   }
+};
+
+// 检测是否包含HTML
+const containsHtml = (text) => {
+  return /<[a-z][\s\S]*>/i.test(text);
 };
 </script>
 
@@ -223,6 +241,50 @@ const resetElement = (id) => {
 .preview-content {
   color: var(--text-primary);
   word-break: break-word;
+}
+
+.preview-content :deep(a) {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.preview-content :deep(strong),
+.preview-content :deep(b) {
+  font-weight: bold;
+}
+
+.preview-content :deep(em),
+.preview-content :deep(i) {
+  font-style: italic;
+}
+
+.html-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.7rem;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.html-hint {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background-color: #e3f2fd;
+  border-left: 3px solid #2196f3;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #1565c0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.hint-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
 }
 
 .reset-button {

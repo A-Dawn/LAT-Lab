@@ -64,6 +64,7 @@ def login_for_access_token(
         "access_token": access_token, 
         "token_type": "bearer",
         "is_verified": user.is_verified,
+        "must_change_password": getattr(user, "must_change_password", False),
         "email": user.email,
         "username": user.username
     }

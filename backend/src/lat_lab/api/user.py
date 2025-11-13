@@ -8,16 +8,15 @@ from src.lat_lab.crud.user import get_user, get_users, update_user, delete_user
 from src.lat_lab.core.deps import get_db, get_current_user, get_current_admin_user
 from src.lat_lab.models.user import User
 from src.lat_lab.core.security import get_password_hash
-from src.lat_lab.utils.security import secure_filename
+from src.lat_lab.core.config import settings
+from src.lat_lab.utils.security import secure_filename, detect_image_type
 from src.lat_lab.utils.username_validator import validate_username
 from src.lat_lab.models.user import RoleEnum
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-# 头像上传目录
-UPLOAD_DIR = os.path.join("uploads", "avatars")
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+# 头像上传目录（使用配置路径）
+os.makedirs(settings.AVATARS_DIR, exist_ok=True)
 
 @router.get("/me", response_model=UserOut)
 def read_current_user(current_user: User = Depends(get_current_user)):
@@ -106,34 +105,32 @@ async def upload_avatar(
     current_user: User = Depends(get_current_user)
 ):
     """上传用户头像"""
-    # 检查文件类型
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="只能上传图片文件"
-        )
-    
-    # 确保上传目录存在
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    
-    # 生成唯一文件名
-    original_filename = file.filename or "avatar.jpg"
-    file_extension = os.path.splitext(original_filename)[1] if original_filename else ".jpg"
-    # 确保文件扩展名安全
-    file_extension = secure_filename(file_extension)
-    if not file_extension:
-        file_extension = ".jpg"  # 默认扩展名
-        
-    unique_filename = f"avatar_{current_user.id}_{uuid.uuid4()}{file_extension}"
-    
+    # 读取并限制文件大小
+    content = await file.read(settings.MAX_UPLOAD_SIZE + 1)
+    if len(content) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件内容为空")
+    if len(content) > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="文件过大")
+
+    # 基于魔数检测图片类型（拒绝svg等）
+    mime, detected_ext = detect_image_type(content)
+    if not mime or not detected_ext:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不支持的图片格式")
+
+    # 生成唯一文件名（基于检测到的扩展名）
+    unique_filename = f"avatar_{current_user.id}_{uuid.uuid4()}{detected_ext}"
+
     # 使用安全路径构建
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
-    
+    file_path = os.path.join(str(settings.AVATARS_DIR), unique_filename)
+
     try:
         # 保存文件
         with open(file_path, "wb") as buffer:
-            content = await file.read()  # 读取文件内容
-            buffer.write(content)  # 写入文件
+            buffer.write(content)
+        try:
+            os.chmod(file_path, 0o644)
+        except Exception:
+            pass
     except Exception as e:
         from src.lat_lab.utils.security import SecurityError
         SecurityError.log_error_safe(e, "头像上传", {"user_id": current_user.id})

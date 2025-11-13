@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mysql:8.0
@@ -113,6 +111,10 @@ services:
         - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
         - VITE_UPLOAD_URL=${VITE_UPLOAD_URL:-/uploads}
         - VITE_ENABLE_DEV_TOOLS=${VITE_ENABLE_DEV_TOOLS:-false}
+        - VITE_ICP_RECORD=${VITE_ICP_RECORD:-}
+        - VITE_ICP_LINK=${VITE_ICP_LINK:-https://beian.miit.gov.cn/}
+        - VITE_MPS_RECORD=${VITE_MPS_RECORD:-}
+        - VITE_MPS_LINK=${VITE_MPS_LINK:-https://www.beian.gov.cn/portal/registerSystemInfo}
     restart: unless-stopped
     deploy:
       resources:

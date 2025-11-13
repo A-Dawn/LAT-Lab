@@ -85,14 +85,18 @@ class DevToolsStyleLoader {
         })
       }
 
-      // 应用文本修改
+      // 应用文本修改 - 使用安全的HTML应用
       if (pageConfig.texts && Array.isArray(pageConfig.texts)) {
+        // 动态导入 HTML 净化工具
+        const { safelyApplyContent } = await import('./htmlSanitizer.js')
+        
         pageConfig.texts.forEach(text => {
           if (text.currentValue !== text.originalValue) {
             console.log('应用文本修改:', text.selector, text.currentValue)
             const elements = document.querySelectorAll(text.selector)
             elements.forEach(el => {
-              el.textContent = text.currentValue
+              // 使用安全的内容应用方法
+              safelyApplyContent(el, text.currentValue)
             })
           }
         })

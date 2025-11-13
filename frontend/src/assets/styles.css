@@ -192,9 +192,9 @@ img {
 /* 响应式容器 */
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--layout-max-width, 1400px);
   margin: 0 auto;
-  padding: 0 var(--space-md);
+  padding: 0 var(--layout-side-padding, clamp(var(--space-sm), 4vw, var(--space-lg)));
 }
 
 @media (max-width: 768px) {
@@ -436,6 +436,36 @@ button[type="submit"]:hover {
   color: var(--text-primary);
   font-weight: 500;
 } 
+
+/* 图标样式定义 - 使用emoji字体 */
+.icon-user::before { content: "👤"; }
+.icon-calendar::before { content: "📅"; }
+.icon-folder::before { content: "📁"; }
+.icon-eye::before { content: "👁️"; }
+.icon-heart::before { content: "❤️"; }
+.icon-share::before { content: "🔗"; }
+.icon-reply::before { content: "↩️"; }
+.icon-comments::before { content: "💬"; }
+.icon-trash::before { content: "🗑️"; }
+.icon-check::before { content: "✅"; }
+.icon-plus::before { content: "➕"; }
+.icon-download::before { content: "⬇️"; }
+.icon-edit::before { content: "✏️"; }
+.icon-play::before { content: "▶️"; }
+.icon-pause::before { content: "⏸️"; }
+.icon-plus-circle::before { content: "➕"; }
+.icon-minus::before { content: "➖"; }
+.icon-search::before { content: "🔍"; }
+.icon-close::before { content: "❌"; }
+.icon-check-circle::before { content: "✅"; }
+
+/* 图标基础样式 */
+[class^="icon-"], [class*=" icon-"] {
+  font-style: normal;
+  font-weight: normal;
+  display: inline-block;
+  line-height: 1;
+}
 
 /* 内容区域文本对齐规则 */
 .content-container,

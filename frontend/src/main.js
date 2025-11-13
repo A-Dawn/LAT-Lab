@@ -16,6 +16,7 @@ import './assets/theme-neon.css'
 import { installContentStyles } from './utils/content-styles'
 import './utils/toast'
 import devToolsStyleLoader from './utils/devToolsStyleLoader'
+import syncDevToolsLoader from './utils/syncDevToolsLoader'
 
 function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -44,6 +45,8 @@ function initTheme() {
 
 initTheme();
 
+// 同步加载开发工具配置（在Vue挂载前）
+syncDevToolsLoader.init();
 
 const app = createApp(App)
 
@@ -64,32 +67,141 @@ if (import.meta.env.DEV) {
   if (isInDevTools) {
     console.log('页面在开发工具中加载，启用跨域通信');
     
-    // 添加辅助函数到全局作用域
-    window.extractElementsForDevTools = function() {
-      // CSS变量
-      const rootStyles = getComputedStyle(document.documentElement);
+    // 动态提取所有CSS变量的函数
+    function extractAllCssVariables(doc) {
+      const rootStyles = getComputedStyle(doc.documentElement);
       const cssVariables = [];
+      const variableSet = new Set();
       
-      // 主题颜色变量
-      const themeVars = [
-        '--primary-color', '--secondary-color', '--accent-color',
-        '--bg-primary', '--bg-secondary', '--bg-elevated', '--bg-hover',
-        '--text-primary', '--text-secondary', '--text-tertiary',
-        '--border-color', '--card-bg', '--card-shadow',
-        '--input-bg', '--input-border', '--input-text'
-      ];
+      // 方法1: 从样式表中提取所有CSS变量定义（最可靠的方法）
+      try {
+        const allRules = Array.from(doc.styleSheets || [])
+          .flatMap(sheet => {
+            try {
+              return Array.from(sheet.cssRules || sheet.rules || []);
+            } catch (e) {
+              // 跨域样式表可能无法访问
+              return [];
+            }
+          });
+        
+        allRules.forEach(rule => {
+          // 处理普通规则（如:root, html等）
+          if (rule.style) {
+            for (let i = 0; i < rule.style.length; i++) {
+              const property = rule.style[i];
+              if (property.startsWith('--')) {
+                variableSet.add(property);
+              }
+            }
+          }
+          // 处理 @media 规则中的变量
+          if (rule.cssRules) {
+            Array.from(rule.cssRules).forEach(mediaRule => {
+              if (mediaRule.style) {
+                for (let i = 0; i < mediaRule.style.length; i++) {
+                  const property = mediaRule.style[i];
+                  if (property.startsWith('--')) {
+                    variableSet.add(property);
+                  }
+                }
+              }
+            });
+          }
+          // 处理 @supports 规则中的变量
+          if (rule.type === CSSRule.SUPPORTS_RULE && rule.cssRules) {
+            Array.from(rule.cssRules).forEach(supportsRule => {
+              if (supportsRule.style) {
+                for (let i = 0; i < supportsRule.style.length; i++) {
+                  const property = supportsRule.style[i];
+                  if (property.startsWith('--')) {
+                    variableSet.add(property);
+                  }
+                }
+              }
+            });
+          }
+        });
+      } catch (error) {
+        console.warn('从样式表提取CSS变量时出错:', error);
+      }
       
-      themeVars.forEach(varName => {
+      // 方法2: 从documentElement的内联样式中提取
+      try {
+        const rootElement = doc.documentElement;
+        if (rootElement.style) {
+          for (let i = 0; i < rootElement.style.length; i++) {
+            const property = rootElement.style[i];
+            if (property.startsWith('--')) {
+              variableSet.add(property);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('从根元素内联样式提取CSS变量时出错:', error);
+      }
+      
+      // 方法3: 从所有元素的computedStyle中提取使用的变量
+      // 遍历所有元素，查找使用var()的CSS变量
+      try {
+        const allElements = doc.querySelectorAll('*');
+        allElements.forEach(el => {
+          const styles = getComputedStyle(el);
+          // 检查所有CSS属性（不仅仅是常见的几个）
+          // 通过遍历style对象来获取所有属性
+          for (let i = 0; i < styles.length; i++) {
+            const prop = styles[i];
+            try {
+              const value = styles.getPropertyValue(prop);
+              if (value && value.includes('var(')) {
+                // 提取var()中的变量名（支持嵌套var()）
+                const varMatches = value.match(/var\((--[^,)]+)/g);
+                if (varMatches) {
+                  varMatches.forEach(match => {
+                    const varName = match.replace(/var\(|\)/g, '').trim();
+                    if (varName.startsWith('--')) {
+                      variableSet.add(varName);
+                    }
+                  });
+                }
+              }
+            } catch (e) {
+              // 忽略无法访问的属性
+            }
+          }
+        });
+      } catch (error) {
+        console.warn('从元素样式提取CSS变量时出错:', error);
+      }
+      
+      // 将Set转换为数组并获取值
+      variableSet.forEach(varName => {
+        try {
         const value = rootStyles.getPropertyValue(varName).trim();
         if (value) {
           cssVariables.push({
             name: varName,
             value: value,
             originalValue: value,
-            type: varName.includes('color') ? 'color' : 'text'
+              type: varName.includes('color') || varName.includes('Color') ? 'color' : 'text'
           });
         }
+        } catch (error) {
+          // 忽略无法获取的变量
+        }
       });
+      
+      // 按变量名排序
+      cssVariables.sort((a, b) => a.name.localeCompare(b.name));
+      
+      console.log('提取到', cssVariables.length, '个CSS变量');
+      return cssVariables;
+    }
+    
+    // 添加辅助函数到全局作用域
+    window.extractElementsForDevTools = function() {
+      // CSS变量 - 使用动态提取
+      const cssVariables = extractAllCssVariables(document);
       
       // 文本元素
       const textElements = [];
@@ -310,17 +422,17 @@ const initApp = async () => {
     console.error('加载插件扩展失败:', error);
   }
   
-  app.mount('#app');
-  
-  // 初始化开发工具样式加载器
+  // 初始化开发工具样式加载器（立即启动，不延迟）
   try {
-    // 等待DOM完全加载后再应用样式
-    setTimeout(async () => {
-      await devToolsStyleLoader.init();
-    }, 100);
+    // 异步加载最新配置（在后台更新，不影响首次渲染）
+    devToolsStyleLoader.init().catch(error => {
+      console.error('开发工具样式加载器初始化失败:', error);
+    });
   } catch (error) {
     console.error('开发工具样式加载器初始化失败:', error);
   }
+
+  app.mount('#app');
   
   console.log('LAT-LAB已启动 🚀');
 }

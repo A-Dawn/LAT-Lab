@@ -4,6 +4,12 @@
 
 本文档详细说明如何使用 Docker 部署 LAT-Lab 项目。Docker 部署提供了环境一致性、快速部署和易于管理的优势。
 
+## 🆕 本次更新亮点（v1.1.0）
+
+- **统一部署脚本**：全新 `deploy.sh`（Linux/macOS）与 `deploy.ps1`（Windows）取代旧版 `docker-deploy`，内置环境检查、健康探测、日志跟踪与资源清理等功能。
+- **服务健康探针**：`docker-compose.yml` 为 MySQL、后端、前端容器配置了健康检查，只有依赖就绪后才会继续启动。
+- **资源与功能开关**：`docker.env.example` 新增 CPU/内存配额、日志滚动、`VITE_ENABLE_DEV_TOOLS` 等可选配置项，部署更灵活。
+
 ## 🚀 快速开始
 
 ### 1. 环境要求
@@ -22,10 +28,10 @@ git clone <repository-url>
 cd LAT-Lab
 
 # 设置执行权限
-chmod +x docker-deploy.sh
+chmod +x deploy.sh
 
-# 启动服务
-./docker-deploy.sh start
+# 通过向导启动服务
+./deploy.sh start
 ```
 
 #### Windows PowerShell
@@ -34,8 +40,8 @@ chmod +x docker-deploy.sh
 git clone <repository-url>
 cd LAT-Lab
 
-# 启动服务
-.\docker-deploy.ps1 start
+# 通过向导启动服务
+.\deploy.ps1 start
 ```
 
 #### 手动部署
@@ -107,8 +113,8 @@ LAT-Lab/
 ├── docker-compose.yml          # Docker Compose 配置
 ├── docker.env.example          # Docker 环境变量模板
 ├── .env                        # 环境变量配置 (需创建)
-├── docker-deploy.sh            # Linux/macOS 部署脚本
-├── docker-deploy.ps1           # Windows PowerShell 部署脚本
+├── deploy.sh                   # Linux/macOS 部署脚本
+├── deploy.ps1                  # Windows PowerShell 部署脚本
 ├── backend/
 │   ├── Dockerfile              # 后端镜像构建文件
 │   └── scripts/
@@ -143,23 +149,23 @@ docker-compose logs -f [service_name]
 ### 使用部署脚本
 
 ```bash
-# 启动服务
-./docker-deploy.sh start
+# 启动 Docker 部署
+./deploy.sh start
+
+# 启动传统安装引导
+./deploy.sh traditional
 
 # 停止服务
-./docker-deploy.sh stop
+./deploy.sh stop
 
 # 重启服务
-./docker-deploy.sh restart
+./deploy.sh restart
 
-# 查看日志
-./docker-deploy.sh logs
+# 查看汇总日志
+./deploy.sh logs
 
-# 查看状态
-./docker-deploy.sh status
-
-# 清理资源
-./docker-deploy.sh clean
+# 清理容器与数据卷
+./deploy.sh clean
 ```
 
 ## 🚨 故障排除
@@ -206,7 +212,7 @@ curl http://localhost:8000/api/health
 ```bash
 # 修复文件权限
 sudo chown -R $USER:$USER .
-chmod +x docker-deploy.sh
+chmod +x deploy.sh
 
 # 修复Docker权限
 sudo usermod -aG docker $USER

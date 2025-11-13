@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.absolute()
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # 配置日志
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 from src.lat_lab.core.database import SessionLocal, engine, Base
@@ -23,28 +23,14 @@ from src.lat_lab.core.security import get_password_hash
 # 导入所有模型以确保它们被注册到Base.metadata
 from src.lat_lab.models import user, article, category, comment, tag, plugin, system
 
-# 确保所有模型都被导入
-logger.info("已导入的模型:")
-logger.info(f"  - user: {user}")
-logger.info(f"  - article: {article}")
-logger.info(f"  - category: {category}")
-logger.info(f"  - comment: {comment}")
-logger.info(f"  - tag: {tag}")
-logger.info(f"  - plugin: {plugin}")
-logger.info(f"  - system: {system}")
+# 避免在日志中输出敏感或冗余内容，仅记录必要信息
+logger.info("模型模块已加载")
 
 
 def create_tables():
     """创建所有数据库表"""
     logger.info("创建数据库表...")
     try:
-        # 检查数据库连接
-        logger.info(f"数据库引擎: {engine}")
-        logger.info(f"数据库URL: {engine.url}")
-        
-        # 检查Base.metadata中的表
-        logger.info(f"Base.metadata中的表: {list(Base.metadata.tables.keys())}")
-        
         # 使用engine直接创建表
         Base.metadata.create_all(bind=engine)
         logger.info("数据库表创建完成")
@@ -52,14 +38,11 @@ def create_tables():
         # 验证表是否真的创建成功
         with engine.connect() as conn:
             # 检查关键表是否存在
-            result = conn.execute(text("SHOW TABLES"))
-            tables = [row[0] for row in result]
-            logger.info(f"已创建的表: {tables}")
-            
-            if 'users' in tables and 'categories' in tables:
+            try:
+                result = conn.execute(text("SELECT 1 FROM users LIMIT 1"))
                 logger.info("关键表创建成功")
                 return True
-            else:
+            except Exception:
                 logger.error("关键表创建失败")
                 return False
                 
@@ -97,28 +80,50 @@ def wait_for_tables():
 
 
 def create_admin_user():
-    """创建管理员用户"""
+    """基于环境变量创建管理员用户（受控、幂等、无敏感日志）
+    
+    环境变量：
+      - ADMIN_ENABLED: 'true'/'false'（默认 false）
+      - ADMIN_USERNAME: 管理员用户名（默认 'admin'）
+      - ADMIN_EMAIL: 管理员邮箱（默认 'admin@example.com'）
+      - ADMIN_PASSWORD: 管理员密码（必须在启用创建时提供）
+    仅当 ADMIN_ENABLED=true 且数据库中不存在任何管理员时才创建。
+    """
+    admin_enabled = os.getenv("ADMIN_ENABLED", "false").lower() == "true"
+    admin_username = os.getenv("ADMIN_USERNAME", "admin")
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com")
+    admin_password = os.getenv("ADMIN_PASSWORD")
+
+    if not admin_enabled:
+        logger.info("默认管理员创建已禁用（ADMIN_ENABLED=false）")
+        return
+
+    if not admin_password:
+        logger.error("已启用默认管理员创建，但未提供 ADMIN_PASSWORD，操作中止")
+        return
+
     db = SessionLocal()
     try:
-        # 检查是否已存在管理员
-        admin = db.query(user.User).filter(user.User.username == "admin").first()
-        if admin:
-            logger.info("管理员用户已存在")
+        # 检查是否已存在任何管理员
+        existing_admin = db.query(user.User).filter(user.User.role == user.RoleEnum.admin).first()
+        if existing_admin:
+            logger.info("检测到管理员用户，跳过默认管理员创建")
             return
         
         # 创建管理员用户
         admin_user = user.User(
-            username="admin",
-            email="admin@example.com",
-            hashed_password=get_password_hash("admin123"),
+            username=admin_username,
+            email=admin_email,
+            hashed_password=get_password_hash(admin_password),
             role=user.RoleEnum.admin,
             is_verified=True,
+            must_change_password=True,
             bio="系统管理员",
         )
         
         db.add(admin_user)
         db.commit()
-        logger.info("管理员用户创建成功")
+        logger.info("管理员用户创建成功（已设置首登改密标记）")
     
     except Exception as e:
         logger.error(f"创建管理员失败: {e}")

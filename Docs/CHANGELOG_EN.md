@@ -10,6 +10,32 @@
 
 All notable changes to the LAT-Lab project will be documented in this file.
 
+## [v1.1.0] - 2025-11-12
+
+### 🔐 Identity & Security Reinforcements
+- Added a `must_change_password` policy flag with supporting database migration and login response fields to force high-risk accounts to rotate credentials after the next sign-in.
+- Hardened the authentication surface by consistently surfacing email as the token subject and tightening update flows that previously allowed implicit privilege changes.
+
+### 💬 Comment Moderation Workflow
+- Reworked article comment retrieval to build bounded reply trees (up to five levels) while keeping user metadata intact for each node.
+- Granted administrators the ability to inspect pending comments directly from the API without exposing them to regular users.
+
+### 🛠️ Admin Dev Tools Overhaul
+- Rebuilt the admin DevTools workspace with dedicated panels (`StatusIndicator`, `ElementNavigator`, `ChangeHistory`, `FileExporter`) and clearer loading states.
+- Added iframe readiness handshakes, element snapshots, and centralized refresh hooks to keep CSS, text, and layout edits in sync across pages.
+
+### 🧼 Content Safety Utilities
+- Introduced DOMPurify-backed helpers (`sanitizeHtml`, `safelyApplyContent`, `vHtmlSafe`) to sanitize HTML before rendering or exporting edited content.
+- Updated editors to detect HTML payloads and safely apply them through the new sanitation layer across the toolchain.
+
+### 🐳 Deployment & Operations
+- Replaced legacy `docker-deploy` scripts with unified `deploy.sh` / `deploy.ps1`, adding health checks, log tailing, resource cleanup, and guided environment setup for both Docker and traditional workflows.
+- Expanded `docker-compose.yml`, `docker.env.example`, and `env.traditional.example` with service health probes, resource limits, and optional frontend toggles (e.g., `VITE_ENABLE_DEV_TOOLS`).
+
+### 📚 Documentation & Test Tooling
+- Refreshed deployment, installation, and testing guides to align with the new scripts and environment templates.
+- Documented the expanded admin tooling and operations safeguards to support future maintenance.
+
 ## [v1.0.1] - 2025-08-15
 
 ### 🔒 Major Security System Updates
