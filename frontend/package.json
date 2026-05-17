@@ -12,7 +12,7 @@
   "dependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
     "axios": "^1.12.2",
-    "dompurify": "^3.3.0",
+    "dompurify": "^3.4.0",
     "fs-extra": "^11.3.2",
     "highlight.js": "^11.11.1",
     "marked": "^16.4.1",
